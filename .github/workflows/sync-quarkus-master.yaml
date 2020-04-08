@@ -44,4 +44,17 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Trigger status checks
         run: |
-          echo "===> ${{steps.create-pr.outputs.pr_url}}"
+          curl -H "Accept: application/vnd.github.everest-preview+json" \
+               -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              --request PATCH \
+              --data '{"state": "closed"}' \
+              https://api.github.com/repos/jamesnetherton/camel-quarkus/pulls/$(echo $"{{steps.create-pr.outputs.pr_url}}" | sed 's:.*/::')
+
+          sleep 5
+
+          curl -H "Accept: application/vnd.github.everest-preview+json" \
+               -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              --request PATCH \
+              --data '{"state": "open"}' \
+              https://api.github.com/repos/jamesnetherton/camel-quarkus/pulls/$(echo $"{{steps.create-pr.outputs.pr_url}}" | sed 's:.*/::')
+
