@@ -40,4 +40,4 @@ jobs:
           source_branch: master
           destination_branch: quarkus-master
           pr_title: Automatic sync branch master to quarkus-master
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.REPO_TOKEN }}
