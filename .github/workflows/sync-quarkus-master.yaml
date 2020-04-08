@@ -36,10 +36,10 @@ jobs:
         uses: actions/checkout@v1
       - name: GitHub Pull Request Action
         id: create-pr
-        uses: jamesnetherton/pull-request@master
+        uses: jamesnetherton/pull-request@pr-url-var
         with:
           source_branch: master
-          destination_branch: no-exists
+          destination_branch: quarkus-master
           pr_title: Automatic sync branch master to quarkus-master
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Trigger status checks
