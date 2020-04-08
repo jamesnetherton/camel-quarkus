@@ -17,22 +17,46 @@
 
 name: Sync Quarkus Master Branch
 
+#on:
+#  schedule:
+#    # Run every day at 2AM
+#    - cron:  '0 2 * * *'
+
 on:
-  schedule:
-    # Run every day at 2AM
-    - cron:  '0 2 * * *'
+  push:
+    branches:
+      - master
 
 jobs:
   sync-quarkus-master-branch:
-    if: github.repository == 'apache/camel-quarkus'
+    if: github.repository == 'jamesnetherton/camel-quarkus'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v1
       - name: GitHub Pull Request Action
-        uses: repo-sync/pull-request@v2.0.1
+        id: create-pr
+        uses: jamesnetherton/pull-request@master
         with:
           source_branch: master
           destination_branch: quarkus-master
           pr_title: Automatic sync branch master to quarkus-master
           github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Trigger status checks
+        run: |
+          PR_ID=$(echo "${{steps.create-pr.outputs.pr_url}}" | sed 's:.*/::')
+
+          curl -H "Accept: application/vnd.github.everest-preview+json" \
+               -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              --request PATCH \
+              --data '{"state": "closed"}' \
+              https://api.github.com/repos/jamesnetherton/camel-quarkus/pulls/${PR_ID}
+
+          sleep 5
+
+          curl -H "Accept: application/vnd.github.everest-preview+json" \
+               -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              --request PATCH \
+              --data '{"state": "open"}' \
+              https://api.github.com/repos/jamesnetherton/camel-quarkus/pulls/${PR_ID}
+
