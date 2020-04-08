@@ -29,7 +29,7 @@ on:
 
 jobs:
   sync-quarkus-master-branch:
-    if: github.repository == 'apache/camel-quarkus'
+    if: github.repository == 'jamesnetherton/camel-quarkus'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
