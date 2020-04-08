@@ -44,11 +44,13 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Trigger status checks
         run: |
+          PR_ID=$(echo "${{steps.create-pr.outputs.pr_url}}" | sed 's:.*/::')
+
           curl -H "Accept: application/vnd.github.everest-preview+json" \
                -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               --request PATCH \
               --data '{"state": "closed"}' \
-              https://api.github.com/repos/jamesnetherton/camel-quarkus/pulls/$(echo $"{{steps.create-pr.outputs.pr_url}}" | sed 's:.*/::')
+              https://api.github.com/repos/jamesnetherton/camel-quarkus/pulls/${PR_ID}
 
           sleep 5
 
@@ -56,5 +58,5 @@ jobs:
                -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               --request PATCH \
               --data '{"state": "open"}' \
-              https://api.github.com/repos/jamesnetherton/camel-quarkus/pulls/$(echo $"{{steps.create-pr.outputs.pr_url}}" | sed 's:.*/::')
+              https://api.github.com/repos/jamesnetherton/camel-quarkus/pulls/${PR_ID}
 
