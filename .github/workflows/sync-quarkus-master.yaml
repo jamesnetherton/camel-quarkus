@@ -39,7 +39,7 @@ jobs:
         uses: jamesnetherton/pull-request@master
         with:
           source_branch: master
-          destination_branch: quarkus-master
+          destination_branch: no-exists
           pr_title: Automatic sync branch master to quarkus-master
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Trigger status checks
