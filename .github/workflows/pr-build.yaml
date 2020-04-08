@@ -28,6 +28,9 @@ on:
       - 'KEYS'
       - 'LICENSE.txt'
       - 'NOTICE.txt'
+  push:
+    branches:
+      - quarkus-master
 
 env:
   LANG: en_US
@@ -41,7 +44,12 @@ jobs:
       - name: Set BRANCH_OPTIONS
         if: github.base_ref == 'camel-master' || github.base_ref == 'quarkus-master'
         run: |
-          echo '::set-env name=BRANCH_OPTIONS::-Psnapshots'
+          if [ "${GITHUB_BASE_REF} == "camel-master" ]; then
+            echo '::set-env name=BRANCH_OPTIONS::-Papache-snapshots'
+          fi
+          if [ "${GITHUB_BASE_REF} == "quarkus-master" ]; then
+            echo '::set-env name=BRANCH_OPTIONS::-Poss-snapshots'
+          fi
       - name: Checkout
         uses: actions/checkout@v2
       - name: Set up JDK 11
@@ -71,7 +79,12 @@ jobs:
       - name: Set BRANCH_OPTIONS
         if: github.base_ref == 'camel-master' || github.base_ref == 'quarkus-master'
         run: |
-          echo '::set-env name=BRANCH_OPTIONS::-Psnapshots'
+          if [ "${GITHUB_BASE_REF} == "camel-master" ]; then
+            echo '::set-env name=BRANCH_OPTIONS::-Papache-snapshots'
+          fi
+          if [ "${GITHUB_BASE_REF} == "quarkus-master" ]; then
+            echo '::set-env name=BRANCH_OPTIONS::-Poss-snapshots'
+          fi
       - uses: actions/checkout@v2
       - name: Set up JDK ${{ matrix.java }}
         uses: joschi/setup-jdk@v1
