@@ -18,9 +18,12 @@
 name: Sync Quarkus Master Branch
 
 on:
-  schedule:
-    # Run every day at 2AM
-    - cron:  '5 * * * *'
+  push:
+    branches:
+      - master
+#  schedule:
+#    # Run every day at 2AM
+#    - cron:  '5 * * * *'
 
 jobs:
   sync-quarkus-master-branch:
