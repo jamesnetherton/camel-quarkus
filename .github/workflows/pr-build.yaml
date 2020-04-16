@@ -111,115 +111,6 @@ jobs:
       fail-fast: false
       matrix:
         category: [Core, Foundation, Platform, Messaging, Dataformats, Networking, SQL, Cloud, Misc, SAAS, Social, Validation, Memoryhog Dozer, Memoryhog Dataformat JSON, Memoryhog Infinispan, Memoryhog Olingo4, Memoryhog XML]
-        include:
-          - category: Cloud
-            test-modules: >
-              aws
-              aws2
-              azure
-              consul
-          - category: Core
-            test-modules: >
-              core
-              core-impl
-              core-main
-              core-main-caffeine-lrucache
-              core-main-collector
-              core-main-xml-io
-              core-main-xml-jaxb
-          - category: Dataformats
-            test-modules: >
-              base64
-              bindy
-              csv
-              dataformat
-              jaxb
-              xstream
-              soap
-          - category: Foundation
-            test-modules: >
-              bean
-              controlbus
-              exec
-              file
-              hystrix
-              jsonpath
-              quartz
-              scheduler
-              seda
-              ref
-          - category: Memoryhog Dataformat JSON
-            test-modules: >
-              dataformats-json
-          - category: Memoryhog Dozer
-            test-modules: >
-              dozer
-          - category: Memoryhog Infinispan
-            test-modules: >
-              infinispan
-          - category: Memoryhog Olingo4
-            test-modules: >
-              olingo4
-          - category: Memoryhog XML
-            test-modules: >
-              xml
-              rest-binding-mode-xml
-          - category: Messaging
-            test-modules: >
-              activemq
-              amqp
-              kafka
-              messaging
-          - category: Misc
-            test-modules: >
-              braintree
-              compression
-              graphql
-              mustache
-              pdf
-              qute
-              stream
-              tarfile
-          - category: Networking
-            test-modules: >
-              ftp
-              http
-              mail
-              netty
-              servlet
-              websocket-jsr356
-          - category: Platform
-            test-modules: >
-              microprofile
-              opentracing
-              platform-http
-              platform-http-engine
-              reactive-streams
-          - category: SAAS
-            test-modules: >
-              box
-              github
-              google
-              jira
-              salesforce
-              sap-netweaver
-              servicenow
-              slack
-          - category: SQL
-            test-modules: >
-              couchdb
-              influxdb
-              jdbc
-              mongodb
-              sql
-          - category: Social
-            test-modules: >
-              telegram
-              twitter
-          - category: Validation
-            test-modules: >
-              bean-validator
-              validator
     steps:
       - name: Setup apache-snapshots profile
         if: github.base_ref == 'camel-master'
@@ -242,10 +133,28 @@ jobs:
           key: maven-${{ github.run_id }}-${{ github.run_number }}
           restore-keys: |
             maven-${{ github.run_id }}-${{ github.run_number }}
+      - name: Install yq
+        run: |
+          sudo wget -O /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/3.2.1/yq_linux_amd64"
+          sudo chmod +x /usr/local/bin/yq
       - name: Integration Tests
         env:
           TEST_MODULES: ${{matrix.test-modules}}
         run: |
+          TEST_MODULES=""
+          for MODULE in $(cat .github/test-categories.yaml | yq r - categories.${{ matrix.category }}); do
+            if [ "${MODULE}" == "-" ]; then
+              continue
+            fi
+            TEST_MODULES="${TEST_MODULES} ${MODULE}"
+          done
+          TEST_MODULES=$(echo ${TEST_MODULES} | sed 's/^[ \t]*//;s/[ \t]*$//')
+
+          if [ -z "${TEST_MODULES}" ]; then
+            echo "No test modules were found for category ${{ matrix.category }}"
+            exit 1
+          fi
+
           for i in $TEST_MODULES
           do modules+=("integration-tests/$i"); done
           IFS=,
