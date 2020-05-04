@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
@@ -47,6 +48,7 @@ import io.quarkus.deployment.recording.RecorderContext;
 import io.quarkus.runtime.RuntimeValue;
 import org.apache.camel.CamelContext;
 import org.apache.camel.impl.converter.BaseTypeConverterRegistry;
+import org.apache.camel.impl.engine.DefaultComponentNameResolver;
 import org.apache.camel.quarkus.core.CamelConfig;
 import org.apache.camel.quarkus.core.CamelMain;
 import org.apache.camel.quarkus.core.CamelMainProducers;
@@ -389,6 +391,7 @@ class BuildProcessor {
                 CamelRoutesLoaderBuildItems.Xml xmlLoader,
                 CamelModelToXMLDumperBuildItem modelDumper,
                 CamelFactoryFinderResolverBuildItem factoryFinderResolverBuildItem,
+                CamelComponentNameResolverBuildItem componentNameResolverBuildItem,
                 List<CamelContextCustomizerBuildItem> customizerBuildItems,
                 BeanContainerBuildItem beanContainer,
                 CamelConfig config) {
@@ -400,6 +403,7 @@ class BuildProcessor {
                     xmlLoader.getLoader(),
                     modelDumper.getValue(),
                     factoryFinderResolverBuildItem.getFactoryFinderResolver(),
+                    componentNameResolverBuildItem.getComponentNameResolver(),
                     beanContainer.getValue(),
                     CamelSupport.getCamelVersion(),
                     config);
@@ -465,6 +469,20 @@ class BuildProcessor {
             return new CamelFactoryFinderResolverBuildItem(recorder.factoryFinderResolver(builder));
         }
 
+        @Record(ExecutionTime.STATIC_INIT)
+        @BuildStep
+        CamelComponentNameResolverBuildItem componentNameResolver(CamelRecorder recorder,
+                ApplicationArchivesBuildItem applicationArchives) {
+            PathFilter pathFilter = new PathFilter.Builder()
+                    .include(DefaultComponentNameResolver.RESOURCE_PATH)
+                    .build();
+
+            Set<String> componentNames = CamelSupport.services(applicationArchives, pathFilter)
+                    .map(CamelServiceBuildItem::getName)
+                    .collect(Collectors.toCollection(TreeSet::new));
+
+            return new CamelComponentNameResolverBuildItem(recorder.createComponentNameResolver(componentNames));
+        }
     }
 
     /*

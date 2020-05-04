@@ -344,7 +344,7 @@ public class FastCamelContext extends AbstractCamelContext implements CatalogCam
 
     @Override
     protected ComponentNameResolver createComponentNameResolver() {
-        return new DefaultComponentNameResolver();
+        throw new UnsupportedOperationException();
     }
 
     @Override

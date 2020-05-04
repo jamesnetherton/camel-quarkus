@@ -103,4 +103,9 @@ public class CoreTest {
                 .statusCode(200)
                 .body(is("(Joe,null)"));
     }
+
+    @Test
+    public void testComponentNameResolver() {
+        RestAssured.when().get("/test/component/names").then().body(is("log,timer"));
+    }
 }

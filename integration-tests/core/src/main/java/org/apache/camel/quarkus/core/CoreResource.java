@@ -22,6 +22,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
+import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -219,4 +220,15 @@ public class CoreResource {
         }
     }
 
+    @Path("/component/names")
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public Response getComponentNames() {
+        String componentNames = context.adapt(ExtendedCamelContext.class)
+                .getComponentNameResolver()
+                .resolveNames(context)
+                .stream()
+                .collect(Collectors.joining(","));
+        return Response.ok().entity(componentNames).build();
+    }
 }
