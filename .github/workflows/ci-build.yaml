@@ -29,6 +29,7 @@ on:
       - 'LICENSE.txt'
       - 'NOTICE.txt'
   pull_request:
+    types: [assigned, opened, synchronize, reopened, ready_for_review, edited]
     branches:
       - master
       - camel-master
@@ -47,6 +48,7 @@ jobs:
     if: "github.event_name != 'pull_request' || ( \
            github.event.pull_request.draft == false && \
            github.event.pull_request.state != 'closed' && \
+           contains(github.event.issue.labels.*.name, 'wip') == false && \
            contains(github.event.pull_request.title, 'wip ') == false && \
            contains(github.event.pull_request.title, 'wip:') == false && \
            contains(github.event.pull_request.title, '[wip]') == false && \
