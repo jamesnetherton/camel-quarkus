@@ -29,7 +29,7 @@ on:
       - 'LICENSE.txt'
       - 'NOTICE.txt'
   pull_request:
-    types: [assigned, opened, synchronize, reopened, ready_for_review, edited]
+    types: [assigned, edited, opened, synchronize, reopened, ready_for_review]
     branches:
       - master
       - camel-master
@@ -54,6 +54,7 @@ jobs:
            contains(github.event.pull_request.title, '[wip]') == false && \
            (
              github.event.action != 'edited' || \
+             contains(github.event.issue.labels.*.name, 'wip') || \
              contains(github.event.changes.title.from, 'wip ') || \
              contains(github.event.changes.title.from, 'wip: ') || \
              contains(github.event.changes.title.from, '[wip]') \
