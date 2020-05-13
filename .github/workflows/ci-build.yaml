@@ -29,7 +29,7 @@ on:
       - 'LICENSE.txt'
       - 'NOTICE.txt'
   pull_request:
-    types: [assigned, edited, opened, synchronize, reopened, ready_for_review]
+    types: [edited, opened, synchronize, reopened, ready_for_review]
     branches:
       - master
       - camel-master
