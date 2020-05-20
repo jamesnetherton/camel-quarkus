@@ -50,6 +50,10 @@ jobs:
     outputs:
       matrix: ${{ steps.set-native-matrix.outputs.matrix }}
     steps:
+      - name: Cancel Previous Runs
+        uses: fauguste/auto-cancellation-running-action@0.1.4
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
       - name: Clean VM
         run: |
           df -h /
