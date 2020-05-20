@@ -51,9 +51,9 @@ jobs:
       matrix: ${{ steps.set-native-matrix.outputs.matrix }}
     steps:
       - name: Cancel Previous Runs
-        uses: yellowmegaman/gh-build-canceller@v1.6
+      - uses: n1hility/cancel-previous-runs@v2
         with:
-          github_token: ${{secrets.GITHUB_TOKEN}}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Clean VM
         run: |
           df -h /
