@@ -56,7 +56,7 @@ pipeline {
                         SNAPSHOT_VERSION = 'YYY-SNAPSHOT'
                     }
                 }
-                sh "./mvnw ${MAVEN_PARAMS} versions:set -DnewVersion=${version}"
+                sh "./mvnw ${MAVEN_PARAMS} versions:set -DnewVersion=${SNAPSHOT_VERSION}"
                 sh "./mvnw ${MAVEN_PARAMS} versions:commit"
             }
         }
