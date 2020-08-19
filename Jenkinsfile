@@ -59,9 +59,8 @@ pipeline {
             steps {
                 script {
                     def VERSION = sh script: './mvnw ${MAVEN_PARAMS} help:evaluate -Dexpression=project.version -q -DforceStdout', returnStdout: true
+                    sh "sed -i \"s/${VERSION}/${SNAPSHOT_VERSION}/g\" \$(find . -name pom.xml)"
                 }
-
-                sh "sed -i \"s/${VERSION}/${SNAPSHOT_VERSION}/g\" \$(find . -name pom.xml)"
             }
         }
 
