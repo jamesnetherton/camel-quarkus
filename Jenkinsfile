@@ -57,7 +57,7 @@ pipeline {
             }
 
             steps {
-                def CURRENT_VERSION = sh script: 'mvn help:evaluate -Dexpression=project.version -q -DforceStdout', returnStdout: true
+                CURRENT_VERSION = sh script: 'mvn help:evaluate -Dexpression=project.version -q -DforceStdout', returnStdout: true
                 sh "sed -i \"s/${CURRENT_VERSION}/${SNAPSHOT_VERSION}/g\" \$(find . -name pom.xml)"
             }
         }
