@@ -24,12 +24,12 @@ def MAVEN_PARAMS = '-B -U -V -B -e -ntp'
 def SNAPSHOT_VERSION = ''
 
 if (env.BRANCH_NAME == 'camel-master') {
-    SNAPSHOT_VERSION =  ""
+    SNAPSHOT_VERSION = '999.camel-SNAPSHOT'
     MAVEN_PARAMS += ' -Papache-snapshots'
 }
 
 if (env.BRANCH_NAME == 'quarkus-master') {
-    SNAPSHOT_VERSION =  ""
+    SNAPSHOT_VERSION = '999.quarkus-SNAPSHOT'
     MAVEN_PARAMS += ' -Poss-snapshots -Dquarkus.version=999-SNAPSHOT'
 }
 
@@ -57,8 +57,7 @@ pipeline {
             }
 
             steps {
-                CURRENT_VERSION = sh script: 'mvn help:evaluate -Dexpression=project.version -q -DforceStdout', returnStdout: true
-                sh "sed -i \"s/${CURRENT_VERSION}/${SNAPSHOT_VERSION}/g\" \$(find . -name pom.xml)"
+                sh "sed -i \"s/\$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)/${SNAPSHOT_VERSION}/g\" \$(find . -name pom.xml)"
             }
         }
 
