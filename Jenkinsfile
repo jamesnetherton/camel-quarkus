@@ -24,12 +24,12 @@ def MAVEN_PARAMS = '-B -U -V -B -e -ntp'
 def VERSION_SUFFIX = ''
 
 if (env.BRANCH_NAME == 'camel-master') {
-    VERSION_SUFFIX = 'camel-SNAPSHOT'
+    VERSION_SUFFIX = '.camel-SNAPSHOT'
     MAVEN_PARAMS += ' -Papache-snapshots'
 }
 
 if (env.BRANCH_NAME == 'quarkus-master') {
-    VERSION_SUFFIX = 'quarkus-SNAPSHOT'
+    VERSION_SUFFIX = '.quarkus-SNAPSHOT'
     MAVEN_PARAMS += ' -Poss-snapshots -Dquarkus.version=999-SNAPSHOT'
 }
 
