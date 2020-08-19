@@ -57,8 +57,11 @@ pipeline {
             }
 
             steps {
-                pom = readMavenPom
-                sh "sed -i \"s/\$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)/${SNAPSHOT_VERSION}/g\" \$(find . -name pom.xml)"
+                script {
+                    def VERSION = sh script: 'mvn help:evaluate -Dexpression=project.version -q -DforceStdout', returnStdout: true
+                }
+
+                sh "sed -i \"s/${VERSION}/${SNAPSHOT_VERSION}/g\" \$(find . -name pom.xml)"
             }
         }
 
