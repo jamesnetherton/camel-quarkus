@@ -21,6 +21,7 @@
 def AGENT_LABEL = env.AGENT_LABEL ?: 'master'
 def JDK_NAME = env.JDK_NAME ?: 'JDK 11 (latest)'
 def MAVEN_PARAMS = '-B -U -V -B -e -ntp'
+def CURRENT_VERSION = sh script: 'mvn help:evaluate -Dexpression=project.version -q -DforceStdout', returnStdout: true
 def SNAPSHOT_VERSION = ''
 
 if (env.BRANCH_NAME == 'camel-master') {
@@ -57,7 +58,7 @@ pipeline {
             }
 
             steps {
-                sh "sed -i \"s/\$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)/${SNAPSHOT_VERSION}/g\" \$(find . -name pom.xml)"
+                sh "sed -i \"s/${CURRENT_VERSION}/${SNAPSHOT_VERSION}/g\" \$(find . -name pom.xml)"
             }
         }
 
