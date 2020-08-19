@@ -58,7 +58,7 @@ pipeline {
 
             steps {
                 def version = sh script: 'mvn help:evaluate -Dexpression=project.version -q -DforceStdout', returnStdout: true
-                sh "sed 's/${version}/${SNAPSHOT_VERSION}/g' \\$(find . -name pom.xml)"
+                sh "sed 's/${version}/${SNAPSHOT_VERSION}/g' \$(find . -name pom.xml)"
             }
         }
 
