@@ -57,7 +57,8 @@ pipeline {
             }
 
             steps {
-                sh "./mvnw ${MAVEN_PARAMS} versions:set -DprocessAllModules -DgenerateBackupPoms=false -DnewVersion=${SNAPSHOT_VERSION}"
+                def version = sh script: 'mvn help:evaluate -Dexpression=project.version -q -DforceStdout', returnStdout: true
+                sh "sed 's/${version}/${SNAPSHOT_VERSION}/g' $(find . -name pom.xml)"
             }
         }
 
