@@ -21,6 +21,17 @@
 def AGENT_LABEL = env.AGENT_LABEL ?: 'master'
 def JDK_NAME = env.JDK_NAME ?: 'JDK 11 (latest)'
 def MAVEN_PARAMS = '-B -U -V -B -e -ntp'
+def SNAPSHOT_VERSION = ''
+
+if (env.BRANCH_NAME == 'camel-master') {
+    SNAPSHOT_VERSION = 'XXX-SNAPSHOT'
+    MAVEN_PARAMS += ' -Papache-snapshots'
+}
+
+if (env.BRANCH_NAME == 'quarkus-master') {
+    SNAPSHOT_VERSION = 'YYY-SNAPSHOT'
+    MAVEN_PARAMS += ' -Poss-snapshots -Dquarkus.version=999-SNAPSHOT'
+}
 
 pipeline {
 
@@ -40,39 +51,19 @@ pipeline {
     }
 
     stages {
-        stage('Set SNAPSHOT version') {
+        stage('Set version') {
             when {
                 expression { env.BRANCH_NAME ==~ /(.*-master)/ }
             }
 
             steps {
-                script {
-                    def version = ''
-                    if (env.BRANCH_NAME == 'camel-master') {
-                        version = 'XXX-SNAPSHOT'
-                    }
-
-                    if (env.BRANCH_NAME == 'quarkus-master') {
-                        version = 'YYY-SNAPSHOT'
-                    }
-                }
-                sh "./mvnw ${MAVEN_PARAMS} versions:set -DnewVersion=${version}"
+                sh "./mvnw ${MAVEN_PARAMS} versions:set -DnewVersion=${SNAPSHOT_VERSION}"
                 sh "./mvnw ${MAVEN_PARAMS} versions:commit"
             }
         }
 
         stage('Build, Test & Deploy') {
             steps {
-                script {
-                    if (env.BRANCH_NAME == 'camel-master') {
-                        MAVEN_PARAMS += ' -Papache-snapshots'
-                    }
-
-                    if (env.BRANCH_NAME == 'quarkus-master') {
-                        MAVEN_PARAMS += ' -Dquarkus.version=999-SNAPSHOT'
-                    }
-                }
-
                 // TODO: Enable tests
                 sh "./mvnw ${MAVEN_PARAMS} -Denforce=false -Dformatter.skip -Dimpsort.skip -Dmaven.test.skip=true clean deploy"
             }
