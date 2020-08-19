@@ -23,16 +23,13 @@ def JDK_NAME = env.JDK_NAME ?: 'JDK 11 (latest)'
 def MAVEN_PARAMS = '-B -U -V -B -e -ntp'
 def SNAPSHOT_VERSION = ''
 
-def pom = readMavenPom file: 'pom.xml'
-println pom.version
-
 if (env.BRANCH_NAME == 'camel-master') {
-    SNAPSHOT_VERSION =  ""
+    SNAPSHOT_VERSION =  CURRENT_VERSION.replace('-SNAPSHOT', '') + ".camel-SNAPSHOT"
     MAVEN_PARAMS += ' -Papache-snapshots'
 }
 
 if (env.BRANCH_NAME == 'quarkus-master') {
-    SNAPSHOT_VERSION =  ""
+    SNAPSHOT_VERSION =  CURRENT_VERSION.replace('-SNAPSHOT', '') + ".camel-SNAPSHOT"
     MAVEN_PARAMS += ' -Poss-snapshots -Dquarkus.version=999-SNAPSHOT'
 }
 
@@ -60,6 +57,7 @@ pipeline {
             }
 
             steps {
+                def CURRENT_VERSION = sh script: 'mvn help:evaluate -Dexpression=project.version -q -DforceStdout', returnStdout: true
                 sh "sed -i \"s/${CURRENT_VERSION}/${SNAPSHOT_VERSION}/g\" \$(find . -name pom.xml)"
             }
         }
