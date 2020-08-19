@@ -21,6 +21,7 @@
 def AGENT_LABEL = env.AGENT_LABEL ?: 'master'
 def JDK_NAME = env.JDK_NAME ?: 'JDK 11 (latest)'
 def MAVEN_PARAMS = '-B -U -V -B -e -ntp'
+def SNAPSHOT_VERSION = ''
 
 pipeline {
 
@@ -47,13 +48,12 @@ pipeline {
 
             steps {
                 script {
-                    def version = ''
                     if (env.BRANCH_NAME == 'camel-master') {
-                        version = 'XXX-SNAPSHOT'
+                        SNAPSHOT_VERSION = 'XXX-SNAPSHOT'
                     }
 
                     if (env.BRANCH_NAME == 'quarkus-master') {
-                        version = 'YYY-SNAPSHOT'
+                        SNAPSHOT_VERSION = 'YYY-SNAPSHOT'
                     }
                 }
                 sh "./mvnw ${MAVEN_PARAMS} versions:set -DnewVersion=${version}"
