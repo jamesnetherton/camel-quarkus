@@ -21,15 +21,13 @@
 def AGENT_LABEL = env.AGENT_LABEL ?: 'master'
 def JDK_NAME = env.JDK_NAME ?: 'JDK 11 (latest)'
 def MAVEN_PARAMS = '-B -U -V -B -e -ntp'
-def VERSION_SUFFIX = ''
+def VERSION_SUFFIX = ".${env.BRANCH_NAME.toUpperCase().replace('_','-')}-SNAPSHOT"
 
 if (env.BRANCH_NAME == 'camel-master') {
-    VERSION_SUFFIX = '.camel-SNAPSHOT'
     MAVEN_PARAMS += ' -Papache-snapshots'
 }
 
 if (env.BRANCH_NAME == 'quarkus-master') {
-    VERSION_SUFFIX = '.quarkus-SNAPSHOT'
     MAVEN_PARAMS += ' -Poss-snapshots -Dquarkus.version=999-SNAPSHOT'
 }
 
@@ -59,8 +57,8 @@ pipeline {
             steps {
                 script {
                     def VERSION = sh script: './mvnw ${MAVEN_PARAMS} help:evaluate -Dexpression=project.version -q -DforceStdout', returnStdout: true
-                    SNAPSHOT_VERSION = VERSION.replace('-SNAPSHOT', '') + VERSION_SUFFIX
-                    sh "sed -i \"s/${VERSION}/${SNAPSHOT_VERSION}/g\" \$(find . -name pom.xml)"
+                    NEW_SNAPSHOT_VERSION = VERSION.replace('-SNAPSHOT', '') + VERSION_SUFFIX
+                    sh "sed -i \"s/${VERSION}/${NEW_SNAPSHOT_VERSION}/g\" \$(find . -name pom.xml)"
                 }
             }
         }
