@@ -21,6 +21,7 @@
 def AGENT_LABEL = env.AGENT_LABEL ?: 'master'
 def JDK_NAME = env.JDK_NAME ?: 'JDK 11 (latest)'
 def MAVEN_PARAMS = '-B -U -V -B -e -ntp'
+def SNAPSHOT_VERSION = ''
 
 pipeline {
 
@@ -46,8 +47,6 @@ pipeline {
             }
 
             steps {
-                def SNAPSHOT_VERSION = ''
-
                 script {
                     if (env.BRANCH_NAME == 'camel-master') {
                         SNAPSHOT_VERSION = 'XXX-SNAPSHOT'
@@ -70,7 +69,7 @@ pipeline {
                     }
 
                     if (env.BRANCH_NAME == 'quarkus-master') {
-                        MAVEN_PARAMS += ' -Poss-snapshots -Dquarkus.version=999-SNAPSHOT'
+                        MAVEN_PARAMS += ' -Dquarkus.version=999-SNAPSHOT'
                     }
                 }
 
