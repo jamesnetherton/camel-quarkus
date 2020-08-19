@@ -57,8 +57,7 @@ pipeline {
             }
 
             steps {
-                sh "./mvnw ${MAVEN_PARAMS} versions:set -DnewVersion=${SNAPSHOT_VERSION}"
-                sh "./mvnw ${MAVEN_PARAMS} versions:commit"
+                sh "./mvnw ${MAVEN_PARAMS} versions:set -DgenerateBackupPoms=false -DnewVersion=${SNAPSHOT_VERSION}"
             }
         }
 
