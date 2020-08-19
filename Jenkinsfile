@@ -57,7 +57,7 @@ pipeline {
             }
 
             steps {
-                sh "sed -i 's/\$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)/${SNAPSHOT_VERSION}/g' \$(find . -name pom.xml)"
+                sh "sed -i 's/\$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)/${SNAPSHOT_VERSION}/g' \$(find . -name pom.xml)"
             }
         }
 
