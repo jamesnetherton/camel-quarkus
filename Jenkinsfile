@@ -69,7 +69,7 @@ pipeline {
                     }
 
                     if (env.BRANCH_NAME == 'quarkus-master') {
-                        MAVEN_PARAMS += ' -Dquarkus.version=999-SNAPSHOT'
+                        MAVEN_PARAMS += '  -Poss-snapshots -Dquarkus.version=999-SNAPSHOT'
                     }
                 }
 
