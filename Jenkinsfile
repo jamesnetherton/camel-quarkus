@@ -23,7 +23,7 @@ def JDK_NAME = env.JDK_NAME ?: 'JDK 11 (latest)'
 def MAVEN_PARAMS = '-B -U -V -B -e -ntp'
 def SNAPSHOT_VERSION = ''
 
-def pom = readMavenPom()
+def pom = readMavenPom file: 'pom.xml'
 println pom.version
 
 if (env.BRANCH_NAME == 'camel-master') {
