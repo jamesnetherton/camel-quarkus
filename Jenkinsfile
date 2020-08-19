@@ -21,16 +21,18 @@
 def AGENT_LABEL = env.AGENT_LABEL ?: 'master'
 def JDK_NAME = env.JDK_NAME ?: 'JDK 11 (latest)'
 def MAVEN_PARAMS = '-B -U -V -B -e -ntp'
-def CURRENT_VERSION = sh script: 'mvn help:evaluate -Dexpression=project.version -q -DforceStdout', returnStdout: true
 def SNAPSHOT_VERSION = ''
 
+def pom = readMavenPom()
+println pom.version
+
 if (env.BRANCH_NAME == 'camel-master') {
-    SNAPSHOT_VERSION = 'XXX-SNAPSHOT'
+    SNAPSHOT_VERSION =  ""
     MAVEN_PARAMS += ' -Papache-snapshots'
 }
 
 if (env.BRANCH_NAME == 'quarkus-master') {
-    SNAPSHOT_VERSION = 'YYY-SNAPSHOT'
+    SNAPSHOT_VERSION =  ""
     MAVEN_PARAMS += ' -Poss-snapshots -Dquarkus.version=999-SNAPSHOT'
 }
 
