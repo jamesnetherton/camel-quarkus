@@ -21,7 +21,7 @@
 def AGENT_LABEL = env.AGENT_LABEL ?: 'master'
 def JDK_NAME = env.JDK_NAME ?: 'JDK 11 (latest)'
 def MAVEN_PARAMS = '-B -U -V -B -e -ntp'
-def VERSION_SUFFIX = ".${env.BRANCH_NAME.toUpperCase().replace('_','-')}-SNAPSHOT"
+def VERSION_SUFFIX = "-${env.BRANCH_NAME.toUpperCase().replace('_','-')}-SNAPSHOT"
 
 if (env.BRANCH_NAME == 'camel-master') {
     MAVEN_PARAMS += ' -Papache-snapshots'
