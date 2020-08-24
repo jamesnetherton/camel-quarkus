@@ -53,6 +53,7 @@ pipeline {
                 script {
                     if (env.BRANCH_NAME == "quarkus-master") {
                         dir('quarkus') {
+                            deleteDir()
                             sh "git clone --depth 1 --branch master https://github.com/quarkusio/quarkus.git"
                             sh "./mvnw ${MAVEN_PARAMS} -Dquickly clean install"
                         }
