@@ -52,9 +52,10 @@ pipeline {
             steps {
                 script {
                     if (env.BRANCH_NAME == "quarkus-master") {
-                        sh "rm -rf ${env.WORKSPACE}/quarkus"
-                        sh "git clone --depth 1 --branch master https://github.com/quarkusio/quarkus.git ${env.WORKSPACE}/quarkus"
-                        sh "./mvnw ${MAVEN_PARAMS} -Dquickly clean install -f ./quarkus/pom.xml"
+                        dir('quarkus') {
+                            sh "git clone --depth 1 --branch master https://github.com/quarkusio/quarkus.git"
+                            sh "./mvnw ${MAVEN_PARAMS} -Dquickly clean install"
+                        }
                     }
 
                     def VERSION = sh script: "./mvnw ${MAVEN_PARAMS} help:evaluate -Dexpression=project.version -q -DforceStdout", returnStdout: true
