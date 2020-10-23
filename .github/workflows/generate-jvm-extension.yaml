@@ -19,9 +19,10 @@ name: Generate JVM Extensions
 
 on:
   workflow_dispatch:
-    artifactIds:
-      description: 'Comma separated list of Camel component artifact ids'     
-      required: true
+    inputs:
+      artifactIds:
+        description: 'Comma separated list of Camel component artifact ids'     
+        required: true
 
 jobs:
   generate-jvm-extensions:
