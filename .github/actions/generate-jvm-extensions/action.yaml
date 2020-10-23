@@ -45,6 +45,9 @@ runs:
         # Remove pom hacks
         git reset --hard HEAD
 
+        OLDIFS=${IFS}
+        IFS=,
+
         for ARTIFACT_ID in ${ARTIFACT_IDS}; do
           # Create extension
           ./mvnw -V -ntp cq:create -N -Dcq.artifactIdBase=${ARTIFACT_ID} -Dcq.nativeSupported=false
@@ -60,7 +63,6 @@ runs:
           CHANGED=true
         done
 
-
         IFS=${OLDIFS}
 
         if [[ "${CHANGED}" == "true" ]]; then
@@ -69,4 +71,3 @@ runs:
             --body="This is an auto-generated pull request to add JVM only extensions for ${{ inputs.artifact-ids }}.\n\nYou can edit the changes by checking out branch ${BRANCH_NAME}" \
             --label="JVM"
         fi
-
