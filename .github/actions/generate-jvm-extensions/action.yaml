@@ -70,3 +70,4 @@ runs:
 
         echo "::set-output name=extensions-added::$(echo ${CHANGED})"
         echo "::set-output name=extension-artifact-ids::$(echo ${ARTIFACT_IDS})"
+        echo "::set-output name=branch-name::$(echo ${BRANCH_NAME})"
