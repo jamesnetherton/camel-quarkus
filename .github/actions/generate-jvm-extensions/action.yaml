@@ -37,7 +37,7 @@ runs:
         git checkout -b ${BRANCH_NAME}
 
         # Build prerequisites. Unfortunately the catalog requires all of the extension projects to be built...
-        ./mvnw -V -ntp -Dmaven.test.skip -Dquarkus.build.skip -Denforce=false -Dformat.skip -am -pl catalog -pl tooling/maven-plugin clean install
+        ./mvnw -V -ntp -Dmaven.test.skip -Dquarkus.build.skip -Denforce=false -Dformat.skip -DskipExtensionValidation=true -am -pl catalog -pl tooling/maven-plugin clean install
 
         OLDIFS=${IFS}
         IFS=,
