@@ -21,6 +21,9 @@ inputs:
   artifact-ids:
     description: 'Comma separated list of Camel component artifact ids to generate JVM only extensions for. The artifact id can either be the base name (E.g activemq) or the full name (E.g camel-activemq).'
     required: true
+  token:
+    description: 'The GitHub token to use for creating a pull request with the changes.'
+    required: true    
 runs:
   using: "composite"
   steps:
@@ -65,10 +68,4 @@ runs:
 
         IFS=${OLDIFS}
 
-        if [[ "${CHANGED}" == "true" ]]; then
-          export GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
-          gh pr create \ 
-            --title="Add JVM only extensions for ${ARTIFACT_IDS}" \
-            --body="This is an auto-generated pull request to add JVM only extensions for ${ARTIFACT_IDS}.\n\nYou can edit the changes by checking out branch ${BRANCH_NAME}" \
-            --label="JVM"
-        fi
+        echo "::set-output name=extensions-added::$(echo ${CHANGED})"
