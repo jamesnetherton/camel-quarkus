@@ -44,6 +44,6 @@ jobs:
         if: ${{ steps.generate.outputs.extensions-added }} == "true"
         run: |
           GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} gh pr create \ 
-            --title="Add JVM only extensions for ${ARTIFACT_IDS}" \
-            --body="This is an auto-generated pull request to add JVM only extensions for ${ARTIFACT_IDS}.\n\nYou can edit the changes by checking out branch ${BRANCH_NAME}" \
+            --title="Add JVM only extensions for ${{ steps.generate.outputs.extension-artifact-ids }}" \
+            --body="This is an auto-generated pull request to add JVM only extensions for ${{ steps.generate.outputs.extension-artifact-ids }}.\n\nYou can edit the changes by checking out branch ${BRANCH_NAME}" \
             --label="JVM"        
