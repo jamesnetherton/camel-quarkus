@@ -42,8 +42,11 @@ runs:
         pushd poms
         ../mvnw -V -ntp clean install
         popd
-        pushd extensions-core/core
-        ../../mvnw -V -ntp clean install
+        pushd extensions-support
+        ../mvnw -V -ntp clean install
+        popd
+        pushd extensions-core
+        ../mvnw -V -ntp clean install
         popd
 
 
