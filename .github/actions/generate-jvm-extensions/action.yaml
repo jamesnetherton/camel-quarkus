@@ -47,16 +47,16 @@ runs:
           mvn -V -ntp -DskipTests -Dquarkus.build.skip -pl extensions-jvm/${ARTIFACT_ID} -am clean package
 
           git commit -am "${ARTIFACT_ID} JVM support"
-          CHANGED=true
+          # CHANGED=true
         done
 
 
         IFS=${OLDIFS}
 
         if [[ "${CHANGED}" == "true" ]]; then
-          # gh pr create \ 
-          #   --title="Add JVM only extensions for ${{ inputs.artifact-ids }}" \
-          #   --body="This is an auto-generated pull request to add JVM only extensions for ${{ inputs.artifact-ids }}.\n\nYou can edit the changes by checking out branch ${BRANCH_NAME}" \
-          #   --label="JVM"
+          gh pr create \ 
+            --title="Add JVM only extensions for ${{ inputs.artifact-ids }}" \
+            --body="This is an auto-generated pull request to add JVM only extensions for ${{ inputs.artifact-ids }}.\n\nYou can edit the changes by checking out branch ${BRANCH_NAME}" \
+            --label="JVM"
         fi
 
