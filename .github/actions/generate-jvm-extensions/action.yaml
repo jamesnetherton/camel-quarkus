@@ -32,6 +32,8 @@ runs:
 
         ARTIFACT_IDS="${${{ inputs.artifact-ids }}##camel-}"
         BRANCH_NAME="add-jvm-extensions-$(uuidgen | cut -f1 -d'-')"
+        CHANGED=false
+
         git checkout -b ${BRANCH_NAME}
 
         OLDIFS=${IFS}
@@ -45,12 +47,16 @@ runs:
           mvn -V -ntp -DskipTests -Dquarkus.build.skip -pl extensions-jvm/${ARTIFACT_ID} -am clean package
 
           git commit -am "${ARTIFACT_ID} JVM support"
+          CHANGED=true
         done
+
 
         IFS=${OLDIFS}
 
-        # gh pr create \ 
-        #   --title="Add JVM only extensions for ${{ inputs.artifact-ids }}" \
-        #   --body="This is an auto-generated pull request to add JVM only extensions for ${{ inputs.artifact-ids }}.\n\nYou can edit the changes by checking out branch ${BRANCH_NAME}" \
-        #   --label="JVM"
+        if [[ "${CHANGED}" == "true" ]]; then
+          # gh pr create \ 
+          #   --title="Add JVM only extensions for ${{ inputs.artifact-ids }}" \
+          #   --body="This is an auto-generated pull request to add JVM only extensions for ${{ inputs.artifact-ids }}.\n\nYou can edit the changes by checking out branch ${BRANCH_NAME}" \
+          #   --label="JVM"
+        fi
 
