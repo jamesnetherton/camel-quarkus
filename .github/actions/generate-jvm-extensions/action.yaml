@@ -36,9 +36,17 @@ runs:
 
         git checkout -b ${BRANCH_NAME}
 
-        # Build prequisites
-        ./mvnw -V -ntp -DskipTests -Dquarkus.build.skip -Denforce=false -pl extensions-core/core/deployment -am clean install
+        # Build prequisites. Unfortunately the catalog requires all of the extension poms to be built...
+        ./mvnw -V -ntp -Dmaven.test.skip -Dquarkus.build.skip -Denforce=false -pl extensions-core/core/deployment -am clean install
         ./mvnw -V -ntp -pl poms/bom clean install
+
+        pushd extensions
+        ../mvnw -V -ntp -Dmaven.test.skip -Dquarkus.build.skip -Denforce=false -Dformat.skip clean install
+        popd
+
+        pushd extensions-jvm
+        ../mvnw -V -ntp -Dmaven.test.skip -Dquarkus.build.skip -Denforce=false -Dformat.skip clean install
+        popd
 
         OLDIFS=${IFS}
         IFS=,
