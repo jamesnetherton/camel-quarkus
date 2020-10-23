@@ -43,8 +43,8 @@ runs:
           # Create extension
           mvn -V -ntp cq:create -N -Dcq.artifactIdBase=${ARTIFACT_ID} -Dcq.nativeSupported=false
 
-          # Verify extension builds & regenerate docs
-          mvn -V -ntp -DskipTests -Dquarkus.build.skip -pl extensions-jvm/${ARTIFACT_ID} -am clean package
+          # Verify extension builds, run formatting steps & docs generation 
+          mvn -V -ntp -DskipTests -Dquarkus.build.skip -pl extensions-jvm/${ARTIFACT_ID} -am -amd clean package
 
           git commit -am "${ARTIFACT_ID} JVM support"
           # CHANGED=true
