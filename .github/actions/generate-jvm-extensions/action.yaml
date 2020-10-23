@@ -30,29 +30,27 @@ runs:
         git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
 
+        ARTIFACT_IDS="${${{ inputs.artifact-ids }}##camel-}"
         BRANCH_NAME="add-jvm-extensions-$(uuidgen | cut -f1 -d'-')"
         git checkout -b ${BRANCH_NAME}
 
         OLDIFS=${IFS}
         IFS=,
 
-        for artifactId in "${{ inputs.artifact-ids }}"; do
-          echo "=====> ${artifactId}"
-          echo "mvn -V -ntp cq:create -N -Dcq.artifactIdBase=${artifactId} -Dcq.nativeSupported=false"
-
+        for ARTIFACT_ID in ${ARTIFACT_IDS} ; do
           # Create extension
-          mvn -V -ntp cq:create -N -Dcq.artifactIdBase=${artifactId} -Dcq.nativeSupported=false
+          mvn -V -ntp cq:create -N -Dcq.artifactIdBase=${ARTIFACT_ID} -Dcq.nativeSupported=false
 
           # Verify extension builds & regenerate docs
-          mvn -V -ntp -DskipTests -Dquarkus.build.skip -pl extensions-jvm/${artifactId}
+          mvn -V -ntp -DskipTests -Dquarkus.build.skip -pl extensions-jvm/${ARTIFACT_ID}
 
-          git commit -am "${artifactId} JVM support"
+          git commit -am "${ARTIFACT_ID} JVM support"
         done
 
         IFS=${OLDIFS}
 
-        gh pr create \ 
-          --title="Add JVM only extensions for ${{ inputs.artifact-ids }}" \
-          --body="This is an auto-generated pull request to add JVM only extensions for ${{ inputs.artifact-ids }}.\n\nYou can edit the changes by checking out branch ${BRANCH_NAME}" \
-          --label="JVM"
+        # gh pr create \ 
+        #   --title="Add JVM only extensions for ${{ inputs.artifact-ids }}" \
+        #   --body="This is an auto-generated pull request to add JVM only extensions for ${{ inputs.artifact-ids }}.\n\nYou can edit the changes by checking out branch ${BRANCH_NAME}" \
+        #   --label="JVM"
 
