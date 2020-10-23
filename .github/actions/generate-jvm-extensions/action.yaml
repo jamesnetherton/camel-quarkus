@@ -36,6 +36,9 @@ runs:
 
         git checkout -b ${BRANCH_NAME}
 
+        # Build camel-quarkus-maven-plugin
+        mvn -V -ntp -DskipTests -pl tooling/maven-plugin clean install
+
         OLDIFS=${IFS}
         IFS=,
 
