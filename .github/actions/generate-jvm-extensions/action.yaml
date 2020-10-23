@@ -42,7 +42,7 @@ runs:
         # Unfortunately the catalog requires all of the extension projects to be built...
         ./mvnw -V -ntp -Dmaven.test.skip -Dquarkus.build.skip -Denforce=false -Dformat.skip clean install
 
-        // Remove pom hacks
+        # Remove pom hacks
         git checkout pom.xml
 
         for ARTIFACT_ID in ${ARTIFACT_IDS}; do
