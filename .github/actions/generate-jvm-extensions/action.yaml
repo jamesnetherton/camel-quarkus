@@ -30,7 +30,7 @@ runs:
         git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
 
-        ARTIFACT_IDS="${${{ inputs.artifact-ids }}##camel-}"
+        ARTIFACT_IDS=$(echo "${{ inputs.artifact-ids }}" | sed 's/camel-//g')
         BRANCH_NAME="add-jvm-extensions-$(uuidgen | cut -f1 -d'-')"
         CHANGED=false
 
@@ -39,7 +39,7 @@ runs:
         OLDIFS=${IFS}
         IFS=,
 
-        for ARTIFACT_ID in ${ARTIFACT_IDS} ; do
+        for ARTIFACT_ID in ${ARTIFACT_IDS}; do
           # Create extension
           mvn -V -ntp cq:create -N -Dcq.artifactIdBase=${ARTIFACT_ID} -Dcq.nativeSupported=false
 
