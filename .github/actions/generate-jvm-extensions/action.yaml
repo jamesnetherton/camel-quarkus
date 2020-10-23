@@ -53,7 +53,7 @@ runs:
           ./mvnw -V -ntp cq:create -N -Dcq.artifactIdBase=${ARTIFACT_ID} -Dcq.nativeSupported=false
 
           # Verify extension builds, run formatting steps & docs generation 
-          ./mvnw -V -ntp -DskipTests -Dquarkus.build.skip \
+          ./mvnw -V -ntp \
             -pl extensions-jvm/${ARTIFACT_ID} \
             -pl extensions-jvm/${ARTIFACT_ID}/runtime \
             -pl extensions-jvm/${ARTIFACT_ID}/deployment \
@@ -66,6 +66,7 @@ runs:
         IFS=${OLDIFS}
 
         if [[ "${CHANGED}" == "true" ]]; then
+          export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
           gh pr create \ 
             --title="Add JVM only extensions for ${ARTIFACT_IDS}" \
             --body="This is an auto-generated pull request to add JVM only extensions for ${ARTIFACT_IDS}.\n\nYou can edit the changes by checking out branch ${BRANCH_NAME}" \
