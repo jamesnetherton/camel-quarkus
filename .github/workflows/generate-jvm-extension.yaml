@@ -52,4 +52,6 @@ jobs:
       - name: Cleanup
         if: failure()
         run: |
-          git push origin --delete ${{ steps.generate.outputs.branch-name }}
+          if git branch | grep ${{ steps.generate.outputs.branch-name }}; then
+            git push origin --delete ${{ steps.generate.outputs.branch-name }}
+          fi
