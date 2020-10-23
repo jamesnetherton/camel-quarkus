@@ -39,7 +39,7 @@ runs:
         # Build BOMs & camel-quarkus-maven-plugin
         ./mvnw -V -ntp -DskipTests -pl tooling/maven-plugin clean install
         pushd poms
-        ./mvnw -V -ntp clean install
+        ../mvnw -V -ntp clean install
         popd
 
         OLDIFS=${IFS}
