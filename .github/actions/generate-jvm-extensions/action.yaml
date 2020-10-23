@@ -36,18 +36,21 @@ runs:
 
         git checkout -b ${BRANCH_NAME}
 
-        # Build camel-quarkus-maven-plugin
-        mvn -V -ntp -DskipTests -pl tooling/maven-plugin clean install
+        # Build BOMs & camel-quarkus-maven-plugin
+        ./mvnw -V -ntp -DskipTests -pl tooling/maven-plugin clean install
+        pushd poms
+        ./mvnw -V -ntp clean install
+        popd
 
         OLDIFS=${IFS}
         IFS=,
 
         for ARTIFACT_ID in ${ARTIFACT_IDS}; do
           # Create extension
-          mvn -V -ntp cq:create -N -Dcq.artifactIdBase=${ARTIFACT_ID} -Dcq.nativeSupported=false
+          ./mvnw -V -ntp cq:create -N -Dcq.artifactIdBase=${ARTIFACT_ID} -Dcq.nativeSupported=false
 
           # Verify extension builds, run formatting steps & docs generation 
-          mvn -V -ntp -DskipTests -Dquarkus.build.skip -pl extensions-jvm/${ARTIFACT_ID} -am -amd clean package
+          ./mvnw -V -ntp -DskipTests -Dquarkus.build.skip -pl extensions-jvm/${ARTIFACT_ID} -am -amd clean package
 
           git commit -am "${ARTIFACT_ID} JVM support"
           # CHANGED=true
