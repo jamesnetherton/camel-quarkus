@@ -37,7 +37,8 @@ runs:
         git checkout -b ${BRANCH_NAME}
 
         # Build prequisites
-        ./mvnw -V -ntp -pl extensions-core/core/deployment -am clean install
+        ./mvnw -V -ntp -DskipTests -Dquarkus.build.skip -Denforce=false -pl extensions-core/core/deployment -am clean install
+        ./mvnw -V -ntp -pl poms/bom clean install
 
         OLDIFS=${IFS}
         IFS=,
