@@ -36,11 +36,15 @@ runs:
 
         git checkout -b ${BRANCH_NAME}
 
-        # Build BOMs & camel-quarkus-maven-plugin
+        # Build prequisites
         ./mvnw -V -ntp -DskipTests -pl tooling/maven-plugin clean install
         pushd poms
         ../mvnw -V -ntp clean install
         popd
+        pushd extensions-core/core
+        ../../mvnw -V -ntp clean install
+        popd
+
 
         OLDIFS=${IFS}
         IFS=,
