@@ -37,7 +37,12 @@ runs:
         IFS=,
 
         for artifactId in "${{ inputs.artifact-ids }}"; do
-          mvn cq:create -N -Dcq.artifactIdBase=${artifactId} -Dcq.nativeSupported=false
+          # Create extension
+          mvn -V -ntp cq:create -N -Dcq.artifactIdBase=${artifactId} -Dcq.nativeSupported=false
+
+          # Verify extension builds & regenerate docs
+          mvn -V -ntp -DskipTests -Dquarkus.build.skip -pl extensions-jvm/${artifactId}
+
           git commit -am "${artifactId} JVM support"
         done
 
