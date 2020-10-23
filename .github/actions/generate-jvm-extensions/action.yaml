@@ -37,6 +37,9 @@ runs:
         IFS=,
 
         for artifactId in "${{ inputs.artifact-ids }}"; do
+          echo "=====> ${artifactId}"
+          echo "mvn -V -ntp cq:create -N -Dcq.artifactIdBase=${artifactId} -Dcq.nativeSupported=false"
+
           # Create extension
           mvn -V -ntp cq:create -N -Dcq.artifactIdBase=${artifactId} -Dcq.nativeSupported=false
 
