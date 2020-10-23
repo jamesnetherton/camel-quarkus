@@ -66,7 +66,7 @@ runs:
         IFS=${OLDIFS}
 
         if [[ "${CHANGED}" == "true" ]]; then
-          export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          export GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
           gh pr create \ 
             --title="Add JVM only extensions for ${ARTIFACT_IDS}" \
             --body="This is an auto-generated pull request to add JVM only extensions for ${ARTIFACT_IDS}.\n\nYou can edit the changes by checking out branch ${BRANCH_NAME}" \
