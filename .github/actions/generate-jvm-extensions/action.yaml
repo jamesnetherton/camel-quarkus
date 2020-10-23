@@ -37,6 +37,7 @@ runs:
         git checkout -b ${BRANCH_NAME}
 
         # Build prequisites
+        ./mvnw -V -ntp -N
         ./mvnw -V -ntp -DskipTests -pl tooling/maven-plugin clean install
         pushd poms
         ../mvnw -V -ntp clean install
