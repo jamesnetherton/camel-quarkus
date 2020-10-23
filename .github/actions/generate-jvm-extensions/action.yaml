@@ -43,14 +43,14 @@ runs:
         ./mvnw -V -ntp -Dmaven.test.skip -Dquarkus.build.skip -Denforce=false -Dformat.skip clean install
 
         # Remove pom hacks
-        git checkout pom.xml
+        git reset --hard HEAD
 
         for ARTIFACT_ID in ${ARTIFACT_IDS}; do
           # Create extension
           ./mvnw -V -ntp cq:create -N -Dcq.artifactIdBase=${ARTIFACT_ID} -Dcq.nativeSupported=false
 
           # Verify extension builds, run formatting steps & docs generation 
-          ./mvnw -V -ntp -DskipTests -Dquarkus.build.skip \ 
+          ./mvnw -V -ntp -DskipTests -Dquarkus.build.skip \
             -pl extensions-jvm/${ARTIFACT_ID} \
             -pl extensions-jvm/${ARTIFACT_ID}/runtime \
             -pl extensions-jvm/${ARTIFACT_ID}/deployment \
