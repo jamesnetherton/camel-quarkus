@@ -54,7 +54,7 @@ runs:
             -pl extensions-jvm/${ARTIFACT_ID} \
             -pl extensions-jvm/${ARTIFACT_ID}/runtime \
             -pl extensions-jvm/${ARTIFACT_ID}/deployment \
-            -pl extensions-jvm/${ARTIFACT_ID}/integration-test -am -amd clean package
+            -pl extensions-jvm/${ARTIFACT_ID}/integration-test clean package
 
           git commit -am "${ARTIFACT_ID} JVM support"
           # CHANGED=true
