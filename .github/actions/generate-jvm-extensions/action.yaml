@@ -57,7 +57,7 @@ runs:
             -pl extensions-jvm/${ARTIFACT_ID}/integration-test clean package
 
           git commit -am "${ARTIFACT_ID} JVM support"
-          # CHANGED=true
+          CHANGED=true
         done
 
 
