@@ -37,7 +37,7 @@ runs:
         git checkout -b ${BRANCH_NAME}
 
         # Build prequisites
-        ./mvnw -pl extensions-core/core/deployment -am
+        ./mvnw -V -ntp -pl extensions-core/core/deployment -am clean install
 
         OLDIFS=${IFS}
         IFS=,
