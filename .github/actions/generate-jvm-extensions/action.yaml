@@ -69,3 +69,4 @@ runs:
         IFS=${OLDIFS}
 
         echo "::set-output name=extensions-added::$(echo ${CHANGED})"
+        echo "::set-output name=extension-artifact-ids::$(echo ${ARTIFACT_IDS})"
