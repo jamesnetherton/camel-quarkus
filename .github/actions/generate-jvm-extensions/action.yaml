@@ -24,10 +24,22 @@ inputs:
   token:
     description: 'The GitHub token to use for creating a pull request with the changes.'
     required: true    
+outputs:
+  extensions-added: 
+    description: "Whether new extensions were added or not"
+    value: ${{ steps.generate.outputs.extensions-added }}
+  extension-artifact-ids: 
+    description: "The sanitized list of artifact ids that were added"
+    value: ${{ steps.generate.outputs.extension-artifact-ids }}
+  branch-name: 
+    description: "The name of the generated branch"
+    value: ${{ steps.generate.outputs.branch-name }}
+
 runs:
   using: "composite"
   steps:
     - name: Generate JVM extensions
+      id: generate
       shell: bash
       run: |
         git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
