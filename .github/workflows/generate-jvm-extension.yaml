@@ -47,7 +47,7 @@ jobs:
 
           GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} gh pr create \
             --title="Add JVM only extensions for ${{ steps.generate.outputs.extension-artifact-ids }}" \
-            --body="This is an auto-generated pull request to add JVM only extensions for ${{ steps.generate.outputs.extension-artifact-ids }}.\n\nYou can edit the changes by checking out branch ${BRANCH_NAME}" \
+            --body="This is an auto-generated pull request to add JVM only extensions for ${{ steps.generate.outputs.extension-artifact-ids }}.<br/><br/>You can edit the changes by checking out branch ${BRANCH_NAME}" \
             --label="JVM"
       - name: Cleanup
         if: failure()
