@@ -43,7 +43,7 @@ jobs:
       - name: Create Pull Request
         if: ${{ steps.generate.outputs.extensions-added }} == "true"
         run: |
-          git push origin ${{ steps.generate.outputs.branch-name }}
+          git push --set-upstream origin origin ${{ steps.generate.outputs.branch-name }}
 
           GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} gh pr create \
             --title="Add JVM only extensions for ${{ steps.generate.outputs.extension-artifact-ids }}" \
