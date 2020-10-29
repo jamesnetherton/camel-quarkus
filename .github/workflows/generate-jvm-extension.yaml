@@ -44,6 +44,7 @@ jobs:
 
           ARTIFACT_IDS=$(echo "${{ github.event.inputs.artifactIds }}" | sed 's/camel-//g')
           BRANCH_NAME="add-jvm-extensions-$(uuidgen | cut -f1 -d'-')"
+          CHANGED=false
 
           git checkout -b ${BRANCH_NAME}
 
@@ -72,17 +73,13 @@ jobs:
 
             git add .
             git commit -m "${ARTIFACT_ID} JVM support"
+
+            CHANGED=true
           done
 
           IFS=${OLDIFS}
 
-          echo "=============================="
-          git remote -v
-          echo "=============================="
-          git --no-pager log ${BRANCH_NAME} --not origin/master --oneline
-          echo "=============================="
-
-          if [[ $(git --no-pager log master --not origin/master --oneline | wc -l) -gt 0 ]]; then
+          if [[ "${CHANGED}" == "true" ]]; then
             git push --set-upstream origin ${BRANCH_NAME}
 
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} gh pr create \
