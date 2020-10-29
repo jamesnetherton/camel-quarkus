@@ -76,6 +76,8 @@ jobs:
 
           IFS=${OLDIFS}
 
+          git --no-pager log master --not origin/master --oneline
+
           if [[ $(git --no-pager log master --not origin/master --oneline | wc -l) -gt 0 ]]; then
             git push --set-upstream origin ${BRANCH_NAME}
 
