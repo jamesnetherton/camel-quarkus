@@ -21,7 +21,7 @@ on:
   workflow_dispatch:
     inputs:
       artifactIds:
-        description: 'Comma separated list of Camel component artifact ids'     
+        description: 'Comma separated list of Camel component artifact ids'
         required: true
 
 jobs:
@@ -48,11 +48,9 @@ jobs:
 
           git checkout -b ${BRANCH_NAME}
 
-          # Filthy hack to disable unwanted modules and speed up the build
-          sed -i -e '/<module>integration\-tests\-support<\/module>/d' -e '/<module>integration\-tests<\/module>/d' -e '/<module>docs<\/module>/d' ./pom.xml
-
           # Unfortunately the catalog requires all of the extension projects to be built...
-          ./mvnw -V -ntp -Dquickly clean install
+          sed -i -e '/<module>integration\-tests\-support<\/module>/d' -e '/<module>integration\-tests<\/module>/d' -e '/<module>docs<\/module>/d' ./pom.xml
+          ./mvnw -V -ntp -Dquickly clean install -T1C
 
           # Remove pom hacks
           git reset --hard HEAD
@@ -64,7 +62,7 @@ jobs:
             # Create extension
             ./mvnw -V -ntp cq:create -N -Dcq.artifactIdBase=${ARTIFACT_ID} -Dcq.nativeSupported=false
 
-            # Verify extension builds, run formatting steps & docs generation 
+            # Verify extension builds, run formatting steps & docs generation
             ./mvnw -V -ntp \
               -pl extensions-jvm/${ARTIFACT_ID} \
               -pl extensions-jvm/${ARTIFACT_ID}/runtime \
