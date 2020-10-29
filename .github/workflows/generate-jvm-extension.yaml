@@ -84,7 +84,7 @@ jobs:
 
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} gh pr create \
               --title="Add JVM only extensions for ${ARTIFACT_IDS}" \
-              --body="This is an auto-generated pull request to add JVM only support for extensions <code>${ARTIFACT_IDS}</code>.<br/><br/>You can edit the changes by checking out branch <code>${BRANCH_NAME}</code>." \
+              --body="This is an auto-generated pull request to add JVM only support for <code>${ARTIFACT_IDS}</code>.<br/><br/>You can edit the changes by checking out branch <code>${BRANCH_NAME}</code>." \
               --label="JVM"
           fi
 
