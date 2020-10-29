@@ -79,7 +79,7 @@ jobs:
           echo "=============================="
           git remote -v
           echo "=============================="
-          git --no-pager log master --not origin/master --oneline
+          git --no-pager log ${BRANCH_NAME} --not origin/master --oneline
           echo "=============================="
 
           if [[ $(git --no-pager log master --not origin/master --oneline | wc -l) -gt 0 ]]; then
