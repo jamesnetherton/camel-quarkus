@@ -51,11 +51,11 @@ runs:
 
         git checkout -b ${BRANCH_NAME}
 
-        # Filthy hack to disable parent / child modules and speed up build
+        # Filthy hack to disable unwanted modules and speed up the build
         sed -i -e '/<module>integration\-tests\-support<\/module>/d' -e '/<module>integration\-tests<\/module>/d' -e '/<module>docs<\/module>/d' ./pom.xml
 
         # Unfortunately the catalog requires all of the extension projects to be built...
-        ./mvnw -V -ntp -Dmaven.test.skip -Dquarkus.build.skip -Denforce=false -Dformat.skip clean install
+        ./mvnw -V -ntp -Dquickly clean install
 
         # Remove pom hacks
         git reset --hard HEAD
