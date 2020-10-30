@@ -44,7 +44,6 @@ jobs:
 
           ARTIFACT_IDS=$(echo "${{ github.event.inputs.artifactIds }}" | sed 's/camel-//g')
           BRANCH_NAME="add-jvm-extensions-$(uuidgen | cut -f1 -d'-')"
-          CHANGED=false
 
           git checkout -b ${BRANCH_NAME}
 
@@ -71,25 +70,13 @@ jobs:
 
             git add .
             git commit -m "${ARTIFACT_ID} JVM support"
-
-            CHANGED=true
           done
 
           IFS=${OLDIFS}
 
-          if [[ "${CHANGED}" == "true" ]]; then
-            git push --set-upstream origin ${BRANCH_NAME}
+          git push --set-upstream origin ${BRANCH_NAME}
 
-            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} gh pr create \
-              --title="Add JVM only extensions for ${ARTIFACT_IDS}" \
-              --body="This is an auto-generated pull request to add JVM only support for <code>${ARTIFACT_IDS}</code>.<br/><br/>You can edit the changes by checking out branch <code>${BRANCH_NAME}</code>." \
-              --label="JVM"
-          fi
-
-          echo "::set-output name=branch-name::$(echo ${BRANCH_NAME})"
-      - name: Cleanup
-        if: failure()
-        run: |
-          if git branch | grep "${{ steps.generate.outputs.branch-name }}"; then
-            git push --set-upstream origin --delete ${{ steps.generate.outputs.branch-name }}
-          fi
+          GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} gh pr create \
+            --title="Add JVM only extensions for ${ARTIFACT_IDS}" \
+            --body="This is an auto-generated pull request to add JVM only support for <code>${ARTIFACT_IDS}</code>.<br/><br/>You can edit the changes by checking out branch <code>${BRANCH_NAME}</code>." \
+            --label="JVM"
