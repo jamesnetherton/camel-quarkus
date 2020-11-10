@@ -34,19 +34,20 @@ public class NatsRoutes extends RouteBuilder {
 
     @Override
     public void configure() {
-        from("natsBasicAuth:test").routeId("basic-auth").bean(natsResource, "storeMessage");
-        from("natsNoAuth:test").routeId("no-auth").bean(natsResource, "storeMessage");
-        from("natsTokenAuth:test").routeId("token-auth").bean(natsResource, "storeMessage");
-        from("natsTlsAuth:test?sslContextParameters=#ssl&secure=true").routeId("tls-auth").bean(natsResource, "storeMessage");
+        from("natsBasicAuth:test?traceConnection=true").routeId("basic-auth").bean(natsResource, "storeMessage");
+        from("natsNoAuth:test?traceConnection=true").routeId("no-auth").bean(natsResource, "storeMessage");
+        from("natsTokenAuth:test?traceConnection=true").routeId("token-auth").bean(natsResource, "storeMessage");
+        from("natsTlsAuth:test?sslContextParameters=#ssl&secure=true&traceConnection=true").routeId("tls-auth")
+                .bean(natsResource, "storeMessage");
 
-        from("natsNoAuth:max?maxMessages=2").routeId("2-msg-max").bean(natsResource, "storeMessage");
+        from("natsNoAuth:max?maxMessages=2&traceConnection=true").routeId("2-msg-max").bean(natsResource, "storeMessage");
 
-        String maxMsgUriPattern = "natsNoAuth:qmax?maxMessages=%s&queueName=q";
+        String maxMsgUriPattern = "natsNoAuth:qmax?maxMessages=%s&queueName=q&traceConnection=true";
         fromF(maxMsgUriPattern, 3).routeId("3-qmsg-max").bean(natsResource, "storeMessage");
         fromF(maxMsgUriPattern, 8).routeId("8-qmsg-max").bean(natsResource, "storeMessage");
 
-        from("natsNoAuth:request-reply").setBody().simple("${body} => Reply");
-        from("natsNoAuth:reply").routeId("reply").bean(natsResource, "storeMessage");
+        from("natsNoAuth:request-reply?traceConnection=true").setBody().simple("${body} => Reply");
+        from("natsNoAuth:reply?traceConnection=true").routeId("reply").bean(natsResource, "storeMessage");
     }
 
     @Named("ssl")

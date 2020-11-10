@@ -33,7 +33,7 @@ class NatsTest {
 
     @Test
     void basicAuthProduceConsumeRoundTripShouldSucceed() {
-        Header header = new Header("sendToEndpointUri", "natsBasicAuth:test");
+        Header header = new Header("sendToEndpointUri", "natsBasicAuth:test?traceConnection=true");
         given().when().header(header).body("basic-auth-msg").post("/nats/send").then().statusCode(204);
 
         await().atMost(10L, TimeUnit.SECONDS).until(() -> {
@@ -47,7 +47,7 @@ class NatsTest {
 
     @Test
     void noAuthProduceConsumeRoundTripShouldSucceed() {
-        Header header = new Header("sendToEndpointUri", "natsNoAuth:test");
+        Header header = new Header("sendToEndpointUri", "natsNoAuth:test?traceConnection=true");
         given().when().header(header).body("no-auth-msg").post("/nats/send").then().statusCode(204);
 
         await().atMost(10L, TimeUnit.SECONDS).until(() -> {
@@ -61,7 +61,8 @@ class NatsTest {
 
     @Test
     void tlsAuthProduceConsumeRoundTripShouldSucceed() {
-        Header header = new Header("sendToEndpointUri", "natsTlsAuth:test?sslContextParameters=#ssl&secure=true");
+        Header header = new Header("sendToEndpointUri",
+                "natsTlsAuth:test?sslContextParameters=#ssl&secure=true&traceConnection=true");
         given().when().header(header).body("tls-auth-msg").post("/nats/send").then().statusCode(204);
 
         await().atMost(10L, TimeUnit.SECONDS).until(() -> {
@@ -75,7 +76,7 @@ class NatsTest {
 
     @Test
     void tokenAuthProduceConsumeRoundTripShouldSucceed() {
-        Header header = new Header("sendToEndpointUri", "natsTokenAuth:test");
+        Header header = new Header("sendToEndpointUri", "natsTokenAuth:test?traceConnection=true");
         given().when().header(header).body("token-auth-msg").post("/nats/send").then().statusCode(204);
 
         await().atMost(10L, TimeUnit.SECONDS).until(() -> {
@@ -89,7 +90,7 @@ class NatsTest {
 
     @Test
     void consumeMaxMessagesShouldRetainFirstTwoMessages() {
-        Header header = new Header("sendToEndpointUri", "natsNoAuth:max");
+        Header header = new Header("sendToEndpointUri", "natsNoAuth:max?traceConnection=true");
         for (int msgNumber = 1; msgNumber <= 10; msgNumber++) {
             given().when().header(header).body("msg " + msgNumber).post("/nats/send").then().statusCode(204);
         }
@@ -106,7 +107,7 @@ class NatsTest {
 
     @Test
     void consumeMaxQueueMessagesShouldRetainRightNumberOfMessages() {
-        Header header = new Header("sendToEndpointUri", "natsNoAuth:qmax");
+        Header header = new Header("sendToEndpointUri", "natsNoAuth:qmax?traceConnection=true");
         for (int msgNumber = 1; msgNumber <= 20; msgNumber++) {
             given().when().header(header).body("qmsg " + msgNumber).post("/nats/send").then().statusCode(204);
         }
@@ -119,7 +120,7 @@ class NatsTest {
 
     @Test
     void requestReplyShouldSucceed() {
-        Header header = new Header("sendToEndpointUri", "natsNoAuth:request-reply?replySubject=reply");
+        Header header = new Header("sendToEndpointUri", "natsNoAuth:request-reply?replySubject=reply&traceConnection=true");
         given().when().header(header).body("Request").post("/nats/send").then().statusCode(204);
 
         await().atMost(10L, TimeUnit.SECONDS).until(() -> {
