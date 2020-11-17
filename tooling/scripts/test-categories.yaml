@@ -25,6 +25,7 @@ cloud:
   - azure
   - consul
   - elasticsearch-rest
+  - google-pubsub
   - grpc
   - smallrye-reactive-messaging
 core-main-validation:
