@@ -16,12 +16,17 @@
  */
 package org.apache.camel.quarkus.component.platform.http.deployment;
 
+import java.util.Optional;
+
+import io.quarkus.deployment.Capabilities;
+import io.quarkus.deployment.Capability;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.vertx.deployment.VertxBuildItem;
 import io.quarkus.vertx.http.deployment.BodyHandlerBuildItem;
+import io.quarkus.vertx.http.deployment.StaticResourcesProcessor.StaticResourcesBuildItem;
 import io.quarkus.vertx.http.deployment.VertxWebRouterBuildItem;
 import io.vertx.ext.web.Router;
 import org.apache.camel.component.platform.http.PlatformHttpComponent;
@@ -70,11 +75,23 @@ class PlatformHttpProcessor {
             VertxBuildItem vertx,
             VertxWebRouterBuildItem router,
             BodyHandlerBuildItem bodyHandler,
-            PlatformHttpRecorder recorder) {
+            PlatformHttpRecorder recorder,
+            Optional<StaticResourcesBuildItem> staticResources,
+            Capabilities capabilities) {
+
+        // If static resources are present, configure platform-http vert.x routes after the static resource handler route.
+        // Unless RESTEasy is present, in which case we have to preserve the default order, since RESTEasy will not delegate to route handlers
+        // that are registered later in the chain
+        boolean routeOrderLast = false;
+        if (staticResources.isPresent() && capabilities.isMissing(Capability.RESTEASY)) {
+            routeOrderLast = true;
+        }
+
         return new CamelRuntimeBeanBuildItem(
                 VertxPlatformHttpRouter.PLATFORM_HTTP_ROUTER_NAME,
                 Router.class.getName(),
-                recorder.createVertxPlatformHttpRouter(vertx.getVertx(), router.getRouter(), bodyHandler.getHandler()));
+                recorder.createVertxPlatformHttpRouter(vertx.getVertx(), router.getRouter(), bodyHandler.getHandler(),
+                        routeOrderLast));
     }
 
     @Record(ExecutionTime.RUNTIME_INIT)

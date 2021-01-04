@@ -20,12 +20,15 @@ import io.quarkus.runtime.RuntimeValue;
 import io.quarkus.runtime.annotations.Recorder;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.camel.component.platform.http.PlatformHttpComponent;
 import org.apache.camel.component.platform.http.spi.PlatformHttpEngine;
 import org.apache.camel.component.platform.http.vertx.VertxPlatformHttpEngine;
 import org.apache.camel.component.platform.http.vertx.VertxPlatformHttpRouter;
+
+import static io.quarkus.vertx.http.runtime.VertxHttpRecorder.DEFAULT_ROUTE_ORDER;
 
 @Recorder
 public class PlatformHttpRecorder {
@@ -39,14 +42,28 @@ public class PlatformHttpRecorder {
         return new RuntimeValue<>(component);
     }
 
-    public RuntimeValue<VertxPlatformHttpRouter> createVertxPlatformHttpRouter(RuntimeValue<Vertx> vertx,
-            RuntimeValue<Router> router, Handler<RoutingContext> handler) {
+    public RuntimeValue<VertxPlatformHttpRouter> createVertxPlatformHttpRouter(
+            RuntimeValue<Vertx> vertx,
+            RuntimeValue<Router> router,
+            Handler<RoutingContext> handler,
+            boolean routeOrderLast) {
+
         VertxPlatformHttpRouter vertxPlatformHttpRouter = new VertxPlatformHttpRouter(vertx.getValue(), router.getValue()) {
             @Override
             public Handler<RoutingContext> bodyHandler() {
                 return handler;
             }
+
+            @Override
+            public Route route(String path) {
+                if (routeOrderLast) {
+                    return super.route(path).order(DEFAULT_ROUTE_ORDER + 100);
+                } else {
+                    return super.route(path);
+                }
+            }
         };
+
         return new RuntimeValue<>(vertxPlatformHttpRouter);
     }
 }
