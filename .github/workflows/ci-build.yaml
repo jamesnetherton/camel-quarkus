@@ -74,4 +74,7 @@ jobs:
         run: |
           cd integration-tests/ftp
           eval ../../mvnw ${MAVEN_ARGS} clean install -U -Papache-snapshots
+          if [[ "$?" != "0"  ]]; then
+            eval ../../mvnw ${MAVEN_ARGS} clean install -U -Papache-snapshots
+          fi
 
