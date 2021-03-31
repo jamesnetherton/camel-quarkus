@@ -73,5 +73,5 @@ jobs:
       - name: mvn clean install
         run: |
           cd integration-tests/ftp
-          eval ./mvnw ${MAVEN_ARGS} clean install -U -Papache-snapshots
+          eval ../../mvnw ${MAVEN_ARGS} clean install -U -Papache-snapshots
 
