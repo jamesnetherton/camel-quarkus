@@ -28,7 +28,7 @@ import static org.hamcrest.CoreMatchers.is;
 @QuarkusTestResource(FtpTestResource.class)
 class FtpTest {
     @Test
-    public void testFtpComponent() throws InterruptedException {
+    public void testFtpComponent() {
         // Create a new file on the FTP server
         RestAssured.given()
                 .contentType(ContentType.TEXT)

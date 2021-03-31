@@ -16,8 +16,6 @@
  */
 package org.apache.camel.quarkus.component.ftps.it;
 
-import java.security.NoSuchAlgorithmException;
-
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
@@ -30,7 +28,7 @@ import static org.hamcrest.CoreMatchers.is;
 @QuarkusTestResource(FtpsTestResource.class)
 class FtpsTest {
     @Test
-    public void testFtpsComponent() throws InterruptedException, NoSuchAlgorithmException {
+    public void testFtpsComponent() {
         // Create a new file on the FTPS server
         RestAssured.given()
                 .contentType(ContentType.TEXT)

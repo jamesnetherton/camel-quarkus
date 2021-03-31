@@ -29,7 +29,7 @@ import static org.hamcrest.core.Is.is;
 class SftpTest {
 
     @Test
-    public void testSftpComponent() throws InterruptedException {
+    public void testSftpComponent() {
         // Create a new file on the SFTP server
         RestAssured.given()
                 .contentType(ContentType.TEXT)
