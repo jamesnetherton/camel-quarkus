@@ -28,20 +28,6 @@ pipeline {
             }
         }
 
-        stage('Integration Tests') {
-            steps {
-                // configFileProvider([configFile(fileId: 'fuse-maven-settings', variable: 'MAVEN_SETTINGS')]) {
-                    sh "cd integration-tests && ../mvnw $MAVEN_PARAMS clean verify "
-                // }
-            }
-            post {
-                always {
-                    junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
-                    junit allowEmptyResults: true, testResults: '**/target/failsafe-reports/*.xml'
-                }
-            }
-        }
-
         stage('JVM Only Extension Tests') {
             steps {
                 // configFileProvider([configFile(fileId: 'fuse-maven-settings', variable: 'MAVEN_SETTINGS')]) {
@@ -61,6 +47,20 @@ pipeline {
 
                         sh "./mvnw $MAVEN_PARAMS test -pl '${modulesToTest.join(",")}'"
                     }
+                // }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+                    junit allowEmptyResults: true, testResults: '**/target/failsafe-reports/*.xml'
+                }
+            }
+        }
+
+        stage('Integration Tests') {
+            steps {
+                // configFileProvider([configFile(fileId: 'fuse-maven-settings', variable: 'MAVEN_SETTINGS')]) {
+                    sh "cd integration-tests && ../mvnw $MAVEN_PARAMS clean verify "
                 // }
             }
             post {
