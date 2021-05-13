@@ -3,7 +3,7 @@ def MAVEN_PARAMS = '-B -e -ntp -s $MAVEN_SETTINGS'
 pipeline {
 
     agent {
-        label 'checkin'
+        label 'master'
     }
 
     tools {
