@@ -55,6 +55,8 @@ pipeline {
                             }
                         }
 
+                        println modulesToTest
+
                         // sh "./mvnw $MAVEN_PARAMS test -pl ${modulesToTest.join(",")}"
                     }
                 // }
