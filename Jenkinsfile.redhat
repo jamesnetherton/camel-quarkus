@@ -22,7 +22,8 @@ pipeline {
         stage('Build') {
             steps {
                 // configFileProvider([configFile(fileId: 'fuse-maven-settings', variable: 'MAVEN_SETTINGS')]) {
-                    sh "mvn $MAVEN_PARAMS clean install -Dquickly -T1C"
+                    println env.JAVA_HOME
+                    sh "./mvnw $MAVEN_PARAMS clean install -Dquickly -T1C"
                 // }
             }
         }
@@ -30,7 +31,7 @@ pipeline {
         stage('Integration Tests') {
             steps {
                 // configFileProvider([configFile(fileId: 'fuse-maven-settings', variable: 'MAVEN_SETTINGS')]) {
-                    sh "cd integration-tests && mvn $MAVEN_PARAMS clean verify "
+                    sh "cd integration-tests && ../mvnw $MAVEN_PARAMS clean verify "
                 // }
             }
             post {
@@ -58,7 +59,7 @@ pipeline {
 
                         println modulesToTest
 
-                        sh "mvn $MAVEN_PARAMS test -pl '${modulesToTest.join(",")}'"
+                        sh "./mvnw $MAVEN_PARAMS test -pl '${modulesToTest.join(",")}'"
                     }
                 // }
             }
