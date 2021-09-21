@@ -16,20 +16,28 @@
  */
 package org.apache.camel.quarkus.core.devmode;
 
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import io.quarkus.dev.spi.HotReplacementContext;
 import io.quarkus.dev.spi.HotReplacementSetup;
 
 public class CamelHotReplacementSetup implements HotReplacementSetup {
-    private static final long TWO_SECS = TimeUnit.SECONDS.toMillis(2);
+
+    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+    private HotReplacementContext context;
+    private ScheduledFuture<?> scanTask;
 
     @Override
     public void setupHotDeployment(HotReplacementContext context) {
-        Timer timer = new Timer(true);
-        timer.schedule(new TimerTask() {
+        this.context = context;
+        CamelHotReplacementObserver.registerHotReplacementContext(this);
+    }
+
+    public void scheduleScan() {
+        scanTask = executor.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -38,7 +46,13 @@ public class CamelHotReplacementSetup implements HotReplacementSetup {
                     e.printStackTrace();
                 }
             }
-        }, TWO_SECS, TWO_SECS);
+        }, 2, 2, TimeUnit.SECONDS);
     }
 
+    @Override
+    public void close() {
+        if (scanTask != null) {
+            scanTask.cancel(false);
+        }
+    }
 }

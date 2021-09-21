@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.camel.quarkus.main;
+package org.apache.camel.quarkus.dsl.xml.io;
 
 import java.io.File;
 import java.io.IOException;
@@ -74,7 +74,7 @@ public class CamelMainRoutesIncludePatternWithAbsoluteFilePrefixDevModeTest {
 
         Properties props = new Properties();
         props.setProperty("quarkus.banner.enabled", "false");
-        props.setProperty("camel.main.routes-include-pattern", "file:" + BASE.toAbsolutePath().toString() + "/routes.xml");
+        props.setProperty("camel.main.routes-include-pattern", "file:" + BASE.toAbsolutePath() + "/routes.xml");
 
         try {
             props.store(writer, "");

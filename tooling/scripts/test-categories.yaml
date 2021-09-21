@@ -54,7 +54,6 @@ group-03:
   - main-caffeine-lrucache
   - main-collector
   - main-command-mode
-  - main-devmode
   - main-discovery-disabled
   - main-xml-io
   - main-xml-jaxb

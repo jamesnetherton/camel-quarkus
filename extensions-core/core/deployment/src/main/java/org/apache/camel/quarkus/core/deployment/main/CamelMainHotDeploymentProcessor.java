@@ -22,8 +22,10 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.quarkus.deployment.IsDevelopment;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.HotDeploymentWatchedFileBuildItem;
+import org.apache.camel.quarkus.core.deployment.CamelHotDeploymentProcessor.CamelLiveReloadEnabled;
 import org.apache.camel.quarkus.core.deployment.main.spi.CamelMainEnabled;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +35,7 @@ class CamelMainHotDeploymentProcessor {
     private static final String FILE_PREFIX = "file:";
     private static final String CLASSPATH_PREFIX = "classpath:";
 
-    @BuildStep(onlyIf = CamelMainEnabled.class)
+    @BuildStep(onlyIf = { CamelMainEnabled.class, IsDevelopment.class, CamelLiveReloadEnabled.class })
     List<HotDeploymentWatchedFileBuildItem> locations() {
         List<HotDeploymentWatchedFileBuildItem> items = CamelMainHelper.routesIncludePattern()
                 .map(CamelMainHotDeploymentProcessor::routesIncludePatternToLocation)
@@ -43,9 +45,9 @@ class CamelMainHotDeploymentProcessor {
                 .collect(Collectors.toList());
 
         if (!items.isEmpty()) {
-            LOGGER.info("HotDeployment files:");
+            LOGGER.debug("HotDeployment files:");
             for (HotDeploymentWatchedFileBuildItem item : items) {
-                LOGGER.info("- {}", item.getLocation());
+                LOGGER.debug("- {}", item.getLocation());
             }
         }
 
