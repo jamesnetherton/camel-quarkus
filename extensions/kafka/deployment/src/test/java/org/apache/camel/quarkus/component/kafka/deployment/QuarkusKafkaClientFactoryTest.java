@@ -24,7 +24,9 @@ import javax.inject.Inject;
 import io.quarkus.bootstrap.model.AppArtifact;
 import io.quarkus.builder.Version;
 import io.quarkus.test.QuarkusUnitTest;
+import org.apache.camel.CamelContext;
 import org.apache.camel.component.kafka.KafkaClientFactory;
+import org.apache.camel.component.kafka.KafkaComponent;
 import org.apache.camel.component.kafka.KafkaConfiguration;
 import org.apache.camel.quarkus.component.kafka.QuarkusKafkaClientFactory;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -47,10 +49,12 @@ public class QuarkusKafkaClientFactoryTest {
             .setArchiveProducer(() -> ShrinkWrap.create(JavaArchive.class));
 
     @Inject
-    KafkaClientFactory factory;
+    CamelContext context;
 
     @Test
     public void testMergeConfiguration() {
+        KafkaComponent component = context.getComponent("kafka", KafkaComponent.class);
+        KafkaClientFactory factory = component.getKafkaClientFactory();
         assertNotNull(factory);
 
         QuarkusKafkaClientFactory quarkusKafkaClientFactory = (QuarkusKafkaClientFactory) factory;

@@ -17,7 +17,6 @@
 package org.apache.camel.quarkus.component.kafka.deployment;
 
 import java.util.Arrays;
-import java.util.Set;
 
 import javax.inject.Inject;
 
@@ -26,14 +25,13 @@ import io.quarkus.builder.Version;
 import io.quarkus.test.QuarkusUnitTest;
 import org.apache.camel.CamelContext;
 import org.apache.camel.component.kafka.KafkaClientFactory;
-import org.apache.camel.quarkus.component.kafka.QuarkusKafkaClientFactory;
+import org.apache.camel.component.kafka.KafkaComponent;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class QuarkusKafkaClientFactoryEnabledTest {
 
@@ -48,11 +46,9 @@ public class QuarkusKafkaClientFactoryEnabledTest {
     CamelContext context;
 
     @Test
-    public void quarkusKafkaClientFactoryRegistryBeanNotNull() {
-        Set<KafkaClientFactory> factories = context.getRegistry().findByType(KafkaClientFactory.class);
-        assertEquals(1, factories.size());
-
-        KafkaClientFactory factory = factories.iterator().next();
-        assertTrue(factory instanceof QuarkusKafkaClientFactory);
+    public void quarkusKafkaClientFactoryNotNull() {
+        KafkaComponent component = context.getComponent("kafka", KafkaComponent.class);
+        KafkaClientFactory factory = component.getKafkaClientFactory();
+        assertNotNull(factory);
     }
 }

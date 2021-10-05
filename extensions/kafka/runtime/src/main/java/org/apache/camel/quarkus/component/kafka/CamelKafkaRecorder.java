@@ -16,21 +16,55 @@
  */
 package org.apache.camel.quarkus.component.kafka;
 
+import java.util.Map;
+
+import javax.enterprise.util.TypeLiteral;
+
+import io.quarkus.arc.Arc;
+import io.quarkus.arc.InstanceHandle;
+import io.quarkus.kubernetes.service.binding.runtime.KubernetesServiceBindingConfig;
 import io.quarkus.runtime.RuntimeValue;
 import io.quarkus.runtime.annotations.Recorder;
+import io.smallrye.common.annotation.Identifier;
 import org.apache.camel.component.kafka.KafkaComponent;
 import org.apache.camel.component.kafka.KafkaConfiguration;
 
 @Recorder
 public class CamelKafkaRecorder {
 
-    public RuntimeValue<KafkaComponent> createKafkaComponentForDevServices(String brokers) {
-        KafkaConfiguration configuration = new KafkaConfiguration();
+    public RuntimeValue<KafkaComponent> createKafkaComponent() {
+        return new RuntimeValue<>(new KafkaComponent());
+    }
+
+    public void configureKafkaComponentForDevServices(RuntimeValue<KafkaComponent> kafkaComponentRuntimeValue, String brokers) {
+        KafkaComponent component = kafkaComponentRuntimeValue.getValue();
+        KafkaConfiguration configuration = component.getConfiguration();
+        if (configuration == null) {
+            configuration = new KafkaConfiguration();
+        }
         configuration.setBrokers(brokers);
-
-        KafkaComponent component = new KafkaComponent();
         component.setConfiguration(configuration);
+    }
 
-        return new RuntimeValue<>(component);
+    @SuppressWarnings("serial")
+    public void configureKafkaClientFactory(
+        RuntimeValue<KafkaComponent> kafkaComponentRuntimeValue,
+        CamelKafkaRuntimeConfig camelKafkaRuntimeConfig,
+        KubernetesServiceBindingConfig kubernetesServiceBindingConfig) {
+
+        if (kubernetesServiceBindingConfig.enabled && camelKafkaRuntimeConfig.kubernetesServiceBinding.mergeConfiguration) {
+            final InstanceHandle<Map<String, Object>> instance = Arc.container()
+                    .instance(new TypeLiteral<>() {
+                    }, Identifier.Literal.of("default-kafka-broker"));
+
+            if (instance.isAvailable()) {
+                Map<String, Object> kafkaConfig = instance.get();
+                if (!kafkaConfig.isEmpty()) {
+                    QuarkusKafkaClientFactory quarkusKafkaClientFactory = new QuarkusKafkaClientFactory(kafkaConfig);
+                    KafkaComponent component = kafkaComponentRuntimeValue.getValue();
+                    component.setKafkaClientFactory(quarkusKafkaClientFactory);
+                }
+            }
+        }
     }
 }

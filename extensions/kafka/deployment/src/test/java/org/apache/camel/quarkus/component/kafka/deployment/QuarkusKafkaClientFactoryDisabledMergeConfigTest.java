@@ -17,7 +17,6 @@
 package org.apache.camel.quarkus.component.kafka.deployment;
 
 import java.util.Arrays;
-import java.util.Set;
 
 import javax.inject.Inject;
 
@@ -26,12 +25,13 @@ import io.quarkus.builder.Version;
 import io.quarkus.test.QuarkusUnitTest;
 import org.apache.camel.CamelContext;
 import org.apache.camel.component.kafka.KafkaClientFactory;
+import org.apache.camel.component.kafka.KafkaComponent;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class QuarkusKafkaClientFactoryDisabledMergeConfigTest {
 
@@ -46,8 +46,9 @@ public class QuarkusKafkaClientFactoryDisabledMergeConfigTest {
     CamelContext context;
 
     @Test
-    public void quarkusKafkaClientFactoryRegistryBeanNull() {
-        Set<KafkaClientFactory> factories = context.getRegistry().findByType(KafkaClientFactory.class);
-        assertTrue(factories.isEmpty());
+    public void quarkusKafkaClientFactoryNull() {
+        KafkaComponent component = context.getComponent("kafka", KafkaComponent.class);
+        KafkaClientFactory factory = component.getKafkaClientFactory();
+        assertNull(factory);
     }
 }
