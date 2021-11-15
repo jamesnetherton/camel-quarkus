@@ -76,7 +76,6 @@ class ServletProcessor {
         }
 
         final Builder builder = ServletBuildItem.builder(servletName, servletConfig.servletClass);
-        additionalBean.produce(new AdditionalBeanBuildItem(servletConfig.servletClass));
         for (String pattern : urlPatterns.get()) {
             builder.addMapping(pattern);
         }
