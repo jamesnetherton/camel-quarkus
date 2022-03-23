@@ -20,6 +20,7 @@ name: Camel Quarkus CI
 on:
   push:
     branches:
+      - reporting
       - main
       - camel-main
       - quarkus-main
@@ -55,7 +56,7 @@ env:
 
 jobs:
   initial-mvn-install:
-    if: github.repository == 'apache/camel-quarkus'
+    if: github.repository == 'jamesnetherton/camel-quarkus'
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-native-matrix.outputs.matrix }}
@@ -186,6 +187,12 @@ jobs:
               --fail-at-end \
               -pl "${NATIVE_MODULES[*]}"
           fi
+      - name: Upload surefire test reports
+        uses: actions/upload-artifact@v2
+        if: success() || failure()
+        with:
+          name: surefire-reports-native-${{ matrix.category }}
+          path: integration-tests/**/surefire-reports/*.xml
       - name: Fail if there are uncommitted changes
         shell: bash
         run: |
@@ -229,12 +236,24 @@ jobs:
           ../mvnw ${MAVEN_ARGS} ${BRANCH_OPTIONS} \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
             test
+      - name: Upload surefire test reports
+        uses: actions/upload-artifact@v2
+        if: success() || failure()
+        with:
+          name: surefire-reports-extensions-core
+          path: extensions-core/**/surefire-reports/*.xml
       - name: cd extensions && mvn test
         run: |
           cd extensions
           ../mvnw ${MAVEN_ARGS} ${BRANCH_OPTIONS} \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
             test
+      - name: Upload surefire test reports
+        uses: actions/upload-artifact@v2
+        if: success() || failure()
+        with:
+          name: surefire-reports-extensions
+          path: extensions/**/surefire-reports/*.xml
       - name: cd docs && mvn verify
         if: github.ref != 'refs/heads/camel-main' && github.base_ref != 'camel-main'
         run: |
@@ -292,6 +311,12 @@ jobs:
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
             --fail-at-end \
             clean test
+      - name: Upload surefire test reports
+        uses: actions/upload-artifact@v2
+        if: success() || failure()
+        with:
+          name: surefire-reports-integration-tests-jvm-${{ matrix.java }}
+          path: integration-tests-jvm/**/surefire-reports/*.xml
 
   integration-tests-alternative-jdk:
     runs-on: ubuntu-latest
@@ -340,6 +365,12 @@ jobs:
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
             --fail-at-end \
             clean verify
+      - name: Upload surefire test reports
+        uses: actions/upload-artifact@v2
+        if: success() || failure()
+        with:
+          name: surefire-reports-alternative-jdk-${{ matrix.java }}
+          path: integration-tests/**/surefire-reports/*.xml
 
   integration-tests-alternative-platform:
     runs-on: ${{ matrix.os }}
@@ -385,6 +416,12 @@ jobs:
             -Dskip-testcontainers-tests -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
             --fail-at-end \
             clean verify
+      - name: Upload surefire test reports
+        uses: actions/upload-artifact@v2
+        if: success() || failure()
+        with:
+          name: surefire-reports-alternative-platform-${{ matrix.os }}
+          path: integration-tests/**/surefire-reports/*.xml
 
   examples-tests:
     needs: initial-mvn-install
@@ -432,3 +469,9 @@ jobs:
             && echo "Current Examples commit:" $(git rev-parse HEAD) \
             && mvn ${MAVEN_ARGS} ${BRANCH_OPTIONS} org.l2x6.cq:cq-maven-plugin:2.10.0:examples-set-platform -Dcq.camel-quarkus.version=${CQ_VERSION} \
             && ./mvnw-for-each.sh ${MAVEN_ARGS} ${BRANCH_OPTIONS} -Pnative,docker clean verify
+      - name: Upload surefire test reports
+        uses: actions/upload-artifact@v2
+        if: success() || failure()
+        with:
+          name: surefire-reports-examples
+          path: ./**/surefire-reports/*.xml
