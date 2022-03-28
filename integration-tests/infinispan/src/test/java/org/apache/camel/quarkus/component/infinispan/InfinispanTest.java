@@ -31,6 +31,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
@@ -485,7 +486,7 @@ public class InfinispanTest {
                 .get("/infinispan/stats")
                 .then()
                 .statusCode(200)
-                .body(is("0"));
+                .body(is("-1"));
 
         RestAssured.with()
                 .queryParam("component", componentName)
@@ -499,7 +500,7 @@ public class InfinispanTest {
                 .get("/infinispan/stats")
                 .then()
                 .statusCode(200)
-                .body(is("1"));
+                .body(greaterThanOrEqualTo("1"));
     }
 
     private String computePath(String path, boolean isAsync) {

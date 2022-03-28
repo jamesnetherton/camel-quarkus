@@ -25,6 +25,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.json.Json;
@@ -68,6 +69,12 @@ public class InfinispanResources {
 
     @Inject
     CamelContext camelContext;
+
+    @PostConstruct
+    public void setUp() {
+        cacheManager.administration().getOrCreateCache(CACHE_NAME_CAMEL, (String) null);
+        cacheManager.administration().getOrCreateCache(CACHE_NAME_QUARKUS, (String) null);
+    }
 
     @Path("/inspect")
     @GET
