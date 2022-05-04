@@ -220,7 +220,8 @@
         <module>extensions-support</module>
         <module>extensions</module>
         <module>extensions-jvm</module>
-        <module>catalog</module>
+	<module>catalog</module>
+        <module>test-framework</module>
         <module>integration-tests-support</module>
         <module>integration-tests</module>
         <module>integration-test-groups</module>

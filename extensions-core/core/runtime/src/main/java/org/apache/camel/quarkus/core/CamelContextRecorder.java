@@ -51,18 +51,16 @@ public class CamelContextRecorder {
             CamelConfig config) {
 
         FastCamelContext context = new FastCamelContext(
-                factoryFinderResolver.getValue(),
                 version,
-                xmlModelDumper.getValue());
+                Thread.currentThread().getContextClassLoader(),
+                registry.getValue(),
+                typeConverterRegistry.getValue(),
+                factoryFinderResolver.getValue());
 
-        final ClassLoader tccl = Thread.currentThread().getContextClassLoader();
-        // Set ClassLoader first as some actions depend on it being available
-        context.setApplicationContextClassLoader(tccl);
         context.setDefaultExtension(RuntimeCamelCatalog.class, () -> new CamelRuntimeCatalog(config.runtimeCatalog));
-        context.setRegistry(registry.getValue());
-        context.setTypeConverterRegistry(typeConverterRegistry.getValue());
         context.setLoadTypeConverters(false);
         context.setModelJAXBContextFactory(contextFactory.getValue());
+        context.setModelToXMLDumper(xmlModelDumper.getValue());
         context.build();
         context.setComponentNameResolver(componentNameResolver.getValue());
 

@@ -37,6 +37,15 @@ import org.apache.camel.model.rest.RestBindingMode;
 import org.apache.camel.spi.Registry;
 
 public class PlatformHttpRouteBuilder extends RouteBuilder {
+    private static String createLongBody() {
+        StringBuilder builder = new StringBuilder("abcdefghijk".length() * 1000000);
+        for (int i = 0; i < 1000000; i++) {
+            builder.append("abcdefghijk");
+        }
+
+        return builder.toString();
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public void configure() {
@@ -58,6 +67,9 @@ public class PlatformHttpRouteBuilder extends RouteBuilder {
 
         from("direct:greet")
                 .setBody().simple("Hello ${header.name}");
+
+        from("platform-http:/test")
+                .setBody().constant(createLongBody());
 
         from("platform-http:/registry/inspect")
                 .process(e -> {

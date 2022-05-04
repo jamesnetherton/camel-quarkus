@@ -51,18 +51,30 @@ import org.apache.camel.util.IOHelper;
 
 public class FastCamelContext extends DefaultCamelContext implements CatalogCamelContext, ModelCamelContext {
     private final String version;
-    private final ModelToXMLDumper modelDumper;
+    private final Registry registry;
+    private final TypeConverterRegistry typeConverterRegistry;
+    private final FactoryFinderResolver factoryFinderResolver;
 
-    public FastCamelContext(FactoryFinderResolver factoryFinderResolver, String version, ModelToXMLDumper modelDumper) {
+    public FastCamelContext(
+            String version,
+            ClassLoader classLoader,
+            Registry registry,
+            TypeConverterRegistry typeConverterRegistry,
+            FactoryFinderResolver factoryFinderResolver) {
         super(false);
 
         this.version = version;
-        this.modelDumper = modelDumper;
+        this.registry = registry;
+        this.typeConverterRegistry = typeConverterRegistry;
+        this.factoryFinderResolver = factoryFinderResolver;
 
-        setFactoryFinderResolver(factoryFinderResolver);
         setTracing(Boolean.FALSE);
         setDebugging(Boolean.FALSE);
         setMessageHistory(Boolean.FALSE);
+        setApplicationContextClassLoader(classLoader);
+        setRegistry(registry);
+        setTypeConverterRegistry(typeConverterRegistry);
+        setFactoryFinderResolver(factoryFinderResolver);
     }
 
     @Override
@@ -80,8 +92,7 @@ public class FastCamelContext extends DefaultCamelContext implements CatalogCame
 
     @Override
     protected Registry createRegistry() {
-        // Registry creation is done at build time
-        throw new UnsupportedOperationException();
+        return registry;
     }
 
     @Override
@@ -116,8 +127,7 @@ public class FastCamelContext extends DefaultCamelContext implements CatalogCame
 
     @Override
     protected TypeConverterRegistry createTypeConverterRegistry() {
-        // TypeConverterRegistry creation is done at build time
-        throw new UnsupportedOperationException();
+        return typeConverterRegistry;
     }
 
     @Override
@@ -134,8 +144,7 @@ public class FastCamelContext extends DefaultCamelContext implements CatalogCame
     }
 
     protected FactoryFinderResolver createFactoryFinderResolver() {
-        throw new UnsupportedOperationException(
-                "FactoryFinderResolver should have been set in the FastCamelContext constructor");
+        return factoryFinderResolver;
     }
 
     @Override
@@ -159,7 +168,8 @@ public class FastCamelContext extends DefaultCamelContext implements CatalogCame
 
     @Override
     protected ModelToXMLDumper createModelToXMLDumper() {
-        return modelDumper;
+        // FactoryFinderResolver creation is done at build time
+        throw new UnsupportedOperationException();
     }
 
     @Override
