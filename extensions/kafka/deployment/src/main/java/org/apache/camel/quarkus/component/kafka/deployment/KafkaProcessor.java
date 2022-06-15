@@ -41,6 +41,7 @@ import org.jboss.jandex.DotName;
 import org.jboss.jandex.IndexView;
 
 class KafkaProcessor {
+    // Test change
     private static final String FEATURE = "camel-kafka";
     private static final String CAMEL_KAFKA_BROKERS = "camel.component.kafka.brokers";
     private static final String KAFKA_BOOTSTRAP_SERVERS = "kafka.bootstrap.servers";
