@@ -1,6 +1,0 @@
-extensions/kafka/deployment
-integration-tests/kafka
-integration-tests/kafka-oauth
-integration-tests/kafka-sasl
-integration-tests/kafka-sasl-ssl
-integration-tests/kafka-ssl
