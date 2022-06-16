@@ -92,6 +92,8 @@ jobs:
             && ./mvnw ${MAVEN_ARGS} clean install -Dquickly
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       # - name: mvn clean install -DskipTests
       #   run: |
       #     eval ./mvnw ${MAVEN_ARGS} ${BRANCH_OPTIONS} -T1C clean install-DskipTests -Dquarkus.build.skip -Dskip.installyarn -Dskip.yarn
@@ -137,13 +139,15 @@ jobs:
             # No PR means the merge target is uncertain so fetch & use main of quarkusio/quarkus, *unless*:
             # - the current branch is main or some released branch like 1.10
             # - the current branch is a backport branch which is going to target some released branch like 1.10 (merge target is not main)
-            GIB_ARGS+=" -Dgib.referenceBranch=refs/remotes/quarkusio/main -Dgib.fetchReferenceBranch -Dgib.disableIfBranchMatches='main|\d+\.\d+\.x'"
+            GIB_ARGS+=" -Dgib.referenceBranch=refs/remotes/cq/main -Dgib.fetchReferenceBranch -Dgib.disableIfBranchMatches='main|\d+\.\d+\.x'"
           fi
           echo "GIB_ARGS: $GIB_ARGS"
           echo "::set-output name=gib_args::${GIB_ARGS}"
       - name: Get GIB impacted modules
         id: get-gib-impacted
         run: |
+          git remote add cq https://github.com/apache/camel-quarkus.git
+        
           eval ./mvnw -q -T1C ${MAVEN_ARGS} -Dquickly ${{ steps.get-gib-args.outputs.gib_args }} -Dgib.logImpactedTo=gib-impacted.log validate
           if [ -f gib-impacted.log ]; then
             GIB_IMPACTED=$(cat gib-impacted.log)
