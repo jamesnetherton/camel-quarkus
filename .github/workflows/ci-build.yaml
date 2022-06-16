@@ -18,18 +18,18 @@
 name: Camel Quarkus CI
 
 on:
-  push:
-    branches:
-      - main
-      - camel-main
-      - quarkus-main
-      - "[0-9]+.[0-9]+.x"
-    paths-ignore:
-      - '**.adoc'
-      - 'Jenkinsfile'
-      - 'KEYS'
-      - 'LICENSE.txt'
-      - 'NOTICE.txt'
+  # push:
+  #   branches:
+  #     - main
+  #     - camel-main
+  #     - quarkus-main
+  #     - "[0-9]+.[0-9]+.x"
+  #   paths-ignore:
+  #     - '**.adoc'
+  #     - 'Jenkinsfile'
+  #     - 'KEYS'
+  #     - 'LICENSE.txt'
+  #     - 'NOTICE.txt'
   pull_request:
     branches:
       - main
@@ -55,10 +55,15 @@ env:
 
 jobs:
   initial-mvn-install:
-    if: github.repository == 'apache/camel-quarkus'
+    if: github.repository == 'jamesnetherton/camel-quarkus'
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-native-matrix.outputs.matrix }}
+      modules_docs: ${{ steps.calculate-modules-build.outputs.modules_docs }}
+      modules_extensions_native: ${{ steps.calculate-modules-build.outputs.modules_extensions_native }}
+      modules_extensions_jvm: ${{ steps.calculate-modules-build.outputs.modules_extensions_jvm }}
+      modules_itests_native: ${{ steps.calculate-modules-build.outputs.modules_itests_native }}
+      modules_itests_jvm: ${{ steps.calculate-modules-build.outputs.modules_itests_jvm }}
     env:
       MAVEN_OPTS: -Xmx4000m
     steps:
@@ -87,348 +92,441 @@ jobs:
             && ./mvnw ${MAVEN_ARGS} clean install -Dquickly
       - name: Checkout
         uses: actions/checkout@v2
-      - name: mvn clean install -DskipTests
+      # - name: mvn clean install -DskipTests
+      #   run: |
+      #     eval ./mvnw ${MAVEN_ARGS} ${BRANCH_OPTIONS} -T1C clean install-DskipTests -Dquarkus.build.skip -Dskip.installyarn -Dskip.yarn
+      # - name: Sync Maven properties
+      #   run: |
+      #     ./mvnw cq:sync-versions ${MAVEN_ARGS} -N
+      # - name: Fail if there are uncommitted changes
+      #   shell: bash
+      #   run: |
+      #     [[ -z $(git status --porcelain | grep -v antora.yml) ]] || { echo 'There are uncommitted changes'; git status; exit 1; }
+      # - name: Tar Maven Repo
+      #   shell: bash
+      #   run: |
+      #     tar -czf ${{ runner.temp }}/maven-repo.tgz -C ~ .m2/repository
+      #     ls -lh ${{ runner.temp }}/maven-repo.tgz
+      #     df -h /
+      # - name: Persist Maven Repo
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: maven-repo
+      #     path: ${{ runner.temp }}/maven-repo.tgz
+      #     retention-days: 1
+      - name: Get GIB arguments
+        id: get-gib-args
+        env:
+          PULL_REQUEST_BASE: ${{ github.event.pull_request.base.ref }}
         run: |
-          eval ./mvnw ${MAVEN_ARGS} ${BRANCH_OPTIONS} clean install -DskipTests -Dquarkus.build.skip -Dskip.installyarn -Dskip.yarn
-      - name: Sync Maven properties
+          # See also: https://github.com/gitflow-incremental-builder/gitflow-incremental-builder#configuration (GIB)
+          # Common GIB_ARGS for all CI cases (hint: see also root pom.xml):
+          # - disableSelectedProjectsHandling: required to detect changes in jobs that use -pl
+          # - untracked: to ignore files created by jobs (and uncommitted to be consistent)
+          GIB_ARGS="-Dincremental -Dgib.disableSelectedProjectsHandling -Dgib.untracked=false -Dgib.uncommitted=false"
+          if [ -n "$PULL_REQUEST_BASE" ]
+          then
+            # The PR defines a clear merge target so just use that branch for reference, *unless*:
+            # - the current branch is a backport branch targeting some released branch like 1.10 (merge target is not main)
+            GIB_ARGS+=" -Dgib.referenceBranch=origin/$PULL_REQUEST_BASE -Dgib.disableIfReferenceBranchMatches='origin/\d+\.\d+\.x'"
+          else
+            #######################################################################################################
+            # TODO Need to figure out what this means if we push to main, quarkus|camel-main or some other branch #
+            #######################################################################################################
+
+            # No PR means the merge target is uncertain so fetch & use main of quarkusio/quarkus, *unless*:
+            # - the current branch is main or some released branch like 1.10
+            # - the current branch is a backport branch which is going to target some released branch like 1.10 (merge target is not main)
+            GIB_ARGS+=" -Dgib.referenceBranch=refs/remotes/quarkusio/main -Dgib.fetchReferenceBranch -Dgib.disableIfBranchMatches='main|\d+\.\d+\.x'"
+          fi
+          echo "GIB_ARGS: $GIB_ARGS"
+          echo "::set-output name=gib_args::${GIB_ARGS}"
+      - name: Get GIB impacted modules
+        id: get-gib-impacted
         run: |
-          ./mvnw cq:sync-versions ${MAVEN_ARGS} -N
-      - name: Fail if there are uncommitted changes
-        shell: bash
+          eval ./mvnw -q -T1C ${MAVEN_ARGS} -Dquickly ${{ steps.get-gib-args.outputs.gib_args }} -Dgib.logImpactedTo=gib-impacted.log validate
+          if [ -f gib-impacted.log ]; then
+            GIB_IMPACTED=$(cat gib-impacted.log)
+          else
+            GIB_IMPACTED=''
+          fi
+          echo "GIB_IMPACTED: ${GIB_IMPACTED}"
+          echo "::set-output name=impacted_modules::${GIB_IMPACTED//$'\n'/'%0A'}"
+      - name: Calculate modules to build
+        id: calculate-modules-build
         run: |
-          [[ -z $(git status --porcelain | grep -v antora.yml) ]] || { echo 'There are uncommitted changes'; git status; exit 1; }
-      - name: Tar Maven Repo
-        shell: bash
-        run: |
-          tar -czf ${{ runner.temp }}/maven-repo.tgz -C ~ .m2/repository
-          ls -lh ${{ runner.temp }}/maven-repo.tgz
-          df -h /
-      - name: Persist Maven Repo
-        uses: actions/upload-artifact@v2
-        with:
-          name: maven-repo
-          path: ${{ runner.temp }}/maven-repo.tgz
-          retention-days: 1
+          DOCS=$(echo "${{ steps.get-gib-impacted.outputs.impacted_modules }}" | grep "docs")
+          EXTENSIONS_CORE=$(echo "${{ steps.get-gib-impacted.outputs.impacted_modules }}" | grep "extensions-core")
+          EXTENSIONS_NATIVE=$(echo "${{ steps.get-gib-impacted.outputs.impacted_modules }}" | grep "extensions/")
+          EXTENSIONS_JVM=$(echo "${{ steps.get-gib-impacted.outputs.impacted_modules }}" | grep "extensions-jvm/")
+          INTEGRATION_TESTS_NATIVE=$(echo "${{ steps.get-gib-impacted.outputs.impacted_modules }}" | grep "integration-tests/")
+          INTEGRATION_TESTS_JVM=$(echo "${{ steps.get-gib-impacted.outputs.impacted_modules }}" | grep "integration-tests-jvm/")
+
+          echo "::set-output name=modules_docs::${DOCS}"
+          echo "::set-output name=modules_extensions_core::${EXTENSIONS_CORE}"
+          echo "::set-output name=modules_extensions_native::${EXTENSIONS_NATIVE}"
+          echo "::set-output name=modules_extensions_jvm::${EXTENSIONS_JVM}"
+          echo "::set-output name=modules_itests_native::${INTEGRATION_TESTS_NATIVE}"
+          echo "::set-output name=modules_itests_jvm::${INTEGRATION_TESTS_JVM}"
       - name: Setup Native Test Matrix
         id: set-native-matrix
         run: |
-          CATEGORIES=$(yq -M -N -I 0 -o=json e 'keys' tooling/scripts/test-categories.yaml | tr '"' "'")
-          echo "::set-output name=matrix::{'category': ${CATEGORIES}}"
+          sudo apt install groovy -y --no-install-recommends
 
-  native-tests:
-    name: Native Tests - ${{matrix.category}}
-    needs: initial-mvn-install
-    runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.initial-mvn-install.outputs.matrix) }}
-    steps:
-      - name: Setup apache-snapshots profile
-        if: github.ref == 'refs/heads/camel-main' || github.base_ref == 'camel-main'
-        run: |
-          echo "BRANCH_OPTIONS=-Papache-snapshots" >> $GITHUB_ENV
-      - name: Setup oss-snapshots profile
-        if: github.ref == 'refs/heads/quarkus-main' || github.base_ref == 'quarkus-main'
-        run: |
-          echo "BRANCH_OPTIONS=-Poss-snapshots -Dquarkus.version=999-SNAPSHOT" >> $GITHUB_ENV
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Set up JDK 11
-        uses: actions/setup-java@v2
-        with:
-          distribution: 'temurin'
-          java-version: '11'
-      - name: Download Maven Repo
-        uses: actions/download-artifact@v2
-        with:
-          name: maven-repo
-          path: ..
-      - name: Extract Maven Repo
-        shell: bash
-        run: |
-          df -h /
-          tar -xzf ../maven-repo.tgz -C ~
-          df -h /
-      - name: Integration Tests
-        run: |
-          for MODULE in $(yq -M -N e ".${{ matrix.category }}" tooling/scripts/test-categories.yaml | cut -f2 -d' '); do
-            if [[ "${MODULE}" == "null" ]]; then
-              continue
-            fi
+          # Determine the set of native test categories we need to include.
+          #
+          # TODO: Try to optimize this... 
+          # 
+          # Potentially we could end up with native tests not being 'balanced' well across multiple groups.
+          #
+          # E.g if our incremental build were to include multiple native tests that assigned to one 
+          # individual test group category. Then the build could be a bit slow as the native tests would not be run
+          # concurrently. In that scenario maybe it could be enhanced to dynamically balance the load.
+          #
+          groovy tooling/scripts/get-test-categories.groovy \
+            ${PWD}/tooling/scripts/test-categories.yaml \
+            "${{ steps.calculate-modules-build.outputs.modules_itests_native }}"
 
-            MODULE="integration-tests/$(echo ${MODULE} | sed 's/^[ \t]*//;s/[ \t]*$//')"
+  # native-tests:
+  #   name: Native Tests - ${{matrix.category}}
+  #   needs: initial-mvn-install
+  #   runs-on: ubuntu-latest
+  #   if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
+  #   strategy:
+  #     fail-fast: false
+  #     matrix: ${{ fromJson(needs.initial-mvn-install.outputs.matrix) }}
+  #   steps:
+  #     - name: Setup apache-snapshots profile
+  #       if: github.ref == 'refs/heads/camel-main' || github.base_ref == 'camel-main'
+  #       run: |
+  #         echo "BRANCH_OPTIONS=-Papache-snapshots" >> $GITHUB_ENV
+  #     - name: Setup oss-snapshots profile
+  #       if: github.ref == 'refs/heads/quarkus-main' || github.base_ref == 'quarkus-main'
+  #       run: |
+  #         echo "BRANCH_OPTIONS=-Poss-snapshots -Dquarkus.version=999-SNAPSHOT" >> $GITHUB_ENV
+  #     - name: Checkout
+  #       uses: actions/checkout@v2
+  #     - name: Set up JDK 11
+  #       uses: actions/setup-java@v2
+  #       with:
+  #         distribution: 'temurin'
+  #         java-version: '11'
+  #     - name: Download Maven Repo
+  #       uses: actions/download-artifact@v2
+  #       with:
+  #         name: maven-repo
+  #         path: ..
+  #     - name: Extract Maven Repo
+  #       shell: bash
+  #       run: |
+  #         df -h /
+  #         tar -xzf ../maven-repo.tgz -C ~
+  #         df -h /
+  #     - name: Integration Tests
+  #       run: |
+  #         for MODULE in $(yq -M -N e ".${{ matrix.category }}" tooling/scripts/test-categories.yaml | cut -f2 -d' '); do
+  #           if [[ "${MODULE}" == "null" ]]; then
+  #             continue
+  #           fi
 
-            if [[ "x$(mvn org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=ci.native.tests.skip -DforceStdout -q -f ${MODULE})" == "xtrue" ]]; then
-              JVM_MODULES+=("${MODULE}")
-            else
-              NATIVE_MODULES+=("${MODULE}")
-            fi
-          done
+  #           MODULE="integration-tests/$(echo ${MODULE} | sed 's/^[ \t]*//;s/[ \t]*$//')"
 
-          if [[ ${#JVM_MODULES[@]} -eq 0 ]] && [[ ${#NATIVE_MODULES[@]} -eq 0 ]]; then
-            echo "No test modules were found for category ${{ matrix.category }}"
-            exit 1
-          fi
+  #           if [[ "x$(mvn org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=ci.native.tests.skip -DforceStdout -q -f ${MODULE})" == "xtrue" ]]; then
+  #             JVM_MODULES+=("${MODULE}")
+  #           else
+  #             NATIVE_MODULES+=("${MODULE}")
+  #           fi
+  #         done
 
-          IFS=,
-          if [[ ${JVM_MODULES[@]} ]]; then
-            eval ./mvnw ${MAVEN_ARGS} ${BRANCH_OPTIONS} clean test \
-              -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-              -Pdocker,ci \
-              -pl "${JVM_MODULES[*]}"
-          fi
+  #         if [[ ${#JVM_MODULES[@]} -eq 0 ]] && [[ ${#NATIVE_MODULES[@]} -eq 0 ]]; then
+  #           echo "No test modules were found for category ${{ matrix.category }}"
+  #           exit 1
+  #         fi
 
-          if [[ ${NATIVE_MODULES[@]} ]]; then
-            eval ./mvnw ${MAVEN_ARGS} ${BRANCH_OPTIONS} clean verify \
-              -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-              -Pnative,docker,ci \
-              --fail-at-end \
-              -pl "${NATIVE_MODULES[*]}"
-          fi
-      - name: Fail if there are uncommitted changes
-        shell: bash
-        run: |
-          [[ -z $(git status --porcelain) ]] || { echo 'There are uncommitted changes'; git status; exit 1; }
+  #         IFS=,
+  #         if [[ ${JVM_MODULES[@]} ]]; then
+  #           eval ./mvnw ${MAVEN_ARGS} ${BRANCH_OPTIONS} clean test \
+  #             -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+  #             -Pdocker,ci \
+  #             -pl "${JVM_MODULES[*]}"
+  #         fi
 
-  functional-extension-tests-and-docs:
-    runs-on: ubuntu-latest
-    needs: initial-mvn-install
-    if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
-    env:
-      MAVEN_OPTS: -Xmx3000m
-    steps:
-      - name: Setup apache-snapshots profile
-        if: github.ref == 'refs/heads/camel-main' || github.base_ref == 'camel-main'
-        run: |
-          echo "BRANCH_OPTIONS=-Papache-snapshots" >> $GITHUB_ENV
-      - name: Setup oss-snapshots profile
-        if: github.ref == 'refs/heads/quarkus-main' || github.base_ref == 'quarkus-main'
-        run: |
-          echo "BRANCH_OPTIONS=-Poss-snapshots -Dquarkus.version=999-SNAPSHOT" >> $GITHUB_ENV
-      - uses: actions/checkout@v2
-      - name: Set up JDK 11
-        uses: actions/setup-java@v2
-        with:
-          distribution: 'temurin'
-          java-version: '11'
-      - name: Download Maven Repo
-        uses: actions/download-artifact@v2
-        with:
-          name: maven-repo
-          path: ..
-      - name: Extract Maven Repo
-        shell: bash
-        run: |
-          df -h /
-          tar -xzf ../maven-repo.tgz -C ~
-          df -h /
-      - name: cd extensions-core && mvn test
-        run: |
-          cd extensions-core
-          ../mvnw ${MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
-            test
-      - name: cd extensions && mvn test
-        run: |
-          cd extensions
-          ../mvnw ${MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
-            test
-      - name: cd docs && mvn verify
-        if: github.ref != 'refs/heads/camel-main' && github.base_ref != 'camel-main'
-        run: |
-          cd docs
-          ../mvnw ${MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-            verify
+  #         if [[ ${NATIVE_MODULES[@]} ]]; then
+  #           eval ./mvnw ${MAVEN_ARGS} ${BRANCH_OPTIONS} clean verify \
+  #             -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+  #             -Pnative,docker,ci \
+  #             --fail-at-end \
+  #             -pl "${NATIVE_MODULES[*]}"
+  #         fi
+  #     - name: Fail if there are uncommitted changes
+  #       shell: bash
+  #       run: |
+  #         [[ -z $(git status --porcelain) ]] || { echo 'There are uncommitted changes'; git status; exit 1; }
 
-  extensions-jvm-tests:
-    runs-on: ubuntu-latest
-    needs: initial-mvn-install
-    strategy:
-      fail-fast: false
-      matrix:
-        java: [ '11', '17' ]
-    env:
-      MAVEN_OPTS: -Xmx3000m
-    steps:
-      - name: Setup apache-snapshots profile
-        if: github.ref == 'refs/heads/camel-main' || github.base_ref == 'camel-main'
-        run: |
-          echo "BRANCH_OPTIONS=-Papache-snapshots" >> $GITHUB_ENV
-      - name: Setup oss-snapshots profile
-        if: github.ref == 'refs/heads/quarkus-main' || github.base_ref == 'quarkus-main'
-        run: |
-          echo "BRANCH_OPTIONS=-Poss-snapshots -Dquarkus.version=999-SNAPSHOT" >> $GITHUB_ENV
-      - uses: actions/checkout@v2
-      - name: Set up JDK ${{ matrix.java }}
-        uses: actions/setup-java@v2
-        with:
-          distribution: 'temurin'
-          java-version: ${{ matrix.java }}
-      - name: Download Maven Repo
-        uses: actions/download-artifact@v2
-        with:
-          name: maven-repo
-          path: ..
-      - name: Extract Maven Repo
-        shell: bash
-        run: |
-          df -h /
-          tar -xzf ../maven-repo.tgz -C ~
-          df -h /
-          hostname
-          hostname -f
-          hostname -A
-          HOSTS_LINE="127.0.0.1 $(hostname -f) $(hostname -A)"
-          echo "HOSTS_LINE=$HOSTS_LINE"
-          echo "${HOSTS_LINE}" | sudo tee -a /etc/hosts
-          cat /etc/hosts
-      - name: cd integration-tests-jvm && mvn clean test
-        run: |
-          cd integration-tests-jvm
-          ../mvnw ${MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-            --fail-at-end \
-            clean test
+  # functional-extension-tests-and-docs:
+  #   runs-on: ubuntu-latest
+  #   needs: initial-mvn-install
+  #   if: "(github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')) && ( \
+  #         needs.initial-mvn-install.outputs.modules_extensions_core != '' || \
+  #         needs.initial-mvn-install.outputs.modules_docs != '' || \
+  #       )"
+  #   env:
+  #     MAVEN_OPTS: -Xmx3000m
+  #   steps:
+  #     - name: Setup apache-snapshots profile
+  #       if: github.ref == 'refs/heads/camel-main' || github.base_ref == 'camel-main'
+  #       run: |
+  #         echo "BRANCH_OPTIONS=-Papache-snapshots" >> $GITHUB_ENV
+  #     - name: Setup oss-snapshots profile
+  #       if: github.ref == 'refs/heads/quarkus-main' || github.base_ref == 'quarkus-main'
+  #       run: |
+  #         echo "BRANCH_OPTIONS=-Poss-snapshots -Dquarkus.version=999-SNAPSHOT" >> $GITHUB_ENV
+  #     - uses: actions/checkout@v2
+  #     - name: Set up JDK 11
+  #       uses: actions/setup-java@v2
+  #       with:
+  #         distribution: 'temurin'
+  #         java-version: '11'
+  #     - name: Download Maven Repo
+  #       uses: actions/download-artifact@v2
+  #       with:
+  #         name: maven-repo
+  #         path: ..
+  #     - name: Extract Maven Repo
+  #       shell: bash
+  #       run: |
+  #         df -h /
+  #         tar -xzf ../maven-repo.tgz -C ~
+  #         df -h /
+  #     - name: Text core extensions
+  #       if : needs.initial-mvn-install.outputs.modules_extensions_core != ''
+  #       run: |
+  #         MODULES=""
+  #         for MODULE in "${{ needs.initial-mvn-install.outputs.modules_extensions_core }}"; do
+  #           MODULES += "-pl ${MODULE}"
+  #         done
 
-  integration-tests-alternative-jdk:
-    runs-on: ubuntu-latest
-    needs: initial-mvn-install
-    if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
-    env:
-      MAVEN_OPTS: -Xmx3000m
-    steps:
-      - name: Setup apache-snapshots profile
-        if: github.ref == 'refs/heads/camel-main' || github.base_ref == 'camel-main'
-        run: |
-          echo "BRANCH_OPTIONS=-Papache-snapshots" >> $GITHUB_ENV
-      - name: Setup oss-snapshots profile
-        if: github.ref == 'refs/heads/quarkus-main' || github.base_ref == 'quarkus-main'
-        run: |
-          echo "BRANCH_OPTIONS=-Poss-snapshots -Dquarkus.version=999-SNAPSHOT" >> $GITHUB_ENV
-      - uses: actions/checkout@v2
-      - name: Clean VM
-        run: |
-          echo "Removing unwanted SDKs"
-          sudo rm -rf /usr/local/lib/android \
-               rm -rf /usr/local/share/boost \
-               rm -rf /usr/local/go \
-               rm -rf /usr/share/dotnet \
-               rm -rf /usr/share/rust
-      - name: Set up JDK 17
-        uses: actions/setup-java@v2
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-      - name: Download Maven Repo
-        uses: actions/download-artifact@v2
-        with:
-          name: maven-repo
-          path: ..
-      - name: Extract Maven Repo
-        shell: bash
-        run: |
-          df -h /
-          tar -xzf ../maven-repo.tgz -C ~
-          df -h /
-      - name: cd integration-tests && mvn clean verify
-        run: |
-          cd integration-tests
-          ../mvnw ${MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-            --fail-at-end \
-            clean verify
+  #         ./mvnw ${MAVEN_ARGS} ${BRANCH_OPTIONS} ${MODULES} \
+  #           -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
+  #           test
+  #     - name: Text extensions
+  #       if : needs.initial-mvn-install.outputs.modules_extensions_native != ''
+  #       run: |
+  #         MODULES=""
+  #         for MODULE in "${{ needs.initial-mvn-install.outputs.modules_extensions_native }}"; do
+  #           MODULES += "-pl ${MODULE}"
+  #         done
 
-  integration-tests-alternative-platform:
-    runs-on: ${{ matrix.os }}
-    needs: initial-mvn-install
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ 'windows-latest' ]
-    if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
-    env:
-      MAVEN_OPTS: -Xmx3000m
-    steps:
-      - name: Setup apache-snapshots profile
-        shell: bash
-        if: github.ref == 'refs/heads/camel-main' || github.base_ref == 'camel-main'
-        run: |
-          echo "BRANCH_OPTIONS=-Papache-snapshots" >> $GITHUB_ENV
-      - name: Setup oss-snapshots profile
-        shell: bash
-        if: github.ref == 'refs/heads/quarkus-main' || github.base_ref == 'quarkus-main'
-        run: |
-          echo "BRANCH_OPTIONS=-Poss-snapshots -Dquarkus.version=999-SNAPSHOT" >> $GITHUB_ENV
-      - uses: actions/checkout@v2
-      - name: Set up JDK 11
-        uses: actions/setup-java@v2
-        with:
-          distribution: 'temurin'
-          java-version: '11'
-      - name: Download Maven Repo
-        uses: actions/download-artifact@v2
-        with:
-          name: maven-repo
-          path: ..
-      - name: Extract Maven Repo
-        shell: bash
-        run: |
-          tar -xzf ../maven-repo.tgz -C ~
-      - name: cd integration-tests && mvn clean verify
-        shell: bash
-        run: |
-          cd integration-tests
-          ../mvnw ${MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            -Dskip-testcontainers-tests -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-            --fail-at-end \
-            clean verify
+  #         ./mvnw ${MAVEN_ARGS} ${BRANCH_OPTIONS} ${MODULES} \
+  #           -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
+  #           test
+  #     - name: Verify docs
+  #       if : needs.initial-mvn-install.outputs.modules_docs != ''
+  #       run: |
+  #         cd docs
+  #         ../mvnw ${MAVEN_ARGS} ${BRANCH_OPTIONS} \
+  #           -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+  #           verify
 
-  examples-tests:
-    needs: initial-mvn-install
-    runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
-    steps:
-      - name: Setup apache-snapshots profile
-        if: github.ref == 'refs/heads/camel-main' || github.base_ref == 'camel-main'
-        run: |
-          echo "BRANCH_OPTIONS=-Papache-snapshots" >> $GITHUB_ENV
-      - name: Setup oss-snapshots profile
-        if: github.ref == 'refs/heads/quarkus-main' || github.base_ref == 'quarkus-main'
-        run: |
-          echo "BRANCH_OPTIONS=-Poss-snapshots -Dquarkus.version=999-SNAPSHOT" >> $GITHUB_ENV
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Set up JDK 11
-        uses: actions/setup-java@v2
-        with:
-          distribution: 'temurin'
-          java-version: '11'
-      - name: Download Maven Repo
-        uses: actions/download-artifact@v2
-        with:
-          name: maven-repo
-          path: ..
-      - name: Extract Maven Repo
-        shell: bash
-        run: |
-          df -h /
-          tar -xzf ../maven-repo.tgz -C ~
-          df -h /
-      - name: set CQ_VERSION
-        run: echo "CQ_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
-      - name: clone and verify examples
-        run: |
-          EXAMPLES_BRANCH="camel-quarkus-main"
+  # extensions-jvm-tests:
+  #   runs-on: ubuntu-latest
+  #   needs: initial-mvn-install
+  #   if : needs.initial-mvn-install.outputs.modules_itests_jvm != ''
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       java: [ '11', '17' ]
+  #   env:
+  #     MAVEN_OPTS: -Xmx3000m
+  #   steps:
+  #     - name: Setup apache-snapshots profile
+  #       if: github.ref == 'refs/heads/camel-main' || github.base_ref == 'camel-main'
+  #       run: |
+  #         echo "BRANCH_OPTIONS=-Papache-snapshots" >> $GITHUB_ENV
+  #     - name: Setup oss-snapshots profile
+  #       if: github.ref == 'refs/heads/quarkus-main' || github.base_ref == 'quarkus-main'
+  #       run: |
+  #         echo "BRANCH_OPTIONS=-Poss-snapshots -Dquarkus.version=999-SNAPSHOT" >> $GITHUB_ENV
+  #     - uses: actions/checkout@v2
+  #     - name: Set up JDK ${{ matrix.java }}
+  #       uses: actions/setup-java@v2
+  #       with:
+  #         distribution: 'temurin'
+  #         java-version: ${{ matrix.java }}
+  #     - name: Download Maven Repo
+  #       uses: actions/download-artifact@v2
+  #       with:
+  #         name: maven-repo
+  #         path: ..
+  #     - name: Extract Maven Repo
+  #       shell: bash
+  #       run: |
+  #         df -h /
+  #         tar -xzf ../maven-repo.tgz -C ~
+  #         df -h /
+  #         hostname
+  #         hostname -f
+  #         hostname -A
+  #         HOSTS_LINE="127.0.0.1 $(hostname -f) $(hostname -A)"
+  #         echo "HOSTS_LINE=$HOSTS_LINE"
+  #         echo "${HOSTS_LINE}" | sudo tee -a /etc/hosts
+  #         cat /etc/hosts
+  #     - name: Integration tests JVM
+  #       run: |
+  #         MODULES=""
+  #         for MODULE in "${{ needs.initial-mvn-install.outputs.modules_itests_jvm }}"; do
+  #           MODULES += "-pl ${MODULE}"
+  #         done
 
-          if [[ ${GITHUB_REF_NAME} =~ [0-9]+.[0-9]+.x ]]; then
-              EXAMPLES_BRANCH=${GITHUB_REF_NAME}
-          fi
+  #         ./mvnw ${MAVEN_ARGS} ${BRANCH_OPTIONS} ${MODULES} \
+  #           -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+  #           --fail-at-end \
+  #           clean test
 
-          git clone --depth 1 --branch ${EXAMPLES_BRANCH} https://github.com/apache/camel-quarkus-examples.git \
-            && cd camel-quarkus-examples \
-            && echo "Current Examples commit:" $(git rev-parse HEAD) \
-            && mvn ${MAVEN_ARGS} ${BRANCH_OPTIONS} org.l2x6.cq:cq-maven-plugin:2.10.0:examples-set-platform -Dcq.camel-quarkus.version=${CQ_VERSION} \
-            && ./mvnw-for-each.sh ${MAVEN_ARGS} ${BRANCH_OPTIONS} -Pnative,docker clean verify
+  # integration-tests-alternative-jdk:
+  #   runs-on: ubuntu-latest
+  #   needs: initial-mvn-install
+  #   if: (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')) && (needs.initial-mvn-install.outputs.modules_itests_native != '')
+  #   env:
+  #     MAVEN_OPTS: -Xmx3000m
+  #   steps:
+  #     - name: Setup apache-snapshots profile
+  #       if: github.ref == 'refs/heads/camel-main' || github.base_ref == 'camel-main'
+  #       run: |
+  #         echo "BRANCH_OPTIONS=-Papache-snapshots" >> $GITHUB_ENV
+  #     - name: Setup oss-snapshots profile
+  #       if: github.ref == 'refs/heads/quarkus-main' || github.base_ref == 'quarkus-main'
+  #       run: |
+  #         echo "BRANCH_OPTIONS=-Poss-snapshots -Dquarkus.version=999-SNAPSHOT" >> $GITHUB_ENV
+  #     - uses: actions/checkout@v2
+  #     - name: Clean VM
+  #       run: |
+  #         echo "Removing unwanted SDKs"
+  #         sudo rm -rf /usr/local/lib/android \
+  #              rm -rf /usr/local/share/boost \
+  #              rm -rf /usr/local/go \
+  #              rm -rf /usr/share/dotnet \
+  #              rm -rf /usr/share/rust
+  #     - name: Set up JDK 17
+  #       uses: actions/setup-java@v2
+  #       with:
+  #         distribution: 'temurin'
+  #         java-version: '17'
+  #     - name: Download Maven Repo
+  #       uses: actions/download-artifact@v2
+  #       with:
+  #         name: maven-repo
+  #         path: ..
+  #     - name: Extract Maven Repo
+  #       shell: bash
+  #       run: |
+  #         df -h /
+  #         tar -xzf ../maven-repo.tgz -C ~
+  #         df -h /
+  #     - name: Integration tests alternative JDK
+  #       run: |
+  #         MODULES=""
+  #         for MODULE in "${{ needs.initial-mvn-install.outputs.modules_itests_native }}"; do
+  #           MODULES += "-pl ${MODULE}"
+  #         done
+
+  #         ./mvnw ${MAVEN_ARGS} ${BRANCH_OPTIONS} ${MODULES} \
+  #           -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+  #           --fail-at-end \
+  #           clean verify
+
+  # integration-tests-alternative-platform:
+  #   runs-on: ${{ matrix.os }}
+  #   needs: initial-mvn-install
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       os: [ 'windows-latest' ]
+  #   if: (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')) && (needs.initial-mvn-install.outputs.modules_itests_native != '')
+  #   env:
+  #     MAVEN_OPTS: -Xmx3000m
+  #   steps:
+  #     - name: Setup apache-snapshots profile
+  #       shell: bash
+  #       if: github.ref == 'refs/heads/camel-main' || github.base_ref == 'camel-main'
+  #       run: |
+  #         echo "BRANCH_OPTIONS=-Papache-snapshots" >> $GITHUB_ENV
+  #     - name: Setup oss-snapshots profile
+  #       shell: bash
+  #       if: github.ref == 'refs/heads/quarkus-main' || github.base_ref == 'quarkus-main'
+  #       run: |
+  #         echo "BRANCH_OPTIONS=-Poss-snapshots -Dquarkus.version=999-SNAPSHOT" >> $GITHUB_ENV
+  #     - uses: actions/checkout@v2
+  #     - name: Set up JDK 11
+  #       uses: actions/setup-java@v2
+  #       with:
+  #         distribution: 'temurin'
+  #         java-version: '11'
+  #     - name: Download Maven Repo
+  #       uses: actions/download-artifact@v2
+  #       with:
+  #         name: maven-repo
+  #         path: ..
+  #     - name: Extract Maven Repo
+  #       shell: bash
+  #       run: |
+  #         tar -xzf ../maven-repo.tgz -C ~
+  #     - name: Integration tests ${{ matrix.os }}
+  #       shell: bash
+  #       run: |
+  #         MODULES=""
+  #         for MODULE in "${{ needs.initial-mvn-install.outputs.modules_itests_native }}"; do
+  #           MODULES += "-pl ${MODULE}"
+  #         done
+
+  #         ./mvnw ${MAVEN_ARGS} ${BRANCH_OPTIONS} ${MODULES} \
+  #           -Dskip-testcontainers-tests -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+  #           --fail-at-end \
+  #           clean verify
+
+  # examples-tests:
+  #   needs: initial-mvn-install
+  #   runs-on: ubuntu-latest
+  #   if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
+  #   steps:
+  #     - name: Setup apache-snapshots profile
+  #       if: github.ref == 'refs/heads/camel-main' || github.base_ref == 'camel-main'
+  #       run: |
+  #         echo "BRANCH_OPTIONS=-Papache-snapshots" >> $GITHUB_ENV
+  #     - name: Setup oss-snapshots profile
+  #       if: github.ref == 'refs/heads/quarkus-main' || github.base_ref == 'quarkus-main'
+  #       run: |
+  #         echo "BRANCH_OPTIONS=-Poss-snapshots -Dquarkus.version=999-SNAPSHOT" >> $GITHUB_ENV
+  #     - name: Checkout
+  #       uses: actions/checkout@v2
+  #     - name: Set up JDK 11
+  #       uses: actions/setup-java@v2
+  #       with:
+  #         distribution: 'temurin'
+  #         java-version: '11'
+  #     - name: Download Maven Repo
+  #       uses: actions/download-artifact@v2
+  #       with:
+  #         name: maven-repo
+  #         path: ..
+  #     - name: Extract Maven Repo
+  #       shell: bash
+  #       run: |
+  #         df -h /
+  #         tar -xzf ../maven-repo.tgz -C ~
+  #         df -h /
+  #     - name: set CQ_VERSION
+  #       run: echo "CQ_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+  #     - name: clone and verify examples
+  #       run: |
+  #         EXAMPLES_BRANCH="camel-quarkus-main"
+
+  #         if [[ ${GITHUB_REF_NAME} =~ [0-9]+.[0-9]+.x ]]; then
+  #             EXAMPLES_BRANCH=${GITHUB_REF_NAME}
+  #         fi
+
+  #         git clone --depth 1 --branch ${EXAMPLES_BRANCH} https://github.com/apache/camel-quarkus-examples.git \
+  #           && cd camel-quarkus-examples \
+  #           && echo "Current Examples commit:" $(git rev-parse HEAD) \
+  #           && mvn ${MAVEN_ARGS} ${BRANCH_OPTIONS} org.l2x6.cq:cq-maven-plugin:2.10.0:examples-set-platform -Dcq.camel-quarkus.version=${CQ_VERSION} \
+  #           && ./mvnw-for-each.sh ${MAVEN_ARGS} ${BRANCH_OPTIONS} -Pnative,docker clean verify
