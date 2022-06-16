@@ -1287,7 +1287,7 @@
                     <plugin>
                         <groupId>io.github.gitflow-incremental-builder</groupId>
                         <artifactId>gitflow-incremental-builder</artifactId>
-                        <version>4.1.1-SNAPSHOT</version>
+                        <version>4.1.0</version>
                         <extensions>true</extensions>
                         <!-- https://github.com/gitflow-incremental-builder/gitflow-incremental-builder#configuration
                              General recap: Anything that is directly set in <configuration> cannot be redefined via '-D...'!
