@@ -1,0 +1,23 @@
+projects:
+  - id: test
+    datasets:
+      - id: test
+        tables:
+          - id: test
+            columns:
+              - name: id
+                type: INTEGER
+              - name: col1
+                type: STRING
+              - name: col2
+                type: STRING
+          data:
+            - id: 1
+              col1: "test"
+              col2: "value"
+            - id: 2
+              col1: "test"
+              col2: "value"
+            - id: 3
+              col1: "test"
+              col2: "value"
