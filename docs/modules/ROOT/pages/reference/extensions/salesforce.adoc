@@ -79,3 +79,171 @@ To generate Salesforce DTOs for your project, use the `salesforce-maven-plugin`.
 This extension auto-enables SSL support in native mode. Hence you do not need to add
 `quarkus.ssl.native=true` to your `application.properties` yourself. See also
 https://quarkus.io/guides/native-and-ssl[Quarkus SSL guide].
+
+== Additional Camel Quarkus configuration
+
+[width="100%",cols="80,5,15",options="header"]
+|===
+| Configuration property | Type | Default
+
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.skip]]`link:#quarkus.camel.salesforce.codegen.skip[quarkus.camel.salesforce.codegen.skip]`
+
+Skips Salesforce DTO code generation.
+| `java.lang.Boolean`
+| `false`
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.client-id]]`link:#quarkus.camel.salesforce.codegen.client-id[quarkus.camel.salesforce.codegen.client-id]`
+
+Salesforce API client ID.
+| `string`
+| 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.client-secret]]`link:#quarkus.camel.salesforce.codegen.client-secret[quarkus.camel.salesforce.codegen.client-secret]`
+
+Salesforce API client secret.
+| `string`
+| 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.username]]`link:#quarkus.camel.salesforce.codegen.username[quarkus.camel.salesforce.codegen.username]`
+
+Salesforce API username.
+| `string`
+| 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.password]]`link:#quarkus.camel.salesforce.codegen.password[quarkus.camel.salesforce.codegen.password]`
+
+Salesforce API password.
+| `string`
+| 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.login-url]]`link:#quarkus.camel.salesforce.codegen.login-url[quarkus.camel.salesforce.codegen.login-url]`
+
+Salesforce API login URL.
+| `string`
+| `https://login.salesforce.com`
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.version]]`link:#quarkus.camel.salesforce.codegen.version[quarkus.camel.salesforce.codegen.version]`
+
+Salesforce API version.
+| `string`
+| `54.0`
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.output-directory]]`link:#quarkus.camel.salesforce.codegen.output-directory[quarkus.camel.salesforce.codegen.output-directory]`
+
+Directory where to place generated DTOs, defaults to $++{++project.build.directory++}++/generated-sources/camel-salesforce.
+| `string`
+| `${project.build.directory}/generated-sources/camel-salesforce`
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.includes]]`link:#quarkus.camel.salesforce.codegen.includes[quarkus.camel.salesforce.codegen.includes]`
+
+List of SObject types to include.
+| `string`
+| 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.excludes]]`link:#quarkus.camel.salesforce.codegen.excludes[quarkus.camel.salesforce.codegen.excludes]`
+
+List of SObject types to exclude.
+| `string`
+| 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.include-pattern]]`link:#quarkus.camel.salesforce.codegen.include-pattern[quarkus.camel.salesforce.codegen.include-pattern]`
+
+Java RegEx for SObject types to include.
+| `string`
+| 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.exclude-pattern]]`link:#quarkus.camel.salesforce.codegen.exclude-pattern[quarkus.camel.salesforce.codegen.exclude-pattern]`
+
+Java RegEx for SObject types to exclude.
+| `string`
+| 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.package-name]]`link:#quarkus.camel.salesforce.codegen.package-name[quarkus.camel.salesforce.codegen.package-name]`
+
+Java package name for generated DTOs.
+| `string`
+| `org.apache.camel.salesforce.dto`
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.custom-types]]`link:#quarkus.camel.salesforce.codegen.custom-types[quarkus.camel.salesforce.codegen.custom-types]`
+
+Override default types in generated DTOs.
+| `string`
+| 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.use-strings-for-picklists]]`link:#quarkus.camel.salesforce.codegen.use-strings-for-picklists[quarkus.camel.salesforce.codegen.use-strings-for-picklists]`
+
+Use strings instead of enumerations for picklists.
+| `boolean`
+| `false`
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.child-relationship-name-suffix]]`link:#quarkus.camel.salesforce.codegen.child-relationship-name-suffix[quarkus.camel.salesforce.codegen.child-relationship-name-suffix]`
+
+Suffix for child relationship property name. Necessary if an SObject has a lookup field with the same name as its Child Relationship Name. If setting to something other than default, "List" is a sensible value.
+| `string`
+| 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.enumeration-override-properties]]`link:#quarkus.camel.salesforce.codegen.enumeration-override-properties[quarkus.camel.salesforce.codegen.enumeration-override-properties]`
+
+Override picklist enum value generation via a java.util.Properties instance.
+| `string`
+| 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.http.proxy.host]]`link:#quarkus.camel.salesforce.codegen.http.proxy.host[quarkus.camel.salesforce.codegen.http.proxy.host]`
+
+Proxy server host name
+| `string`
+| 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.http.proxy.port]]`link:#quarkus.camel.salesforce.codegen.http.proxy.port[quarkus.camel.salesforce.codegen.http.proxy.port]`
+
+Proxy server host port
+| `java.lang.Integer`
+| 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.http.proxy.username]]`link:#quarkus.camel.salesforce.codegen.http.proxy.username[quarkus.camel.salesforce.codegen.http.proxy.username]`
+
+Proxy server username
+| `string`
+| 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.http.proxy.password]]`link:#quarkus.camel.salesforce.codegen.http.proxy.password[quarkus.camel.salesforce.codegen.http.proxy.password]`
+
+Proxy server password
+| `string`
+| 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.http.proxy.realm]]`link:#quarkus.camel.salesforce.codegen.http.proxy.realm[quarkus.camel.salesforce.codegen.http.proxy.realm]`
+
+Proxy server realm
+| `string`
+| 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.http.proxy.auth-uri]]`link:#quarkus.camel.salesforce.codegen.http.proxy.auth-uri[quarkus.camel.salesforce.codegen.http.proxy.auth-uri]`
+
+Proxy server authentication URI
+| `string`
+| 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.http.proxy.use-digest-auth]]`link:#quarkus.camel.salesforce.codegen.http.proxy.use-digest-auth[quarkus.camel.salesforce.codegen.http.proxy.use-digest-auth]`
+
+Whether to use proxy digest authentication
+| `java.lang.Boolean`
+| `false`
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.http.proxy.included-addresses]]`link:#quarkus.camel.salesforce.codegen.http.proxy.included-addresses[quarkus.camel.salesforce.codegen.http.proxy.included-addresses]`
+
+Addresses to include for the proxy server
+| `string`
+| 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.http.proxy.excluded-addresses]]`link:#quarkus.camel.salesforce.codegen.http.proxy.excluded-addresses[quarkus.camel.salesforce.codegen.http.proxy.excluded-addresses]`
+
+Addresses to exclude for the proxy server
+| `string`
+| 
+|===
+
+[.configuration-legend]
+icon:lock[title=Fixed at build time] Configuration property fixed at build time. All other configuration properties are overridable at runtime.
+

@@ -30,6 +30,15 @@
     <name>Camel Quarkus :: Integration Tests :: Salesforce</name>
     <description>The camel integration tests</description>
 
+    <properties>
+        <quarkus.camel.salesforce.codegen.client-id>3MVG9Rd3qC6oMalVdV8eu5eBCnTeYnOsExOYog80.VgWR8pBQG5fApkVj9CmiUmN1e.XKzYBASBo6P9HDu.A0</quarkus.camel.salesforce.codegen.client-id>
+        <quarkus.camel.salesforce.codegen.client-secret>6BCC3D6F82BE1E1A835FFCA410C7087C6EB57BEB1F94FCBEC7EC6BF01227FAA5</quarkus.camel.salesforce.codegen.client-secret>
+        <quarkus.camel.salesforce.codegen.username>jamesnetherton@gmail.com</quarkus.camel.salesforce.codegen.username>
+        <quarkus.camel.salesforce.codegen.password>7esYTRwC73TfZdvWBm6M8MdXKSsMPZ</quarkus.camel.salesforce.codegen.password>
+        <quarkus.camel.salesforce.codegen.custom-types.date>java.time.LocalDateTime</quarkus.camel.salesforce.codegen.custom-types.date>
+        <quarkus.camel.salesforce.codegen.enumeration-override-properties.Student__c.FinalGrade__c.A->AMinus</quarkus.camel.salesforce.codegen.enumeration-override-properties.Student__c.FinalGrade__c.A->
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.camel.quarkus</groupId>
@@ -73,6 +82,24 @@
         </dependency>
     </dependencies>
 
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>quarkus-generate-code</id>
+                        <goals>
+                            <goal>generate-code</goal>
+                        </goals>
+                        <phase>generate-sources</phase>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
     <profiles>
         <profile>
