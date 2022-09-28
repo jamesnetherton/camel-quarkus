@@ -24,6 +24,7 @@ import java.util.zip.GZIPInputStream;
 
 import javax.annotation.security.RolesAllowed;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.spi.CDI;
 import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonObject;
@@ -126,7 +127,7 @@ public class HttpResource {
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     public Response httpBasicAuthCache(@QueryParam("test-port") int port) {
-
+        CDI.current().getBeanManager()
         Exchange result = producerTemplate
                 .withHeader(Exchange.HTTP_QUERY, "component=http")
                 .toF("http://localhost:%d/test/client/auth/basic"

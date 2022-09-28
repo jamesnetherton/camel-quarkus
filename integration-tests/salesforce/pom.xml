@@ -37,6 +37,8 @@
         <quarkus.camel.salesforce.codegen.password>7esYTRwC73TfZdvWBm6M8MdXKSsMPZ</quarkus.camel.salesforce.codegen.password>
         <quarkus.camel.salesforce.codegen.custom-types.date>java.time.LocalDateTime</quarkus.camel.salesforce.codegen.custom-types.date>
         <quarkus.camel.salesforce.codegen.enumeration-override-properties.Student__c.FinalGrade__c.A->AMinus</quarkus.camel.salesforce.codegen.enumeration-override-properties.Student__c.FinalGrade__c.A->
+        <quarkus.camel.salesforce.codegen.includes>Account</quarkus.camel.salesforce.codegen.includes>
+        <camel.osgi.version.clean></camel.osgi.version.clean>
     </properties>
 
     <dependencies>
@@ -92,6 +94,7 @@
                     <execution>
                         <id>quarkus-generate-code</id>
                         <goals>
+                            <goal>build</goal>
                             <goal>generate-code</goal>
                         </goals>
                         <phase>generate-sources</phase>

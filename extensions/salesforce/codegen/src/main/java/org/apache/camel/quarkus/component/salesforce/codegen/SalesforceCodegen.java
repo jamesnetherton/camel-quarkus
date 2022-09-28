@@ -23,6 +23,7 @@ import static org.apache.camel.quarkus.salesforce.config.SalesforceCodegenConfig
 import static org.apache.camel.quarkus.salesforce.config.SalesforceCodegenConfig.CONFIG_ENUMERATION_OVERRIDE_PROPERTIES;
 import static org.apache.camel.quarkus.salesforce.config.SalesforceCodegenConfig.CONFIG_EXCLUDES;
 import static org.apache.camel.quarkus.salesforce.config.SalesforceCodegenConfig.CONFIG_EXCLUDE_PATTERN;
+import static org.apache.camel.quarkus.salesforce.config.SalesforceCodegenConfig.CONFIG_HTTP_CLIENT_PROPERTIES;
 import static org.apache.camel.quarkus.salesforce.config.SalesforceCodegenConfig.CONFIG_HTTP_PROXY_AUTH_URI;
 import static org.apache.camel.quarkus.salesforce.config.SalesforceCodegenConfig.CONFIG_HTTP_PROXY_DIGEST_AUTH;
 import static org.apache.camel.quarkus.salesforce.config.SalesforceCodegenConfig.CONFIG_HTTP_PROXY_EXCLUDED_ADDRESSES;
@@ -31,6 +32,8 @@ import static org.apache.camel.quarkus.salesforce.config.SalesforceCodegenConfig
 import static org.apache.camel.quarkus.salesforce.config.SalesforceCodegenConfig.CONFIG_HTTP_PROXY_PASSWORD;
 import static org.apache.camel.quarkus.salesforce.config.SalesforceCodegenConfig.CONFIG_HTTP_PROXY_PORT;
 import static org.apache.camel.quarkus.salesforce.config.SalesforceCodegenConfig.CONFIG_HTTP_PROXY_REALM;
+import static org.apache.camel.quarkus.salesforce.config.SalesforceCodegenConfig.CONFIG_HTTP_PROXY_SECURE;
+import static org.apache.camel.quarkus.salesforce.config.SalesforceCodegenConfig.CONFIG_HTTP_PROXY_SOCKS4;
 import static org.apache.camel.quarkus.salesforce.config.SalesforceCodegenConfig.CONFIG_HTTP_PROXY_USERNAME;
 import static org.apache.camel.quarkus.salesforce.config.SalesforceCodegenConfig.CONFIG_INCLUDES;
 import static org.apache.camel.quarkus.salesforce.config.SalesforceCodegenConfig.CONFIG_INCLUDE_PATTERN;
@@ -58,12 +61,14 @@ public class SalesforceCodegen implements CodeGenProvider {
 
     @Override
     public String inputExtension() {
-        return ".camel";
+        // Fictional inputExtension required to satisfy CodeGenProvider requirements
+        return "." + this.providerId();
     }
 
     @Override
     public String inputDirectory() {
-        return "null";
+        // Fictional inputDirectory required to satisfy CodeGenProvider requirements
+        return this.providerId();
     }
 
     @Override
@@ -77,7 +82,6 @@ public class SalesforceCodegen implements CodeGenProvider {
         } catch (Exception e) {
             throw new CodeGenException(e);
         }
-
         return true;
     }
 
@@ -113,7 +117,10 @@ public class SalesforceCodegen implements CodeGenProvider {
                 .ifPresent(execution::setChildRelationshipNameSuffix);
         getConfigValue(config, CONFIG_ENUMERATION_OVERRIDE_PROPERTIES, Properties.class)
                 .ifPresent(execution::setEnumerationOverrideProperties);
+        // TODO: Figure out why this is even a configuration option. How could it have been configured via maven properties?
         execution.setSslContextParameters(new SSLContextParameters());
+        getConfigValue(config, CONFIG_HTTP_CLIENT_PROPERTIES, Map.class)
+                .ifPresent(execution::setHttpClientProperties);
     }
 
     private void applyHttpProxyConfig(CodeGenContext context, GenerateExecution execution) {
@@ -137,11 +144,22 @@ public class SalesforceCodegen implements CodeGenProvider {
         getConfigValue(config, CONFIG_HTTP_PROXY_EXCLUDED_ADDRESSES, String[].class)
                 .map(Sets::of)
                 .ifPresent(execution::setHttpProxyExcludedAddresses);
+        getConfigValue(config, CONFIG_HTTP_PROXY_SECURE, boolean.class)
+                .ifPresent(execution::setHttpProxySecure);
+        getConfigValue(config, CONFIG_HTTP_PROXY_SOCKS4, boolean.class)
+                .ifPresent(execution::setHttpProxySocks4);
     }
 
     @Override
     public boolean shouldRun(Path sourceDir, Config config) {
-        config.getPropertyNames().forEach(System.out::println);
+        if (LOG.isDebugEnabled()) {
+            Iterable<String> propertyNames = config.getPropertyNames();
+            propertyNames.forEach(propertyName -> {
+                if (propertyName.startsWith(CONFIG_PREFIX)) {
+                    LOG.debugf("Found Camel Quarkus Salesforce CodeGen property: %s", propertyName);
+                }
+            });
+        }
 
         if (!shouldRunInternal(config)) {
             LOG.info("Skipping Salesforce code generation");
@@ -151,30 +169,19 @@ public class SalesforceCodegen implements CodeGenProvider {
     }
 
     private boolean shouldRunInternal(Config config) {
-        String skipConfigKey = resolveConfigKey(CONFIG_SKIP);
-        Optional<Boolean> optional = config.getOptionalValue(skipConfigKey, boolean.class);
-        if (optional.isPresent()) {
-            LOG.info("Uh oh! Skip config present...");
-            return !optional.get();
-        }
-
-        if (Boolean.getBoolean(skipConfigKey)) {
-            LOG.info("Uh oh! Skip config present...");
-            return false;
-        }
-
-        // TODO: Do we need to be looking up system properties as well?
-        //        String clientIdConfigKey = getConfigValue(config, CONFIG_CLIENT_ID, String.class).orElse(null);
-        //        String clientSecretConfigKey = getConfigValue(config, CONFIG_CLIENT_SECRET, String.class).orElse(null);
-        //        if (ObjectHelper.isEmpty(clientIdConfigKey) || ObjectHelper.isEmpty(clientSecretConfigKey)) {
-        //            LOG.info("Uh oh! Client id / secret not present...");
-        //            return false;
-        //        }
-
-        return true;
+        Optional<Boolean> skipCodeGenOptional = config.getOptionalValue(resolveConfigKey(CONFIG_SKIP), Boolean.class);
+        return skipCodeGenOptional.map(skip -> !skip)
+                .orElseGet(() -> isSalesforceCredentialsPresent(config));
     }
 
-    private <T extends Object> Optional<T> getConfigValue(Config config, String key, Class<T> aClass) {
+    private boolean isSalesforceCredentialsPresent(Config config) {
+        return getConfigValue(config, CONFIG_CLIENT_ID, String.class).isPresent() &&
+                getConfigValue(config, CONFIG_CLIENT_SECRET, String.class).isPresent() &&
+                getConfigValue(config, CONFIG_USERNAME, String.class).isPresent() &&
+                getConfigValue(config, CONFIG_PASSWORD, String.class).isPresent();
+    }
+
+    private <T> Optional<T> getConfigValue(Config config, String key, Class<T> aClass) {
         String resolvedKey = resolveConfigKey(key);
         if (Properties.class.isAssignableFrom(aClass)) {
             final Properties properties = new Properties();
@@ -189,27 +196,16 @@ public class SalesforceCodegen implements CodeGenProvider {
         return config.getOptionalValue(resolvedKey, aClass);
     }
 
+    // TODO: Rethink how this works...
+    // Can probably use map style config or list of key=value types
     private void populateMapConfigType(Config config, String key, Map<Object, Object> map) {
         String resolvedKey = resolveConfigKey(key);
         config.getPropertyNames().forEach(propertyName -> {
             if (propertyName.startsWith(resolvedKey)) {
-                // TODO: This can't work in all cases. The '.' in the suffix might be important like Student__c.FinalGrade__c.A-
-                String suffix = propertyName.substring(propertyName.lastIndexOf('.') + 1);
+                String suffix = propertyName.replace(key + ".", "");
                 map.put(suffix, config.getValue(propertyName, String.class));
             }
         });
-    }
-
-    // TODO: This is actually really tricky...
-    // How do you get
-    private <T extends Object> Optional<T> resolveConfigValue(Config config, String key, Class<T> aClass) {
-        String resolvedKey = resolveConfigKey(key);
-        // TODO: Handle collections
-        String property = System.getProperty(resolvedKey);
-        if (property != null) {
-            return Optional.of((T) property);
-        }
-        return null;
     }
 
     private String resolveConfigKey(String key) {

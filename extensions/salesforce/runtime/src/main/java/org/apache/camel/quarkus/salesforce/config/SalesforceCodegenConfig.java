@@ -39,6 +39,7 @@ public class SalesforceCodegenConfig {
     public static final String CONFIG_USE_STRINGS_FOR_PICKLISTS = "use-strings-for-picklists";
     public static final String CONFIG_CHILD_RELATIONSHIP_NAME_SUFFIX = "child-relationship-name-suffix";
     public static final String CONFIG_ENUMERATION_OVERRIDE_PROPERTIES = "enumeration-override-properties";
+    public static final String CONFIG_HTTP_CLIENT_PROPERTIES = "http-client-properties";
     public static final String CONFIG_HTTP_PROXY = "http.proxy.";
     public static final String CONFIG_HTTP_PROXY_HOST = CONFIG_HTTP_PROXY + "host";
     public static final String CONFIG_HTTP_PROXY_PORT = CONFIG_HTTP_PROXY + "port";
@@ -49,6 +50,8 @@ public class SalesforceCodegenConfig {
     public static final String CONFIG_HTTP_PROXY_DIGEST_AUTH = CONFIG_HTTP_PROXY + "use-digest-auth";
     public static final String CONFIG_HTTP_PROXY_INCLUDED_ADDRESSES = CONFIG_HTTP_PROXY + "included-addresses";
     public static final String CONFIG_HTTP_PROXY_EXCLUDED_ADDRESSES = CONFIG_HTTP_PROXY + "excluded-addresses";
+    public static final String CONFIG_HTTP_PROXY_SECURE = CONFIG_HTTP_PROXY + "secure";
+    public static final String CONFIG_HTTP_PROXY_SOCKS4 = CONFIG_HTTP_PROXY + "socks4";
 
     /**
      * Skips Salesforce DTO code generation.
@@ -93,9 +96,10 @@ public class SalesforceCodegenConfig {
     public Optional<String> version;
 
     /**
-     * Directory where to place generated DTOs, defaults to ${project.build.directory}/generated-sources/camel-salesforce.
+     * Directory where to place generated DTOs, defaults to
+     * <project-build-output-directory>/generated-sources/camel-salesforce.
      */
-    @ConfigItem(name = CONFIG_OUTPUT_DIRECTORY, defaultValue = "${project.build.directory}/" + CONFIG_OUTPUT_DIRECTORY_DEFAULT)
+    @ConfigItem(name = CONFIG_OUTPUT_DIRECTORY)
     public Optional<String> outputDirectory;
 
     /**
@@ -152,6 +156,12 @@ public class SalesforceCodegenConfig {
      */
     @ConfigItem(name = CONFIG_ENUMERATION_OVERRIDE_PROPERTIES)
     public Optional<String> enumerationOverrideProperties;
+
+    /**
+     * Override configuration properties related to the underlying Apache Commons HTTP Client.
+     */
+    @ConfigItem(name = CONFIG_HTTP_CLIENT_PROPERTIES)
+    public Optional<Map<String, String>> httpClientProperties;
 
     /**
      * HTTP proxy server configuration for the Salesforce HTTP client
@@ -214,5 +224,17 @@ public class SalesforceCodegenConfig {
          */
         @ConfigItem(name = CONFIG_HTTP_PROXY_EXCLUDED_ADDRESSES)
         public Optional<String[]> excludedAddresses;
+
+        /**
+         * Whether the proxy server is secured by SSL / TLS
+         */
+        @ConfigItem(name = CONFIG_HTTP_PROXY_SECURE, defaultValue = "true")
+        public Optional<Boolean[]> secure;
+
+        /**
+         * Whether the proxy server is secured by SOCKS4
+         */
+        @ConfigItem(name = CONFIG_HTTP_PROXY_SOCKS4, defaultValue = "false")
+        public Optional<Boolean[]> socks4;
     }
 }

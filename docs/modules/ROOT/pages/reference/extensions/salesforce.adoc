@@ -131,9 +131,9 @@ Salesforce API version.
 
 |icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.output-directory]]`link:#quarkus.camel.salesforce.codegen.output-directory[quarkus.camel.salesforce.codegen.output-directory]`
 
-Directory where to place generated DTOs, defaults to $++{++project.build.directory++}++/generated-sources/camel-salesforce.
+Directory where to place generated DTOs, defaults to /generated-sources/camel-salesforce.
 | `string`
-| `${project.build.directory}/generated-sources/camel-salesforce`
+| 
 
 |icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.includes]]`link:#quarkus.camel.salesforce.codegen.includes[quarkus.camel.salesforce.codegen.includes]`
 
@@ -186,6 +186,12 @@ Suffix for child relationship property name. Necessary if an SObject has a looku
 |icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.enumeration-override-properties]]`link:#quarkus.camel.salesforce.codegen.enumeration-override-properties[quarkus.camel.salesforce.codegen.enumeration-override-properties]`
 
 Override picklist enum value generation via a java.util.Properties instance.
+| `string`
+| 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.http-client-properties]]`link:#quarkus.camel.salesforce.codegen.http-client-properties[quarkus.camel.salesforce.codegen.http-client-properties]`
+
+Override configuration properties related to the underlying Apache Commons HTTP Client.
 | `string`
 | 
 
@@ -242,6 +248,18 @@ Addresses to include for the proxy server
 Addresses to exclude for the proxy server
 | `string`
 | 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.http.proxy.secure]]`link:#quarkus.camel.salesforce.codegen.http.proxy.secure[quarkus.camel.salesforce.codegen.http.proxy.secure]`
+
+Whether the proxy server is secured by SSL / TLS
+| `java.lang.Boolean`
+| `true`
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.salesforce.codegen.http.proxy.socks4]]`link:#quarkus.camel.salesforce.codegen.http.proxy.socks4[quarkus.camel.salesforce.codegen.http.proxy.socks4]`
+
+Whether the proxy server is secured by SOCKS4
+| `java.lang.Boolean`
+| `false`
 |===
 
 [.configuration-legend]
