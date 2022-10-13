@@ -100,8 +100,8 @@
             "comment": "supported since CEQ 2.13.0"
         },
         "camel-quarkus-dataset": {
-            "jvm": "supported",
-            "native": "supported",
+            "jvm": "devSupport",
+            "native": "devSupport",
             "comment": "supported since CEQ 2.13.0"
         },
         "camel-quarkus-direct": {

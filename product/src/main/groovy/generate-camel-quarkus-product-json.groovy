@@ -50,7 +50,7 @@ Files.write(productJsonPath, JsonOutput.prettyPrint(JsonOutput.toJson(productJso
 
 
 enum CqSupportStatus {
-    community(null), techPreview('tech-preview'), supported('supported');
+    community(null), techPreview('tech-preview'), supported('supported'), devSupport('dev-support');
     private final quarkusSupportLevel;
     private CqSupportStatus(String quarkusSupportLevel) {
         this.quarkusSupportLevel = quarkusSupportLevel;

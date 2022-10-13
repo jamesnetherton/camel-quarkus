@@ -167,7 +167,7 @@
             "artifact-id": "camel-quarkus-dataset",
             "metadata": {
                 "redhat-support": [
-                    "supported"
+                    "dev-support"
                 ]
             }
         },
