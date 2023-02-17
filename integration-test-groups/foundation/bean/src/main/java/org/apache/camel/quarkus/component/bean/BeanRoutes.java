@@ -35,6 +35,7 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.bean.BeanProcessor;
+import org.apache.camel.spi.Registry;
 import org.apache.camel.support.DefaultExchange;
 
 /**
@@ -57,6 +58,13 @@ public class BeanRoutes extends RouteBuilder {
 
     @Override
     public void configure() {
+        CamelContext camelContext = getCamelContext();
+        Registry registry = camelContext.getRegistry();
+        registry.bind("sayHello", new HelloBean());
+
+        from("direct:hello")
+                .bean("sayHello", "hello");
+
         from("direct:process-order")
                 .setHeader(MyOrderService.class.getName(), MyOrderService::new)
                 .split(body().tokenize("@"), BeanRoutes.this::aggregate)
