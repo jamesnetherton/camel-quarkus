@@ -19,6 +19,7 @@ package org.apache.camel.quarkus.component.elasticsearch.rest.it;
 import java.util.Map;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.apache.camel.util.CollectionHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +31,6 @@ import org.testcontainers.utility.TestcontainersConfiguration;
 public class ElasticSearchTestResource implements QuarkusTestResourceLifecycleManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ElasticSearchTestResource.class);
-    private static final String ELASTICSEARCH_IMAGE = "elasticsearch:7.10.1";
     private static final String ELASTICSEARCH_USERNAME = "elastic";
     private static final String ELASTICSEARCH_PASSWORD = "changeme";
     private static final int ELASTICSEARCH_PORT = 9200;
@@ -42,7 +42,7 @@ public class ElasticSearchTestResource implements QuarkusTestResourceLifecycleMa
         LOGGER.info(TestcontainersConfiguration.getInstance().toString());
 
         try {
-            container = new GenericContainer<>(ELASTICSEARCH_IMAGE)
+            container = new GenericContainer<>(TestContainer.ELASTICSEARCH.getImageName())
                     .withExposedPorts(ELASTICSEARCH_PORT)
                     .withLogConsumer(new Slf4jLogConsumer(LOGGER))
                     .withEnv("discovery.type", "single-node")

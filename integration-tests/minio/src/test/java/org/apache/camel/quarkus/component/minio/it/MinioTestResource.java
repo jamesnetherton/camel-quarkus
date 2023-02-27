@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.util.Map;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.apache.camel.util.CollectionHelper;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
@@ -28,10 +29,9 @@ public class MinioTestResource implements QuarkusTestResourceLifecycleManager {
 
     public static final String CONTAINER_ACCESS_KEY = "MINIO_ACCESS_KEY";
     public static final String CONTAINER_SECRET_KEY = "MINIO_SECRET_KEY";
-    private final String CONTAINER_IMAGE = "minio/minio:RELEASE.2020-12-03T05-49-24Z";
     private final int BROKER_PORT = 9000;
 
-    private GenericContainer minioServer = new GenericContainer(CONTAINER_IMAGE)
+    private GenericContainer minioServer = new GenericContainer(TestContainer.MINIO.getImageName())
             .withEnv(CONTAINER_ACCESS_KEY, MinioResource.SERVER_ACCESS_KEY)
             .withEnv(CONTAINER_SECRET_KEY, MinioResource.SERVER_SECRET_KEY)
             .withCommand("server /data")

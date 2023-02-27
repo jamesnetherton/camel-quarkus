@@ -23,17 +23,17 @@ import java.util.Map;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.apache.camel.quarkus.component.fhir.it.util.FhirTestHelper;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.apache.camel.util.CollectionHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.utility.DockerImageName;
 
 public class FhirTestResource implements QuarkusTestResourceLifecycleManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(FhirTestResource.class);
-    private static final String FHIR_DSTU_CONTAINER_TAG = "v4.2.0";
     private static final String FHIR_DSTU_CONTEXT_PATH = "/hapi-fhir-jpaserver/fhir";
-    private static final String FHIR_R_CONTAINER_TAG = "v6.2.2";
     private static final String FHIR_R_CONTEXT_PATH = "/fhir";
     private static final int CONTAINER_PORT = 8080;
 
@@ -59,7 +59,7 @@ public class FhirTestResource implements QuarkusTestResourceLifecycleManager {
 
         try {
             LOGGER.info("FHIR version {} is enabled. Starting hapi test container for it.", fhirVersion.simpleVersion());
-            String imageName = fhirVersion.getContainerImageName();
+            DockerImageName imageName = fhirVersion.getContainerImageName();
             container = new GenericContainer<>(imageName)
                     .withExposedPorts(CONTAINER_PORT)
                     .withEnv(fhirVersion.getFhirContainerVersionEnvVarName(), fhirVersion.getFhirContainerVersionEnvVarValue())
@@ -89,27 +89,21 @@ public class FhirTestResource implements QuarkusTestResourceLifecycleManager {
     }
 
     enum FhirVersion {
-        DSTU2(FHIR_DSTU_CONTAINER_TAG, FHIR_DSTU_CONTEXT_PATH),
-        DSTU2_HL7ORG(FHIR_DSTU_CONTAINER_TAG, FHIR_DSTU_CONTEXT_PATH),
-        DSTU2_1(FHIR_DSTU_CONTAINER_TAG, FHIR_DSTU_CONTEXT_PATH),
-        DSTU3(FHIR_DSTU_CONTAINER_TAG, FHIR_DSTU_CONTEXT_PATH),
-        R4(FHIR_R_CONTAINER_TAG, FHIR_R_CONTEXT_PATH),
-        R5(FHIR_R_CONTAINER_TAG, FHIR_R_CONTEXT_PATH);
+        DSTU2(FHIR_DSTU_CONTEXT_PATH),
+        DSTU2_HL7ORG(FHIR_DSTU_CONTEXT_PATH),
+        DSTU2_1(FHIR_DSTU_CONTEXT_PATH),
+        DSTU3(FHIR_DSTU_CONTEXT_PATH),
+        R4(FHIR_R_CONTEXT_PATH),
+        R5(FHIR_R_CONTEXT_PATH);
 
-        private final String fhirImageTag;
         private final String contextPath;
 
-        FhirVersion(String fhirImageTag, String contextPath) {
-            this.fhirImageTag = fhirImageTag;
+        FhirVersion(String contextPath) {
             this.contextPath = contextPath;
         }
 
         public String simpleVersion() {
             return this.name().toLowerCase();
-        }
-
-        public String getFhirContainerImageTag() {
-            return fhirImageTag;
         }
 
         public String getFhirContainerVersionEnvVarName() {
@@ -131,8 +125,11 @@ public class FhirTestResource implements QuarkusTestResourceLifecycleManager {
             return contextPath;
         }
 
-        public String getContainerImageName() {
-            return String.format("hapiproject/hapi:%s", getFhirContainerImageTag());
+        public DockerImageName getContainerImageName() {
+            if (name().startsWith("DSTU")) {
+                return TestContainer.FHIR_DSTU.getImageName();
+            }
+            return TestContainer.FHIR.getImageName();
         }
 
         public String getServerUrl(String host, int port) {

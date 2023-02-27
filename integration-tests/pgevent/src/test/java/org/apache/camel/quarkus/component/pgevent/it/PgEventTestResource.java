@@ -19,6 +19,7 @@ package org.apache.camel.quarkus.component.pgevent.it;
 import java.util.Map;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.apache.camel.util.CollectionHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,9 +36,8 @@ public class PgEventTestResource implements QuarkusTestResourceLifecycleManager 
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PgEventTestResource.class);
     private static final int POSTGRES_PORT = 5432;
-    private static final String POSTGRES_IMAGE = "postgres:13.0";
 
-    private GenericContainer container;
+    private GenericContainer<?> container;
 
     @Override
     public Map<String, String> start() {
@@ -60,7 +60,7 @@ public class PgEventTestResource implements QuarkusTestResourceLifecycleManager 
     }
 
     private GenericContainer createContainer() {
-        GenericContainer container = new GenericContainer(POSTGRES_IMAGE)
+        GenericContainer container = new GenericContainer<>(TestContainer.POSTGRES.getImageName())
                 .withCommand("postgres -c wal_level=logical")
                 .withExposedPorts(POSTGRES_PORT)
                 .withNetworkAliases(CONTAINER_NAME)

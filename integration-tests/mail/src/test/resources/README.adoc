@@ -3,10 +3,11 @@ Certificate has to be created - the guide can be seen in the issue https://githu
 
 Following steps were used for certificate creation.
 
-```
+[source]
+----
 openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
  -keyout greenmail.key -out greenmail.crt -subj "/CN=localhost" \
  -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
 
 openssl pkcs12 -export -out greenmail.p12 -inkey greenmail.key -in greenmail.crt
-```
+----

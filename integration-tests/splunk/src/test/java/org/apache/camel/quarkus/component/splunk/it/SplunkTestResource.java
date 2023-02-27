@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.apache.camel.util.CollectionHelper;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -31,13 +32,13 @@ public class SplunkTestResource implements QuarkusTestResourceLifecycleManager {
     public static String SAVED_SEARCH_NAME = "savedSearchForTest";
     private static final int REMOTE_PORT = 8089;
 
-    private GenericContainer container;
+    private GenericContainer<?> container;
 
     @Override
     public Map<String, String> start() {
 
         try {
-            container = new GenericContainer("splunk/splunk:9.0.1")
+            container = new GenericContainer<>(TestContainer.SPLUNK.getImageName())
                     .withExposedPorts(REMOTE_PORT, SplunkResource.LOCAL_TCP_PORT)
                     .withEnv("SPLUNK_START_ARGS", "--accept-license")
                     .withEnv("SPLUNK_PASSWORD", "changeit")

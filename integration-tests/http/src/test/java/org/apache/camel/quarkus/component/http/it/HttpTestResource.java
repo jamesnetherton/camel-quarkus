@@ -21,22 +21,21 @@ import java.util.Objects;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.apache.camel.quarkus.test.AvailablePortFinder;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.utility.DockerImageName;
 
 import static org.apache.camel.quarkus.component.http.it.HttpResource.USER_ADMIN;
 import static org.apache.camel.quarkus.component.http.it.HttpResource.USER_ADMIN_PASSWORD;
 
 public class HttpTestResource implements QuarkusTestResourceLifecycleManager {
 
-    private static final DockerImageName TINY_PROXY_IMAGE_NAME = DockerImageName.parse("monokal/tinyproxy");
     private static final Integer TINY_PROXY_PORT = 8888;
-    private GenericContainer container;
+    private GenericContainer<?> container;
 
     @Override
     public Map<String, String> start() {
-        container = new GenericContainer(TINY_PROXY_IMAGE_NAME)
+        container = new GenericContainer<>(TestContainer.TINYPROXY.getImageName())
                 .withEnv("BASIC_AUTH_USER", USER_ADMIN)
                 .withEnv("BASIC_AUTH_PASSWORD", USER_ADMIN_PASSWORD)
                 .withExposedPorts(TINY_PROXY_PORT)

@@ -25,10 +25,12 @@ import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.apache.camel.component.influxdb.InfluxDbConstants;
 import org.apache.camel.component.influxdb.converters.CamelInfluxDbConverters;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.testcontainers.utility.DockerImageName;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -42,7 +44,8 @@ class InfluxdbTest {
     @Test
     @Order(1)
     public void pingTest() {
-        RestAssured.given().get("/influxdb/ping").then().body(is(InfluxdbTestResource.INFLUXDB_VERSION));
+        DockerImageName imageName = TestContainer.INFLUXDB.getImageName();
+        RestAssured.given().get("/influxdb/ping").then().body(is(imageName.getVersionPart()));
     }
 
     @Test

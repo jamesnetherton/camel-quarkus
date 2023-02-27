@@ -20,6 +20,7 @@ package org.apache.camel.quarkus.component.cxf.soap.client.it;
 import java.util.Map;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
@@ -36,7 +37,7 @@ public class CxfClientTestResource implements QuarkusTestResourceLifecycleManage
     public Map<String, String> start() {
 
         try {
-            calculatorContainer = new GenericContainer<>("quay.io/l2x6/calculator-ws:1.0")
+            calculatorContainer = new GenericContainer<>(TestContainer.CALCULATOR_WS.getImageName())
                     .withExposedPorts(WILDFLY_PORT)
                     .withLogConsumer(new Slf4jLogConsumer(log))
                     .waitingFor(Wait.forHttp("/calculator-ws/CalculatorService?wsdl"));

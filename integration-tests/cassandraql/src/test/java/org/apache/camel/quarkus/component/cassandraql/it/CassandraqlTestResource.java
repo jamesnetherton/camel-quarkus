@@ -22,6 +22,7 @@ import java.util.Map;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.apache.camel.util.CollectionHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +35,6 @@ import static org.testcontainers.containers.CassandraContainer.CQL_PORT;
 public class CassandraqlTestResource implements QuarkusTestResourceLifecycleManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(CassandraqlTestResource.class);
     private static final int PORT = 9042;
-    private static final String DOCKER_IMAGE_NAME = "cassandra:4.0.1";
 
     protected CassandraContainer<?> container;
 
@@ -42,7 +42,7 @@ public class CassandraqlTestResource implements QuarkusTestResourceLifecycleMana
     public Map<String, String> start() {
         LOGGER.info(TestcontainersConfiguration.getInstance().toString());
         try {
-            container = new CassandraContainer<>(DOCKER_IMAGE_NAME)
+            container = new CassandraContainer<>(TestContainer.CASSANDRA.getImageName())
                     .withExposedPorts(PORT)
                     .waitingFor(Wait.forLogMessage(".*Created default superuser role.*", 1))
                     .withConfigurationOverride("/cassandra");

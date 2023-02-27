@@ -20,6 +20,7 @@ package org.apache.camel.quarkus.component.influxdb.it;
 import java.util.Map;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.apache.camel.util.CollectionHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,9 +31,6 @@ import org.testcontainers.utility.TestcontainersConfiguration;
 public class InfluxdbTestResource implements QuarkusTestResourceLifecycleManager {
     public static final Logger LOGGER = LoggerFactory.getLogger(InfluxdbTestResource.class);
     public static final int INFLUXDB_PORT = 8086;
-    public static final String INFLUXDB_VERSION = "1.7.10";
-    public static final String INFLUXDB_IMAGE = "influxdb:" + INFLUXDB_VERSION;
-
     private GenericContainer<?> container;
 
     @Override
@@ -40,7 +38,7 @@ public class InfluxdbTestResource implements QuarkusTestResourceLifecycleManager
         LOGGER.info(TestcontainersConfiguration.getInstance().toString());
 
         try {
-            container = new GenericContainer<>(INFLUXDB_IMAGE)
+            container = new GenericContainer<>(TestContainer.INFLUXDB.getImageName())
                     .withExposedPorts(INFLUXDB_PORT)
                     .waitingFor(Wait.forListeningPort());
 

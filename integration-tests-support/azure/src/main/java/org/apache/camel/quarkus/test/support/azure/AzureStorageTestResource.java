@@ -26,6 +26,7 @@ import io.quarkus.runtime.LaunchMode;
 import io.quarkus.runtime.configuration.ConfigUtils;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import io.smallrye.config.SmallRyeConfig;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.apache.camel.quarkus.test.mock.backend.MockBackendUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +36,6 @@ import org.testcontainers.containers.wait.strategy.Wait;
 
 public class AzureStorageTestResource implements QuarkusTestResourceLifecycleManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(AzureStorageTestResource.class);
-    private static final String AZURITE_IMAGE = "mcr.microsoft.com/azure-storage/azurite:3.21.0";
 
     public enum Service {
         blob(10000),
@@ -92,7 +92,7 @@ public class AzureStorageTestResource implements QuarkusTestResourceLifecycleMan
         if (startMockBackend && !realCredentialsProvided) {
             MockBackendUtils.logMockBackendUsed();
             try {
-                container = new GenericContainer<>(AZURITE_IMAGE)
+                container = new GenericContainer<>(TestContainer.AZURITE.getImageName())
                         .withExposedPorts(Service.getAzuritePorts())
                         .withLogConsumer(new Slf4jLogConsumer(LOGGER))
                         .waitingFor(Wait.forListeningPort());

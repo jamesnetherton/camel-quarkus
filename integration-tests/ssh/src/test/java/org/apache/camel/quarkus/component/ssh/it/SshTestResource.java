@@ -19,6 +19,7 @@ package org.apache.camel.quarkus.component.ssh.it;
 import java.util.Map;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.apache.camel.util.CollectionHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,9 +31,8 @@ public class SshTestResource implements QuarkusTestResourceLifecycleManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(SshTestResource.class);
 
     private static final int SSH_PORT = 2222;
-    private static final String SSH_IMAGE = "linuxserver/openssh-server";
 
-    private GenericContainer container;
+    private GenericContainer<?> container;
 
     @Override
     public Map<String, String> start() {
@@ -40,7 +40,7 @@ public class SshTestResource implements QuarkusTestResourceLifecycleManager {
         LOGGER.info("Starting SSH container");
 
         try {
-            container = new GenericContainer(SSH_IMAGE)
+            container = new GenericContainer(TestContainer.OPENSSH_SERVER.getImageName())
                     .withExposedPorts(SSH_PORT)
                     .withEnv("PASSWORD_ACCESS", "true")
                     .withEnv("USER_NAME", "test")

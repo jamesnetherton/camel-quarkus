@@ -19,22 +19,22 @@ package org.apache.camel.quarkus.component.jsch.it;
 import java.util.Map;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.apache.camel.util.CollectionHelper;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 public class JschTestResource implements QuarkusTestResourceLifecycleManager {
-    private static final String JSCH_IMAGE = "linuxserver/openssh-server";
     private static final String USERNAME = "admin";
     private static final String PASSWORD = "2s3cr3t!";
     private static final int JSCH_PORT = 2222;
 
-    private GenericContainer container;
+    private GenericContainer<?> container;
 
     @Override
     public Map<String, String> start() {
         try {
-            container = new GenericContainer(JSCH_IMAGE)
+            container = new GenericContainer<>(TestContainer.OPENSSH_SERVER.getImageName())
                     .withExposedPorts(JSCH_PORT)
                     .withEnv("DOCKER_MODS", "linuxserver/mods:openssh-server-openssh-client")
                     .withEnv("PASSWORD_ACCESS", "true")

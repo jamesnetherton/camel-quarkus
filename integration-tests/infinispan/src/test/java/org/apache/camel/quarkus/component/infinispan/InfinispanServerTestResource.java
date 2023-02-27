@@ -19,6 +19,7 @@ package org.apache.camel.quarkus.component.infinispan;
 import java.util.Map;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.apache.camel.util.CollectionHelper;
 import org.apache.commons.lang3.SystemUtils;
 import org.slf4j.Logger;
@@ -30,7 +31,6 @@ import org.testcontainers.utility.TestcontainersConfiguration;
 
 public class InfinispanServerTestResource implements QuarkusTestResourceLifecycleManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(InfinispanServerTestResource.class);
-    private static final String CONTAINER_IMAGE = System.getProperty("infinispan.container.image", "infinispan/server:13.0");
     private static final int HOTROD_PORT = 11222;
     private static final String USER = "camel";
     private static final String PASS = "camel";
@@ -42,7 +42,7 @@ public class InfinispanServerTestResource implements QuarkusTestResourceLifecycl
         LOGGER.info(TestcontainersConfiguration.getInstance().toString());
 
         try {
-            container = new GenericContainer<>(CONTAINER_IMAGE)
+            container = new GenericContainer<>(TestContainer.INFINISPAN.getImageName())
                     .withExposedPorts(HOTROD_PORT)
                     .withEnv("USER", USER)
                     .withEnv("PASS", PASS)

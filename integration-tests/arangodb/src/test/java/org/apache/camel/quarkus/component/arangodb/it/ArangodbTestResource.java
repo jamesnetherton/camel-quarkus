@@ -20,6 +20,7 @@ import java.util.Map;
 
 import com.github.dockerjava.api.model.Ulimit;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.apache.camel.util.CollectionHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +33,6 @@ public class ArangodbTestResource implements QuarkusTestResourceLifecycleManager
     private static final Logger LOGGER = LoggerFactory.getLogger(ArangodbTestResource.class);
     private GenericContainer<?> container;
     private static final String CONTAINER_NAME = "arango";
-    private static final String ARANGO_IMAGE = "arangodb:latest";
     private static final String ARANGO_NO_AUTH = "ARANGO_NO_AUTH";
     private static final Integer PORT_DEFAULT = 8529;
 
@@ -41,7 +41,7 @@ public class ArangodbTestResource implements QuarkusTestResourceLifecycleManager
         LOGGER.info(TestcontainersConfiguration.getInstance().toString());
 
         try {
-            container = new GenericContainer<>(ARANGO_IMAGE)
+            container = new GenericContainer<>(TestContainer.ARANGODB.getImageName())
                     .withExposedPorts(PORT_DEFAULT)
                     .withEnv(ARANGO_NO_AUTH, "1")
                     .withNetworkAliases(CONTAINER_NAME)

@@ -20,6 +20,7 @@ import java.util.Map;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.apache.camel.quarkus.test.AvailablePortFinder;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.apache.camel.util.CollectionHelper;
 import org.apache.commons.lang3.SystemUtils;
 import org.testcontainers.containers.GenericContainer;
@@ -28,9 +29,8 @@ import org.testcontainers.containers.wait.strategy.Wait;
 public class LraTestResource implements QuarkusTestResourceLifecycleManager {
 
     private static final Integer LRA_PORT = AvailablePortFinder.getNextAvailable();
-    private static final String LRA_IMAGE = "jbosstm/lra-coordinator:5.12.0.Final";
 
-    private GenericContainer container;
+    private GenericContainer<?> container;
     private String hostname;
     private int lraPort;
 
@@ -39,7 +39,7 @@ public class LraTestResource implements QuarkusTestResourceLifecycleManager {
         try {
             if (SystemUtils.IS_OS_LINUX) {
                 hostname = "localhost";
-                container = new GenericContainer(LRA_IMAGE)
+                container = new GenericContainer<>(TestContainer.LRA_COORDINATOR.getImageName())
                         .withNetworkMode("host")
                         .withEnv("JAVA_OPTS", "-Dquarkus.http.port=" + LRA_PORT)
                         .waitingFor(Wait.forLogMessage(".*lra-coordinator-quarkus.*", 1));
@@ -47,7 +47,7 @@ public class LraTestResource implements QuarkusTestResourceLifecycleManager {
                 lraPort = LRA_PORT;
             } else {
                 hostname = "host.docker.internal";
-                container = new GenericContainer(LRA_IMAGE)
+                container = new GenericContainer(TestContainer.LRA_COORDINATOR.getImageName())
                         .withNetworkMode("bridge")
                         .withExposedPorts(LRA_PORT)
                         .withEnv("JAVA_OPTS", "-Dquarkus.http.port=" + LRA_PORT)

@@ -20,6 +20,7 @@ package org.apache.camel.quarkus.component.pg.replication.slot.it;
 import java.util.Map;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
@@ -36,7 +37,6 @@ import static org.apache.camel.util.CollectionHelper.mapOf;
 public class PgReplicationSlotTestResource implements QuarkusTestResourceLifecycleManager {
     private static final Logger LOG = LoggerFactory.getLogger(PgReplicationSlotTestResource.class);
     private static final int POSTGRES_PORT = 5432;
-    private static final String POSTGRES_IMAGE = "postgres:13.0";
     private static final String POSTGRES_DB_NAME = "camel_db";
     private static final String POSTGRES_PASSWORD = "postgres-password";
     private static final String POSTGRES_USER = "postgres-user";
@@ -48,7 +48,8 @@ public class PgReplicationSlotTestResource implements QuarkusTestResourceLifecyc
         LOG.info(TestcontainersConfiguration.getInstance().toString());
 
         // Setup the Postgres container with replication enabled
-        pgContainer = new GenericContainer<>(POSTGRES_IMAGE).withCommand("postgres -c wal_level=logical")
+        pgContainer = new GenericContainer<>(TestContainer.POSTGRES.getImageName())
+                .withCommand("postgres -c wal_level=logical")
                 .withExposedPorts(POSTGRES_PORT).withEnv("POSTGRES_USER", POSTGRES_USER)
                 .withEnv("POSTGRES_PASSWORD", POSTGRES_PASSWORD).withEnv("POSTGRES_DB", POSTGRES_DB_NAME)
                 .withLogConsumer(new Slf4jLogConsumer(LOG)).waitingFor(Wait.forListeningPort());

@@ -20,6 +20,7 @@ import java.util.Map;
 
 import com.orbitz.consul.Consul;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.apache.camel.util.CollectionHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,16 +31,15 @@ import org.testcontainers.utility.TestcontainersConfiguration;
 public class ConsulTestResource implements QuarkusTestResourceLifecycleManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(ConsulTestResource.class);
     private static final int CONTAINER_PORT = Consul.DEFAULT_HTTP_PORT;
-    private static final String CONTAINER_IMAGE = "consul:1.6";
 
-    private GenericContainer container;
+    private GenericContainer<?> container;
 
     @Override
     public Map<String, String> start() {
         LOGGER.info(TestcontainersConfiguration.getInstance().toString());
 
         try {
-            container = new GenericContainer(CONTAINER_IMAGE)
+            container = new GenericContainer<>(TestContainer.CONSUL.getImageName())
                     .withExposedPorts(CONTAINER_PORT)
                     .withCommand("agent", "-dev", "-server", "-bootstrap", "-client", "0.0.0.0", "-log-level", "trace")
                     .waitingFor(Wait.forLogMessage(".*Synced node info.*", 1));

@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.apache.camel.util.CollectionHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,10 +36,10 @@ import org.testcontainers.utility.TestcontainersConfiguration;
  * Derby test resource starts derby container in case that SQL_USE_DERBY_DOCKER is set to true.
  * It uses fixed port number obtained from SQL_USE_DERBY_PORT.
  */
-public class DerbyTestResource<T extends GenericContainer> implements QuarkusTestResourceLifecycleManager {
+public class DerbyTestResource<T extends GenericContainer<?>> implements QuarkusTestResourceLifecycleManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(DerbyTestResource.class);
 
-    private GenericContainer container;
+    private GenericContainer<?> container;
 
     @Override
     public Map<String, String> start() {
@@ -60,7 +61,7 @@ public class DerbyTestResource<T extends GenericContainer> implements QuarkusTes
                 throw new IllegalStateException(msg);
             }
 
-            container = new GenericContainer("az82/docker-derby")
+            container = new GenericContainer<>(TestContainer.DERBY.getImageName())
                     .withExposedPorts(1527)
                     .withCopyFileToContainer(
                             MountableFile.forClasspathResource("derby/" + jars[0].getName()),

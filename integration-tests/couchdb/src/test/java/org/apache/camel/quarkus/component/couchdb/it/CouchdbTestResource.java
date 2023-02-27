@@ -20,6 +20,7 @@ package org.apache.camel.quarkus.component.couchdb.it;
 import java.util.Map;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.apache.camel.util.CollectionHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,16 +31,17 @@ import org.testcontainers.utility.TestcontainersConfiguration;
 public class CouchdbTestResource implements QuarkusTestResourceLifecycleManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(CouchdbTestResource.class);
     private static final int COUCHDB_PORT = 5984;
-    private static final String COUCHDB_IMAGE = "couchdb:2.3.1";
 
-    private GenericContainer container;
+    private GenericContainer<?> container;
 
     @Override
     public Map<String, String> start() {
         LOGGER.info(TestcontainersConfiguration.getInstance().toString());
 
         try {
-            container = new GenericContainer(COUCHDB_IMAGE).withExposedPorts(COUCHDB_PORT).waitingFor(Wait.forListeningPort());
+            container = new GenericContainer(TestContainer.COUCHDB.getImageName())
+                    .withExposedPorts(COUCHDB_PORT)
+                    .waitingFor(Wait.forListeningPort());
             container.start();
 
             final String authority = container.getHost() + ":" + container.getMappedPort(COUCHDB_PORT).toString();

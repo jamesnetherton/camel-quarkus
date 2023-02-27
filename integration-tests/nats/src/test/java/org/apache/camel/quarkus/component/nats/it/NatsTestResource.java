@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.BindMode;
@@ -39,7 +40,6 @@ public class NatsTestResource implements QuarkusTestResourceLifecycleManager {
     private static final Logger LOG = LoggerFactory.getLogger(NatsTestResource.class);
     private static final String BASIC_AUTH_USERNAME = "admin";
     private static final String BASIC_AUTH_PASSWORD = "password";
-    private static final String NATS_IMAGE = "nats:2.1.9";
     private static final int NATS_SERVER_PORT = 4222;
     private static final String TOKEN_AUTH_TOKEN = "!admin23456";
 
@@ -88,7 +88,7 @@ public class NatsTestResource implements QuarkusTestResourceLifecycleManager {
     private static GenericContainer<?> basicAuthContainer(Map<String, String> properties) {
         LOG.info("Starting basicAuthContainer");
         // container needed for the basic authentication test
-        GenericContainer<?> container = new GenericContainer<>(NATS_IMAGE)
+        GenericContainer<?> container = new GenericContainer<>(TestContainer.NATS.getImageName())
                 .withExposedPorts(NATS_SERVER_PORT)
                 .withNetworkAliases("basicAuthContainer")
                 .withCommand("-DV", "--user", BASIC_AUTH_USERNAME, "--pass", BASIC_AUTH_PASSWORD)
@@ -110,7 +110,7 @@ public class NatsTestResource implements QuarkusTestResourceLifecycleManager {
     private static GenericContainer<?> noAuthContainer(Map<String, String> properties) {
         LOG.info("Starting noAuthContainer");
         // container needed for the basic authentication test
-        GenericContainer<?> container = new GenericContainer<>(NATS_IMAGE)
+        GenericContainer<?> container = new GenericContainer<>(TestContainer.NATS.getImageName())
                 .withExposedPorts(NATS_SERVER_PORT)
                 .withNetworkAliases("noAuthContainer")
                 .withLogConsumer(new Slf4jLogConsumer(LOG).withPrefix("noAuthContainer"))
@@ -130,7 +130,7 @@ public class NatsTestResource implements QuarkusTestResourceLifecycleManager {
     private static GenericContainer<?> tlsAuthContainer(Map<String, String> properties) {
         LOG.info("Starting tlsAuthContainer");
         // Start the container needed for the TLS authentication test
-        GenericContainer<?> container = new GenericContainer<>(NATS_IMAGE)
+        GenericContainer<?> container = new GenericContainer<>(TestContainer.NATS.getImageName())
                 .withExposedPorts(NATS_SERVER_PORT)
                 .withNetworkAliases("tlsAuthContainer")
                 .withClasspathResourceMapping("certs/ca.pem", "/certs/ca.pem", BindMode.READ_ONLY, SelinuxContext.SHARED)
@@ -167,7 +167,7 @@ public class NatsTestResource implements QuarkusTestResourceLifecycleManager {
     private static GenericContainer<?> tokenAuthContainer(Map<String, String> properties) {
         LOG.info("Starting tokenAuthContainer");
         // Start the container needed for the token authentication test
-        GenericContainer<?> container = new GenericContainer<>(NATS_IMAGE)
+        GenericContainer<?> container = new GenericContainer<>(TestContainer.NATS.getImageName())
                 .withExposedPorts(NATS_SERVER_PORT)
                 .withNetworkAliases("tokenAuthContainer")
                 .withCommand("-DV", "-auth", TOKEN_AUTH_TOKEN)

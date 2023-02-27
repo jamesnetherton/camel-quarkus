@@ -22,14 +22,12 @@ import java.util.Map;
 
 import com.github.dockerjava.api.model.Ulimit;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.utility.DockerImageName;
 
 public class ActiveMQTestResource implements QuarkusTestResourceLifecycleManager {
 
-    private static final String ACTIVEMQ_IMAGE_NAME = System.getProperty("activemq.container.image",
-            "quay.io/artemiscloud/activemq-artemis-broker:1.0.5");
     private static final String ACTIVEMQ_USERNAME = "artemis";
     private static final String ACTIVEMQ_PASSWORD = "simetraehcapa";
     private static final int ACTIVEMQ_PORT = 61616;
@@ -48,8 +46,7 @@ public class ActiveMQTestResource implements QuarkusTestResourceLifecycleManager
 
     @Override
     public Map<String, String> start() {
-        DockerImageName imageName = DockerImageName.parse(ACTIVEMQ_IMAGE_NAME);
-        container = new GenericContainer<>(imageName)
+        container = new GenericContainer<>(TestContainer.ACTIVEMQ.getImageName())
                 .withExposedPorts(ACTIVEMQ_PORT)
                 .withLogConsumer(frame -> System.out.print(frame.getUtf8String()))
                 .withEnv("AMQ_USER", ACTIVEMQ_USERNAME)

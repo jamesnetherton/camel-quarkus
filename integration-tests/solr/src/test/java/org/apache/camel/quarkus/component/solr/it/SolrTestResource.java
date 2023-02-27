@@ -24,6 +24,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Map;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.apache.camel.util.CollectionHelper;
 import org.apache.commons.lang3.SystemUtils;
 import org.slf4j.Logger;
@@ -40,7 +41,6 @@ public class SolrTestResource implements QuarkusTestResourceLifecycleManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SolrTestResource.class);
 
-    private static final DockerImageName SOLR_IMAGE = DockerImageName.parse("solr:8.7.0");
     private static final String COLLECTION_NAME = "collection1";
     private static final String URL_FORMAT = "localhost:%s/solr/collection1";
     private static final String CLOUD_COMPONENT_URL_FORMAT = "localhost:%s/solr?zkHost=localhost:%s&collection=collection1&username=solr&password=SolrRocks";
@@ -49,7 +49,7 @@ public class SolrTestResource implements QuarkusTestResourceLifecycleManager {
 
     private SolrContainer standaloneContainer;
     private SolrContainer sslContainer;
-    private DockerComposeContainer cloudContainer;
+    private DockerComposeContainer<?> cloudContainer;
 
     @Override
     public Map<String, String> start() {
@@ -72,8 +72,8 @@ public class SolrTestResource implements QuarkusTestResourceLifecycleManager {
         createCloudContainer();
     }
 
-    private void startContainers(DockerComposeContainer dc, GenericContainer... containers) {
-        for (GenericContainer container : containers) {
+    private void startContainers(DockerComposeContainer<?> dc, GenericContainer<?>... containers) {
+        for (GenericContainer<?> container : containers) {
             container.start();
         }
 
@@ -84,7 +84,7 @@ public class SolrTestResource implements QuarkusTestResourceLifecycleManager {
      * creates a standalone container
      */
     private void createStandaloneContainer() {
-        standaloneContainer = new SolrContainer(SOLR_IMAGE)
+        standaloneContainer = new SolrContainer(getImageName())
                 .withCollection(COLLECTION_NAME)
                 .withZookeeper(false)
                 .withLogConsumer(new Slf4jLogConsumer(LOGGER));
@@ -94,7 +94,7 @@ public class SolrTestResource implements QuarkusTestResourceLifecycleManager {
      * creates a standalone container with SSL
      */
     private void createSslContainer() {
-        sslContainer = new SolrContainer(SOLR_IMAGE)
+        sslContainer = new SolrContainer(getImageName())
                 .withCollection(COLLECTION_NAME)
                 .withZookeeper(false)
                 .withClasspathResourceMapping("ssl", "/ssl", BindMode.READ_ONLY)
@@ -125,7 +125,7 @@ public class SolrTestResource implements QuarkusTestResourceLifecycleManager {
             } catch (IOException e) {
                 throw new RuntimeException("Could not copy class path resource " + resource + " to " + file, e);
             }
-            cloudContainer = new DockerComposeContainer(file)
+            cloudContainer = new DockerComposeContainer<>(file)
                     .withExposedService("solr1", SOLR_PORT)
                     .withExposedService("zoo1", ZOOKEEPER_PORT)
                     .waitingFor("create-collection", Wait.forLogMessage(".*Created collection 'collection1'.*", 1));
@@ -140,8 +140,8 @@ public class SolrTestResource implements QuarkusTestResourceLifecycleManager {
         stopContainers(cloudContainer, standaloneContainer, sslContainer);
     }
 
-    private void stopContainers(DockerComposeContainer dc, GenericContainer... containers) {
-        for (GenericContainer container : containers) {
+    private void stopContainers(DockerComposeContainer<?> dc, GenericContainer<?>... containers) {
+        for (GenericContainer<?> container : containers) {
             if (container != null) {
                 container.stop();
             }
@@ -151,4 +151,10 @@ public class SolrTestResource implements QuarkusTestResourceLifecycleManager {
             dc.stop();
         }
     }
+
+    private DockerImageName getImageName() {
+        DockerImageName imageName = TestContainer.SOLR.getImageName();
+        return imageName.asCompatibleSubstituteFor("solr");
+    }
+
 }

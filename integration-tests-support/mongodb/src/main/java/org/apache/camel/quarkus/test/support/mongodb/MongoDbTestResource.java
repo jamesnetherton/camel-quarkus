@@ -26,6 +26,7 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.CreateCollectionOptions;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,17 +40,16 @@ public class MongoDbTestResource implements QuarkusTestResourceLifecycleManager 
     private static final Logger LOGGER = LoggerFactory.getLogger(MongoDbTestResource.class);
 
     private static final int MONGODB_PORT = 27017;
-    private static final String MONGO_IMAGE = "mongo:4.4";
     private static final String PRIVATE_HOST = "mongodb_private";
 
-    private GenericContainer container;
+    private GenericContainer<?> container;
 
     @Override
     public Map<String, String> start() {
         LOGGER.info(TestcontainersConfiguration.getInstance().toString());
 
         try {
-            container = new GenericContainer(MONGO_IMAGE)
+            container = new GenericContainer<>(TestContainer.MONGODB.getImageName())
                     .withExposedPorts(MONGODB_PORT)
                     .withCommand("--replSet", "my-mongo-set")
                     .withNetwork(Network.newNetwork())

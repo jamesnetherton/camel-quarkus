@@ -19,6 +19,7 @@ package org.apache.camel.quarkus.component.rabbitmq.it;
 import java.util.Map;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.apache.camel.util.CollectionHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +31,6 @@ import org.testcontainers.utility.TestcontainersConfiguration;
 public class RabbitmqTestResource implements QuarkusTestResourceLifecycleManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RabbitmqTestResource.class);
-    private static final String RABBITMQ_IMAGE = "rabbitmq:3.8.7-alpine";
     private static final int RABBITMQ_PORT = 5672;
     private static final String RABBITMQ_USERNAME = "guest";
     private static final String RABBITMQ_PASSWORD = "guest";
@@ -42,7 +42,7 @@ public class RabbitmqTestResource implements QuarkusTestResourceLifecycleManager
         LOGGER.info(TestcontainersConfiguration.getInstance().toString());
 
         try {
-            container = new GenericContainer<>(RABBITMQ_IMAGE)
+            container = new GenericContainer<>(TestContainer.RABBITMQ.getImageName())
                     .withExposedPorts(RABBITMQ_PORT)
                     .withLogConsumer(new Slf4jLogConsumer(LOGGER))
                     .waitingFor(Wait.forLogMessage(".*Server startup complete.*", 1));
