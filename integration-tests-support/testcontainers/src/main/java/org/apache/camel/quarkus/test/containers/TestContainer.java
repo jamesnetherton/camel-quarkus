@@ -13,13 +13,11 @@ import org.testcontainers.utility.DockerImageName;
  * .container.image
  *
  * The container image property names and values are written to a file named container-image.properties by a Groovy
- * script at build time. This is
- * loaded and interrogated at test time.
+ * script at build time. This is loaded and interrogated at test time.
  *
  * The default image names can be overridden via system properties. For example:
  *
  * mvn clean test -Dinfinispan.container.image=infinispan/server:latest
- * -Dactivemq-classic.container.image=rmohr/activemq:latest
  */
 public enum TestContainer {
     ACTIVEMQ,
@@ -47,12 +45,16 @@ public enum TestContainer {
     LRA_COORDINATOR,
     MINIO,
     MONGODB,
+    MYSQL,
     NATS,
     OPENSSH_SERVER,
     POSTGRES,
+    POSTGRES_DEBEZIUM,
     RABBITMQ,
+    REDIS,
     SOLR,
     SPLUNK,
+    SQL_SERVER,
     TINYPROXY;
 
     private static final Properties properties;

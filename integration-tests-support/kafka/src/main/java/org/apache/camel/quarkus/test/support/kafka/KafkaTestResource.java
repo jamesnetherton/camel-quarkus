@@ -40,7 +40,7 @@ public class KafkaTestResource implements QuarkusTestResourceLifecycleManager {
         LOGGER.info(TestcontainersConfiguration.getInstance().toString());
 
         try {
-            container = new KafkaContainer(KAFKA_IMAGE_NAME)
+            container = new KafkaContainer(KAFKA_IMAGE_NAME.asCompatibleSubstituteFor("confluentinc/cp-kafka"))
                     /* Added container startup logging because of https://github.com/apache/camel-quarkus/issues/2461 */
                     .withLogConsumer(frame -> System.out.print(frame.getUtf8String()))
                     .withEmbeddedZookeeper()

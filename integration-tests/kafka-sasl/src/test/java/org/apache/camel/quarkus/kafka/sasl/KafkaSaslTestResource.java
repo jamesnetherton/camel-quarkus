@@ -81,7 +81,7 @@ public class KafkaSaslTestResource extends KafkaTestResource {
     static final class SaslKafkaContainer extends KafkaContainer {
 
         SaslKafkaContainer(final DockerImageName dockerImageName) {
-            super(dockerImageName);
+            super(dockerImageName.asCompatibleSubstituteFor("confluentinc/cp-kafka"));
 
             String protocolMap = "SASL_PLAINTEXT:SASL_PLAINTEXT,BROKER:PLAINTEXT";
             String listeners = "SASL_PLAINTEXT://0.0.0.0:" + KAFKA_PORT + ",BROKER://0.0.0.0:9092";

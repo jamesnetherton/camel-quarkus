@@ -209,10 +209,10 @@
         <protobuf-maven-plugin.version>${protobuf-maven-plugin-version}</protobuf-maven-plugin.version>
         <rpkgtests-maven-plugin.version>0.10.0</rpkgtests-maven-plugin.version>
 
-        <!-- Test container image properties -->
+        <!-- Test container image properties. Used by integration-tests-support/testcontainers -->
+        <activemq.container.image>quay.io/artemiscloud/activemq-artemis-broker:1.0.5</activemq.container.image>
         <activemq-classic.container.image>docker.io/rmohr/activemq:5.15.9-alpine</activemq-classic.container.image>
         <arangodb.container.image>docker.io/arangodb:3.10</arangodb.container.image>
-        <artemis.container.image>quay.io/artemiscloud/activemq-artemis-broker:1.0.5</artemis.container.image>
         <azurite.container.image>mcr.microsoft.com/azure-storage/azurite:3.21.0</azurite.container.image>
         <calculator-ws.container.image>quay.io/l2x6/calculator-ws:1.0</calculator-ws.container.image>
         <cassandra.container.image>docker.io/cassandra:4.0.1</cassandra.container.image>
@@ -230,18 +230,22 @@
         <greenmail.container.image>docker.io/greenmail/standalone:1.6.8</greenmail.container.image>
         <infinispan.container.image>docker.io/infinispan/server:13.0</infinispan.container.image>
         <influxdb.container.image>docker.io/influxdb:1.7.10</influxdb.container.image>
-        <kafka.container.image>docker.io/confluentinc/cp-kafka:3.4.3</kafka.container.image>
+        <kafka.container.image>docker.io/confluentinc/cp-kafka:5.4.3</kafka.container.image>
         <kudu.container.image>docker.io/apache/kudu:1.12.0</kudu.container.image>
         <localstack.container.image>docker.io/localstack/localstack:0.12.17.5</localstack.container.image>
         <lra-coordinator.container.image>docker.io/jbosstm/lra-coordinator:5.12.0.Final</lra-coordinator.container.image>
         <minio.container.image>docker.io/minio/minio:RELEASE.2020-12-03T05-49-24Z</minio.container.image>
-        <mongodb.container.image>docker.io/mongodb:4.4</mongodb.container.image>
+        <mysql.container.image>docker.io/mysql:5.7</mysql.container.image>
+        <mongodb.container.image>docker.io/mongo:4.4</mongodb.container.image>
         <nats.container.image>docker.io/nats:2.1.9</nats.container.image>
         <openssh-server.container.image>docker.io/linuxserver/openssh-server:version-9.0_p1-r2</openssh-server.container.image>
         <postgres.container.image>docker.io/postgres:13.0</postgres.container.image>
+        <postgres-debezium.container.image>docker.io/debezium/postgres:15-alpine</postgres-debezium.container.image>
         <rabbitmq.container.image>docker.io/rabbitmq:3.7.25-management-alpine</rabbitmq.container.image>
+        <redis.container.image>docker.io/redis:6.0.9</redis.container.image>
         <solr.container.image>docker.io/solr:8.7.0</solr.container.image>
         <splunk.container.image>docker.io/splunk/splunk:9.0.1</splunk.container.image>
+        <sql-server.container.image>mcr.microsoft.com/mssql/server:2017-CU12</sql-server.container.image>
         <tinyproxy.container.image>docker.io/monokal/tinyproxy</tinyproxy.container.image>
 
         <!-- Plugin configuration through properties  -->

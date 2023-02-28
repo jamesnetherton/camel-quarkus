@@ -62,7 +62,7 @@ public class KafkaSaslSslTestResource extends KafkaTestResource {
             throw new RuntimeException(e);
         }
 
-        container = new SaslSslKafkaContainer(KAFKA_IMAGE_NAME);
+        container = new SaslSslKafkaContainer(KAFKA_IMAGE_NAME.asCompatibleSubstituteFor("confluentinc/cp-kafka"));
         container.start();
 
         String jaasConfig = "org.apache.kafka.common.security.scram.ScramLoginModule required "

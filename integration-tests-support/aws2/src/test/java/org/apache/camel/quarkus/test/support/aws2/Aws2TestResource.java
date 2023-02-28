@@ -25,6 +25,7 @@ import java.util.ServiceLoader;
 import java.util.stream.Stream;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.apache.camel.quarkus.test.mock.backend.MockBackendUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,8 +77,10 @@ public final class Aws2TestResource implements QuarkusTestResourceLifecycleManag
                     .distinct()
                     .toArray(Service[]::new);
 
-            LocalStackContainer localstack = new LocalStackContainer(DockerImageName.parse("localstack/localstack:0.12.17.5"))
-                    .withServices(services);
+            DockerImageName imageName = TestContainer.LOCALSTACK.getImageName();
+            LocalStackContainer localstack = new LocalStackContainer(
+                    imageName.asCompatibleSubstituteFor("localstack/localstack"))
+                            .withServices(services);
             localstack.withEnv("LAMBDA_EXECUTOR", "local");
             localstack.withLogConsumer(new Slf4jLogConsumer(LOG));
             localstack.start();

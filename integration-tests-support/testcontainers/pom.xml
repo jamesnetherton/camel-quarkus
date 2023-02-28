@@ -58,15 +58,14 @@
                 <artifactId>groovy-maven-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>generate-container-name-properties-file</id>
+                        <id>generate-container-image-properties-file</id>
                         <phase>prepare-package</phase>
                         <goals>
                             <goal>execute</goal>
                         </goals>
-                        <inherited>false</inherited>
                         <configuration>
                             <source>
-                                File propFile = new File("./target/classes/container-image.properties");
+                                File propFile = new File("${project.build.outputDirectory}/container-image.properties");
                                 Properties properties = new Properties()
                                 project.properties.each {
                                     if (it.key.endsWith(".container.image")) {

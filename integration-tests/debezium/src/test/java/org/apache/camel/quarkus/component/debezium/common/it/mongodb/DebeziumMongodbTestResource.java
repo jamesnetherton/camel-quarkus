@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 
 import org.apache.camel.quarkus.component.debezium.common.it.AbstractDebeziumTestResource;
 import org.apache.camel.quarkus.component.debezium.common.it.Type;
+import org.apache.camel.quarkus.test.containers.TestContainer;
 import org.apache.commons.io.IOUtils;
 import org.jboss.logging.Logger;
 import org.testcontainers.containers.Container;
@@ -43,7 +44,7 @@ public class DebeziumMongodbTestResource extends AbstractDebeziumTestResource<Ge
 
     @Override
     protected GenericContainer<?> createContainer() {
-        return new GenericContainer("mongo:4.4")
+        return new GenericContainer(TestContainer.MONGODB.getImageName())
                 .withExposedPorts(DB_PORT)
                 .withCommand("--replSet", "my-mongo-set")
                 .withNetwork(net)

@@ -63,7 +63,7 @@ public class KafkaSslTestResource extends KafkaTestResource {
             throw new RuntimeException(e);
         }
 
-        container = new SSLKafkaContainer(KAFKA_IMAGE_NAME);
+        container = new SSLKafkaContainer(KAFKA_IMAGE_NAME.asCompatibleSubstituteFor("confluentinc/cp-kafka"));
         container.start();
 
         return CollectionHelper.mapOf(
