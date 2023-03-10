@@ -74,11 +74,11 @@ jobs:
         id: pre-build-checks
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" ]] && [[ "${{ github.actor }}" == "jamesnetherton" ]]; then
-            ./mvnw cq:sync-versions ${CQ_MAVEN_ARGS}
+            ./mvnw cq:sync-versions -N ${CQ_MAVEN_ARGS}
             ./mvnw clean install -N ${CQ_MAVEN_ARGS}
 
             pushd poms/bom > /dev/null
-            ../../mvnw process-resources -Dcq.flatten-bom.format --fail-never
+            ../../mvnw process-resources -Dcq.flatten-bom.format --fail-never ${CQ_MAVEN_ARGS}
             ../../mvnw clean install ${CQ_MAVEN_ARGS}
             popd > /dev/null
 
