@@ -77,10 +77,14 @@ jobs:
             ./mvnw cq:sync-versions -N ${CQ_MAVEN_ARGS}
             ./mvnw clean install -N ${CQ_MAVEN_ARGS}
 
-            pushd poms/bom > /dev/null
+            cd poms
+            ./mvnw clean install -N ${CQ_MAVEN_ARGS}
+
+            cd bom
             ../../mvnw process-resources -Dcq.flatten-bom.format --fail-never ${CQ_MAVEN_ARGS}
             ../../mvnw clean install ${CQ_MAVEN_ARGS}
-            popd > /dev/null
+
+            cd ../../
 
             if [[ -z "$(git status --porcelain)" ]]; then
               echo "continue-build=true" >> $GITHUB_OUTPUT
