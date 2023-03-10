@@ -19,7 +19,7 @@ name: Synchronize Dependabot Branch
 
 on:
   workflow_run:
-    workflows: ["Build"]
+    workflows: ["Camel Quarkus CI"]
     types:
       - completed
 
