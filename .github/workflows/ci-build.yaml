@@ -74,7 +74,13 @@ jobs:
         id: pre-build-checks
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" ]] && [[ "${{ github.actor }}" == "dependabot[bot]" ]]; then
+            echo "=========== INITIAL DIFF"
+            git --no-pager diff
+
             ./mvnw cq:sync-versions -N ${CQ_MAVEN_ARGS}
+
+            echo "=========== AFTER SYNC DIFF"
+            git --no-pager diff
             ./mvnw clean install -N ${CQ_MAVEN_ARGS}
 
             cd poms
@@ -83,8 +89,13 @@ jobs:
             cd bom
             ../../mvnw process-resources -Dcq.flatten-bom.format --fail-never ${CQ_MAVEN_ARGS}
             ../../mvnw clean install ${CQ_MAVEN_ARGS}
+            echo "=========== AFTER FLATTEN DIFF"
+            git --no-pager diff
 
             cd ../../
+
+            echo "=========== GIT STATUS"
+            git --no-pager status --porcelain
 
             if [[ -z "$(git status --porcelain)" ]]; then
               echo "continue-build=true" >> $GITHUB_OUTPUT
