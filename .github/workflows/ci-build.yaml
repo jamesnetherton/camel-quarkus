@@ -108,7 +108,7 @@ jobs:
           retention-days: 1
 
   initial-mvn-install:
-    if: needs.pre-build-checks.outputs.continue-build
+    if: needs.pre-build-checks.outputs.continue-build == 'true'
     runs-on: ubuntu-latest
     needs: pre-build-checks
     outputs:
