@@ -70,6 +70,8 @@ jobs:
           java-version: '17'
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
       - name: Pre build checks
         id: pre-build-checks
         run: |
