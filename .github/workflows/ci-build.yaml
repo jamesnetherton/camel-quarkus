@@ -78,7 +78,7 @@ jobs:
             ./mvnw clean install -N ${CQ_MAVEN_ARGS}
 
             cd poms
-            ./mvnw clean install -N ${CQ_MAVEN_ARGS}
+            ../mvnw clean install -N ${CQ_MAVEN_ARGS}
 
             cd bom
             ../../mvnw process-resources -Dcq.flatten-bom.format --fail-never ${CQ_MAVEN_ARGS}
