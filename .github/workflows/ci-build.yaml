@@ -88,15 +88,8 @@ jobs:
         id: pre-build-checks
         run: |
           if [[ "${{ steps.init.outputs.run-checks }}" == "true" ]]; then
-            ./mvnw cq:sync-versions -N ${CQ_MAVEN_ARGS}
-            ./mvnw clean install -N ${CQ_MAVEN_ARGS}
-
-            cd poms
-            ../mvnw clean install -N ${CQ_MAVEN_ARGS}
-
-            cd bom
-            ../../mvnw process-resources -Dcq.flatten-bom.format --fail-never ${CQ_MAVEN_ARGS}
-            ../../mvnw clean install ${CQ_MAVEN_ARGS}
+            ./mvnw clean install -pl poms/bom -am -Dcq.flatten-bom.format --fail-never ${CQ_MAVEN_ARGS}
+            ./mvnw clean install -f poms/bom ${CQ_MAVEN_ARGS}
 
             cd ../../
 
