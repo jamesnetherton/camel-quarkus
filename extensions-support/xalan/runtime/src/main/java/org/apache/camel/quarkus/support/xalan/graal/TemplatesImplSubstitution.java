@@ -19,10 +19,10 @@ package org.apache.camel.quarkus.support.xalan.graal;
 import com.oracle.svm.core.annotate.Substitute;
 import com.oracle.svm.core.annotate.TargetClass;
 
-@TargetClass(className = "org.apache.xalan.xsltc.trax.TemplatesImpl")
+@TargetClass(className = "com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl")
 final class TemplatesImplSubstitution {
 
-    @TargetClass(className = "org.apache.xalan.xsltc.trax.TemplatesImpl", innerClass = "TransletClassLoader")
+    @TargetClass(className = "com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl", innerClass = "TransletClassLoader")
     static final class TransletClassLoader {
         @Substitute
         Class defineClass(final byte[] b) {

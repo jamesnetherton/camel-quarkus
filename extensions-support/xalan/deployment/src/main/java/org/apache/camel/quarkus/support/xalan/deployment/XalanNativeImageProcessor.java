@@ -18,12 +18,13 @@ package org.apache.camel.quarkus.support.xalan.deployment;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Stream;
 
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
+import io.quarkus.deployment.builditem.GeneratedNativeImageClassBuildItem;
+import io.quarkus.deployment.builditem.GeneratedResourceBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.JPMSExportBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ExcludeConfigBuildItem;
-import io.quarkus.deployment.builditem.nativeimage.NativeImageResourceBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.NativeImageResourceBundleBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ServiceProviderBuildItem;
@@ -31,46 +32,26 @@ import org.apache.camel.quarkus.support.xalan.XalanTransformerFactory;
 
 class XalanNativeImageProcessor {
     private static final String TRANSFORMER_FACTORY_SERVICE_FILE_PATH = "META-INF/services/javax.xml.transform.TransformerFactory";
+    private static final String[] XALAN_PACKAGE_EXPORTS = new String[] {
+            "com.sun.org.apache.xalan.internal.xsltc.runtime",
+            "com.sun.org.apache.xalan.internal.xsltc.dom",
+            "com.sun.org.apache.xalan.internal.xsltc",
+            "com.sun.org.apache.xml.internal.dtm",
+            "com.sun.org.apache.xml.internal.serializer"
+    };
 
     @BuildStep
-    List<ReflectiveClassBuildItem> reflectiveClasses() {
-        return Arrays.asList(
-                ReflectiveClassBuildItem.builder("org.apache.camel.quarkus.support.xalan.XalanTransformerFactory",
-                        "org.apache.xalan.xsltc.dom.ObjectFactory",
-                        "org.apache.xalan.xsltc.dom.XSLTCDTMManager",
-                        "org.apache.xalan.xsltc.trax.ObjectFactory",
-                        "org.apache.xalan.xsltc.trax.TransformerFactoryImpl",
-                        "org.apache.xml.dtm.ObjectFactory",
-                        "org.apache.xml.dtm.ref.DTMManagerDefault",
-                        "org.apache.xml.serializer.OutputPropertiesFactory",
-                        "org.apache.xml.serializer.CharInfo",
-                        "org.apache.xml.utils.FastStringBuffer").methods().build(),
-                ReflectiveClassBuildItem.builder("org.apache.xml.serializer.ToHTMLStream",
-                        "org.apache.xml.serializer.ToTextStream",
-                        "org.apache.xml.serializer.ToXMLStream").build());
+    ReflectiveClassBuildItem reflectiveClasses() {
+        return ReflectiveClassBuildItem.builder("org.apache.camel.quarkus.support.xalan.XalanTransformerFactory").methods()
+                .build();
     }
 
     @BuildStep
     List<NativeImageResourceBundleBuildItem> resourceBundles() {
         return Arrays.asList(
-                new NativeImageResourceBundleBuildItem("org.apache.xalan.xsltc.compiler.util.ErrorMessages"),
-                new NativeImageResourceBundleBuildItem("org.apache.xml.serializer.utils.SerializerMessages"),
-                new NativeImageResourceBundleBuildItem("org.apache.xml.serializer.XMLEntities"),
-                new NativeImageResourceBundleBuildItem("org.apache.xml.res.XMLErrorResources"));
-    }
-
-    @BuildStep
-    void resources(BuildProducer<NativeImageResourceBuildItem> resource) {
-
-        Stream.of(
-                "html",
-                "text",
-                "xml",
-                "unknown")
-                .map(s -> "org/apache/xml/serializer/output_" + s + ".properties")
-                .map(NativeImageResourceBuildItem::new)
-                .forEach(resource::produce);
-
+                new NativeImageResourceBundleBuildItem("com.sun.org.apache.xalan.internal.xsltc.compiler.util.ErrorMessages"),
+                new NativeImageResourceBundleBuildItem("com.sun.org.apache.xml.internal.serializer.utils.SerializerMessages"),
+                new NativeImageResourceBundleBuildItem("com.sun.org.apache.xml.internal.res.XMLErrorResources"));
     }
 
     @BuildStep
@@ -85,4 +66,10 @@ class XalanNativeImageProcessor {
 
     }
 
+    @BuildStep
+    void xalanPackageExports(BuildProducer<JPMSExportBuildItem> packageExport) {
+        Arrays.stream(XALAN_PACKAGE_EXPORTS)
+                .map(packageName -> new JPMSExportBuildItem("java.xml", packageName))
+                .forEach(packageExport::produce);
+    }
 }

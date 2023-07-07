@@ -51,7 +51,7 @@ class XsltNativeImageProcessor {
             CamelXsltConfig config,
             BuildProducer<NativeImageResourceBuildItem> nativeResources,
             BuildProducer<NativeImageResourceBundleBuildItem> nativeResourceBundles) {
-        if (!config.sources.isPresent()) {
+        if (config.sources.isEmpty()) {
             return;
         }
 
@@ -67,15 +67,7 @@ class XsltNativeImageProcessor {
                 paths.add(source);
             }
         }
-        paths.add("org/apache/xml/serializer/Encodings.properties");
-        paths.add("org/apache/xml/serializer/output_html.properties");
-        paths.add("org/apache/xml/serializer/output_text.properties");
-        paths.add("org/apache/xml/serializer/output_unknown.properties");
-        paths.add("org/apache/xml/serializer/output_xml.properties");
+
         nativeResources.produce(new NativeImageResourceBuildItem(paths));
-
-        nativeResourceBundles.produce(new NativeImageResourceBundleBuildItem("org.apache.xml.serializer.HTMLEntities"));
-        nativeResourceBundles.produce(new NativeImageResourceBundleBuildItem("org.apache.xml.serializer.XMLEntities"));
     }
-
 }

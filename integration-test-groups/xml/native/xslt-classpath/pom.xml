@@ -85,6 +85,18 @@
         </dependency>
     </dependencies>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>--add-exports java.xml/com.sun.org.apache.xalan.internal.xsltc.runtime=ALL-UNNAMED --add-exports java.xml/com.sun.org.apache.xalan.internal.xsltc.dom=ALL-UNNAMED --add-exports java.xml/com.sun.org.apache.xalan.internal.xsltc=ALL-UNNAMED --add-exports java.xml/com.sun.org.apache.xml.internal.dtm=ALL-UNNAMED --add-exports java.xml/com.sun.org.apache.xml.internal.serializer=ALL-UNNAMED</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
     <profiles>
         <profile>
             <id>native</id>

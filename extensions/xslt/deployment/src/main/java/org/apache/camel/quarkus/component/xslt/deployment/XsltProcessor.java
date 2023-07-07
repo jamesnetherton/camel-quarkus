@@ -36,6 +36,7 @@ import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.GeneratedClassBuildItem;
+import io.quarkus.deployment.pkg.PackageConfig;
 import io.quarkus.runtime.RuntimeValue;
 import org.apache.camel.component.xslt.XsltComponent;
 import org.apache.camel.quarkus.component.xslt.CamelXsltConfig;
@@ -47,9 +48,20 @@ import org.apache.camel.quarkus.core.deployment.spi.CamelBeanBuildItem;
 import org.apache.camel.quarkus.core.deployment.spi.CamelServiceFilter;
 import org.apache.camel.quarkus.core.deployment.spi.CamelServiceFilterBuildItem;
 import org.apache.camel.quarkus.support.xalan.XalanTransformerFactory;
+import org.apache.camel.util.StringHelper;
 import org.apache.commons.lang3.StringUtils;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.commons.ClassRemapper;
+import org.objectweb.asm.commons.Remapper;
 
 class XsltProcessor {
+    // The default XSLT generated class package name defined in com.sun.org.apache.xalan.internal.xsltc.compiler.XSLTC
+    // Due to a bug in the JDK, the package is not overridable. See https://github.com/apache/camel-quarkus/issues/4065
+    private static final String XSLTC_DEFAULT_PACKAGE_NAME = "die_verwandlung";
+    private static final String XSLTC_DEFAULT_CLASS_NAME = XSLTC_DEFAULT_PACKAGE_NAME + ".class";
+
     /*
      * The xslt component is programmatically configured by the extension thus
      * we can safely prevent camel to instantiate a default instance.
@@ -64,8 +76,10 @@ class XsltProcessor {
     CamelBeanBuildItem xsltComponent(
             CamelXsltRecorder recorder,
             CamelXsltConfig config,
+            PackageConfig packageConfig,
             List<UriResolverEntryBuildItem> uriResolverEntries) {
-
+        packageConfig.manifest.attributes.put("Add-Exports",
+                "java.xml/com.sun.org.apache.xalan.internal.xsltc.runtime java.xml/com.sun.org.apache.xalan.internal.xsltc.dom java.xml/com.sun.org.apache.xalan.internal.xsltc java.xml/com.sun.org.apache.xml.internal.dtm java.xml/com.sun.org.apache.xml.internal.serializer");
         final RuntimeValue<Builder> builder = recorder.createRuntimeUriResolverBuilder();
         for (UriResolverEntryBuildItem entry : uriResolverEntries) {
             recorder.addRuntimeUriResolverEntry(
@@ -115,6 +129,13 @@ class XsltProcessor {
                     tf.setAttribute("destination-directory", destination.toString());
                     tf.setErrorListener(new CamelXsltErrorListener());
                     tf.newTemplates(resolvedUri.source);
+
+                    // Rename classes files with the correct name
+                    String packagePath = config.packageName.replace(".", "/");
+                    Path source = destination.resolve(packagePath + "/" + XSLTC_DEFAULT_CLASS_NAME);
+                    Path target = destination
+                            .resolve(packagePath + "/" + StringHelper.capitalize(resolvedUri.transletClassName) + ".class");
+                    Files.move(source, target);
                 } catch (TransformerException e) {
                     throw new RuntimeException("Could not compile XSLT " + uri, e);
                 }
@@ -130,9 +151,21 @@ class XsltProcessor {
                                 final Path rel = destination.relativize(path);
                                 final String fqcn = StringUtils.removeEnd(rel.toString(), ".class").replace(File.separatorChar,
                                         '.');
-                                final byte[] data = Files.readAllBytes(path);
+                                final String badClass = config.packageName.replace('.', '/') + "/" + XSLTC_DEFAULT_PACKAGE_NAME;
+                                final String correctClass = fqcn.replace('.', '/');
 
-                                generatedClasses.produce(new GeneratedClassBuildItem(false, fqcn, data));
+                                // TODO: This should be removed https://github.com/apache/camel-quarkus/issues/4065
+                                // Transform the generated class to remove die_verwandlung class and package names
+                                final byte[] data = Files.readAllBytes(path);
+                                ClassReader reader = new ClassReader(data);
+                                ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_FRAMES);
+                                ClassVisitor visitor = new ClassRemapper(writer,
+                                        new TransletClassRemapper(
+                                                badClass,
+                                                correctClass));
+                                reader.accept(visitor, ClassReader.EXPAND_FRAMES);
+
+                                generatedClasses.produce(new GeneratedClassBuildItem(false, fqcn, writer.toByteArray()));
                                 generatedNames.produce(new XsltGeneratedClassBuildItem(fqcn));
                             } catch (IOException e) {
                                 throw new RuntimeException(e);
@@ -141,11 +174,40 @@ class XsltProcessor {
             }
         } finally {
             try (Stream<Path> files = Files.walk(destination)) {
-                files
-                        .sorted(Comparator.reverseOrder())
+                files.sorted(Comparator.reverseOrder())
                         .map(Path::toFile)
                         .forEach(File::delete);
             }
+        }
+    }
+
+    static final class TransletClassRemapper extends Remapper {
+        private final String oldClassName;
+        private final String newClassName;
+        private final String oldClassNameFqcn;
+        private final String newClassNameFqcn;
+
+        private TransletClassRemapper(String oldClassName, String newClassName) {
+            this.oldClassName = oldClassName;
+            this.newClassName = newClassName;
+            this.oldClassNameFqcn = oldClassName.replace('/', '.');
+            this.newClassNameFqcn = newClassName.replace('/', '.');
+        }
+
+        @Override
+        public String map(String className) {
+            if (className.equals(oldClassName)) {
+                return newClassName;
+            }
+            return className;
+        }
+
+        @Override
+        public Object mapValue(Object value) {
+            if (value.equals(oldClassNameFqcn)) {
+                return super.mapValue(newClassNameFqcn);
+            }
+            return super.mapValue(value);
         }
     }
 }

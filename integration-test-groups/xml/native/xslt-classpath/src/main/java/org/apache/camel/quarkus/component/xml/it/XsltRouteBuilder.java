@@ -16,6 +16,9 @@
  */
 package org.apache.camel.quarkus.component.xml.it;
 
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathFactory;
+
 import org.w3c.dom.Document;
 
 import org.apache.camel.BindToRegistry;
@@ -23,13 +26,13 @@ import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.quarkus.test.support.xslt.MyExtensionFunction1;
 import org.apache.camel.quarkus.test.support.xslt.MyExtensionFunction2;
 import org.apache.camel.support.builder.Namespaces;
-import org.apache.xpath.XPathAPI;
 
 public class XsltRouteBuilder extends RouteBuilder {
     public static final String DIRECT_HTML_TRANSFORM = "direct:html-transform";
     public static final String DIRECT_HTML_TO_TEXT = "direct:html-to-text";
     public static final String DIRECT_XML_CBR = "direct:xml-cbr";
     public static final String DIRECT_XTOKENIZE = "direct:xtokenize";
+    private static final XPath XPATH = XPathFactory.newInstance().newXPath();
 
     @Override
     public void configure() {
@@ -46,7 +49,7 @@ public class XsltRouteBuilder extends RouteBuilder {
                 .when(xpath("//order/country = 'UK'"))
                 .process(exchange -> {
                     Document body = exchange.getIn().getBody(Document.class);
-                    String country = XPathAPI.eval(body, "//order/country").toString();
+                    String country = XPATH.compile("//order/country").evaluate(body);
                     exchange.getIn().setBody("Country " + country);
                 })
                 .otherwise()
