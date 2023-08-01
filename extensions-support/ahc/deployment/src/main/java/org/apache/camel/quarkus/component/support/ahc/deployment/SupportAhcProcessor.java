@@ -18,16 +18,22 @@ package org.apache.camel.quarkus.component.support.ahc.deployment;
 
 import java.util.stream.Stream;
 
-import io.netty.incubator.channel.uring.IOUringEventLoopGroup;
+import io.quarkus.deployment.GeneratedClassGizmoAdaptor;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.ExtensionSslNativeSupportBuildItem;
+import io.quarkus.deployment.builditem.GeneratedClassBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.NativeImageResourceBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.RuntimeInitializedClassBuildItem;
+import io.quarkus.deployment.pkg.steps.NativeBuild;
+import io.quarkus.gizmo.ClassCreator;
+import org.apache.camel.quarkus.component.support.ahc.runtime.graal.NettyIoUringAbsent;
 
 class SupportAhcProcessor {
 
     private static final String FEATURE = "camel-support-ahc";
+    private static final String IO_URING_EVENT_LOOP_GROUP_CLASS_NAME = "io.netty.incubator.channel.uring.IOUringEventLoopGroup";
+    private static final String IO_URING_SOCKET_CHANNEL_CLASS_NAME = "io.netty.incubator.channel.uring.IOUringSocketChannel";
 
     @BuildStep
     NativeImageResourceBuildItem nativeImageResources() {
@@ -41,9 +47,23 @@ class SupportAhcProcessor {
         return new ExtensionSslNativeSupportBuildItem(FEATURE);
     }
 
-    @BuildStep
+    @BuildStep(onlyIfNot = NettyIoUringAbsent.class)
     RuntimeInitializedClassBuildItem runtimeInitializedClasses() {
-        return new RuntimeInitializedClassBuildItem(IOUringEventLoopGroup.class.getName());
+        return new RuntimeInitializedClassBuildItem("io.netty.incubator.channel.uring.IOUringEventLoopGroup");
+    }
+
+    @BuildStep(onlyIf = { NativeBuild.class, NettyIoUringAbsent.class })
+    void ioUringGeneratedClasses(BuildProducer<GeneratedClassBuildItem> generatedClass) {
+        // Generate skeleton io_uring classes to make native compilation work
+        Stream.of(IO_URING_EVENT_LOOP_GROUP_CLASS_NAME, IO_URING_SOCKET_CHANNEL_CLASS_NAME).forEach(className -> {
+            ClassCreator.builder()
+                    .className(className)
+                    .superClass(Object.class)
+                    .setFinal(true)
+                    .classOutput(new GeneratedClassGizmoAdaptor(generatedClass, false))
+                    .build()
+                    .close();
+        });
     }
 
     @BuildStep

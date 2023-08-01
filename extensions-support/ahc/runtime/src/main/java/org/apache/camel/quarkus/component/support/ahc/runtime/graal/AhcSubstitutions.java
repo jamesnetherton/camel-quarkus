@@ -20,22 +20,25 @@ import java.util.concurrent.ThreadFactory;
 
 import com.oracle.svm.core.annotate.Substitute;
 import com.oracle.svm.core.annotate.TargetClass;
-import io.netty.incubator.channel.uring.IOUringEventLoopGroup;
-import io.netty.incubator.channel.uring.IOUringSocketChannel;
+import com.oracle.svm.core.annotate.TargetElement;
 
 final class AhcSubstitutions {
 }
 
-@TargetClass(className = "org.asynchttpclient.netty.channel.IoUringIncubatorTransportFactory")
+@TargetClass(className = "org.asynchttpclient.netty.channel.IoUringIncubatorTransportFactory", onlyWith = NettyIoUringAbsent.class)
 final class IoUringIncubatorTransportFactorySubstitutions {
 
     @Substitute
-    public IOUringSocketChannel newChannel() {
-        throw new RuntimeException("not supported!");
+    @TargetElement(name = "newChannel")
+    public Object newChannel() {
+        throw new UnsupportedOperationException(
+                "Netty io_uring transport is not available. Add io.netty.incubator:netty-incubator-transport-native-io_uring to the application classpath");
     }
 
     @Substitute
-    public IOUringEventLoopGroup newEventLoopGroup(int ioThreadsCount, ThreadFactory threadFactory) {
-        throw new RuntimeException("not supported!");
+    @TargetElement(name = "newEventLoopGroup")
+    public Object newEventLoopGroup(int ioThreadsCount, ThreadFactory threadFactory) {
+        throw new UnsupportedOperationException(
+                "Netty io_uring transport is not available. Add io.netty.incubator:netty-incubator-transport-native-io_uring to the application classpath");
     }
 }
