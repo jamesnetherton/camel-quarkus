@@ -31,7 +31,7 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>protoc-plugin</module>
+        <module>codegen</module>
         <module>deployment</module>
         <module>runtime</module>
     </modules>
