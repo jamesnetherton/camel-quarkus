@@ -118,37 +118,37 @@
                             </scripts>
                         </configuration>
                     </execution>
-                    <execution>
-                        <!--
-                            Hack around grpc-java protobuf generator tagging generated classes with javax.annotation.Generated.
+<!--                    <execution>-->
+<!--                        &lt;!&ndash;-->
+<!--                            Hack around grpc-java protobuf generator tagging generated classes with javax.annotation.Generated.-->
 
-                            This avoids implementing the recommendation to add a dependency on org.apache.tomcat:annotations-api:
+<!--                            This avoids implementing the recommendation to add a dependency on org.apache.tomcat:annotations-api:-->
 
-                            https://github.com/grpc/grpc-java#download
+<!--                            https://github.com/grpc/grpc-java#download-->
 
-                            Hopefully this will eventually get fixed for the Jakarta 10+ world:
+<!--                            Hopefully this will eventually get fixed for the Jakarta 10+ world:-->
 
-                            https://github.com/grpc/grpc-java/issues/9179
-                        -->
-                        <id>strip-javax-generated-annotation</id>
-                        <phase>process-sources</phase>
-                        <goals>
-                            <goal>execute</goal>
-                        </goals>
-                        <configuration>
-                            <scripts>
-                                <script>
-                                    def buildDir = project.build.directory
-                                    new File("${buildDir}/generated-sources").eachFileRecurse { file -&gt;
-                                        if (file.name.endsWith('.java') &amp;&amp; file.text.contains('javax.annotation.Generated')) {
-                                            def modifiedContent = file.text.replace('javax', 'jakarta')
-                                            file.write(modifiedContent)
-                                        }
-                                    }
-                                </script>
-                            </scripts>
-                        </configuration>
-                    </execution>
+<!--                            https://github.com/grpc/grpc-java/issues/9179-->
+<!--                        &ndash;&gt;-->
+<!--                        <id>strip-javax-generated-annotation</id>-->
+<!--                        <phase>process-sources</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>execute</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <scripts>-->
+<!--                                <script>-->
+<!--                                    def buildDir = project.build.directory-->
+<!--                                    new File("${buildDir}/generated-sources").eachFileRecurse { file -&gt;-->
+<!--                                        if (file.name.endsWith('.java') &amp;&amp; file.text.contains('javax.annotation.Generated')) {-->
+<!--                                            def modifiedContent = file.text.replace('javax', 'jakarta')-->
+<!--                                            file.write(modifiedContent)-->
+<!--                                        }-->
+<!--                                    }-->
+<!--                                </script>-->
+<!--                            </scripts>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
                 </executions>
             </plugin>
             <plugin>
@@ -168,6 +168,15 @@
                             <pluginArtifact>io.grpc:protoc-gen-grpc-java:${grpc.version}:exe:${os.detected.classifier}</pluginArtifact>
                             <checkStaleness>true</checkStaleness>
                             <skip>${cq.skip.protobuf}</skip>
+                            <protocPlugins>
+                                <protocPlugin>
+                                    <id>camel-quarkus-grpc-protoc-plugin</id>
+                                    <groupId>org.apache.camel.quarkus</groupId>
+                                    <artifactId>camel-quarkus-grpc-protoc-plugin</artifactId>
+                                    <version>${project.version}</version>
+                                    <mainClass>org.apache.camel.quarkus.grpc.protoc.plugin.CamelQuarkusProtocPlugin</mainClass>
+                                </protocPlugin>
+                            </protocPlugins>
                         </configuration>
                     </execution>
                 </executions>
