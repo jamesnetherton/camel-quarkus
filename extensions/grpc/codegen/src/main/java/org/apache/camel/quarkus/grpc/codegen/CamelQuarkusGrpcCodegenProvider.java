@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.camel.quarkus.grpc.codegen;
 
 import java.io.IOException;
@@ -27,7 +43,6 @@ import io.quarkus.utilities.OS;
 import org.eclipse.microprofile.config.Config;
 import org.jboss.logging.Logger;
 
-import static java.lang.Boolean.TRUE;
 import static java.util.Arrays.asList;
 
 /**
@@ -39,18 +54,16 @@ import static java.util.Arrays.asList;
  * The implementation does not include additional logic for features not supported in Camel gRPC, such as integration
  * with Mutiny and CDI.
  */
-public class CamelQuarkusGrpcCodegen implements CodeGenProvider {
-    private static final Logger LOG = Logger.getLogger(CamelQuarkusGrpcCodegen.class);
-
+public class CamelQuarkusGrpcCodegenProvider implements CodeGenProvider {
+    private static final Logger LOG = Logger.getLogger(CamelQuarkusGrpcCodegenProvider.class);
     private static final String EXE = "exe";
     private static final String PROTO = ".proto";
     private static final String PROTOC = "protoc";
     private static final String PROTOC_GROUP_ID = "com.google.protobuf";
-
-    private static final String SCAN_DEPENDENCIES_FOR_PROTO = "quarkus.generate-code.grpc.scan-for-proto";
-    private static final String SCAN_DEPENDENCIES_FOR_PROTO_INCLUDE_PATTERN = "quarkus.generate-code.grpc.scan-for-proto-include.\"%s\"";
-    private static final String SCAN_DEPENDENCIES_FOR_PROTO_EXCLUDE_PATTERN = "quarkus.generate-code.grpc.scan-for-proto-exclude.\"%s\"";
-    private static final String SCAN_FOR_IMPORTS = "quarkus.generate-code.grpc.scan-for-imports";
+    private static final String SCAN_DEPENDENCIES_FOR_PROTO = "quarkus.camel.grpc.codegen.scan-for-proto";
+    private static final String SCAN_DEPENDENCIES_FOR_PROTO_INCLUDE_PATTERN = "quarkus.camel.grpc.codegen.scan-for-proto-include.\"%s\"";
+    private static final String SCAN_DEPENDENCIES_FOR_PROTO_EXCLUDE_PATTERN = "quarkus.camel.grpc.codegen.scan-for-proto-exclude.\"%s\"";
+    private static final String SCAN_FOR_IMPORTS = "quarkus.camel.grpc.codegen.scan-for-imports";
 
     private Executables executables;
 
@@ -71,11 +84,12 @@ public class CamelQuarkusGrpcCodegen implements CodeGenProvider {
 
     @Override
     public boolean trigger(CodeGenContext context) throws CodeGenException {
-        if (TRUE.toString().equalsIgnoreCase(System.getProperties().getProperty("grpc.codegen.skip", "false"))
-                || context.config().getOptionalValue("quarkus.grpc.codegen.skip", Boolean.class).orElse(false)) {
+        final Config config = context.config();
+        if (!config.getValue("quarkus.camel.grpc.codegen.enabled", Boolean.class)) {
             LOG.info("Skipping " + this.getClass() + " invocation on user's request");
             return false;
         }
+
         Path outDir = context.outDir();
         Path workDir = context.workDir();
         Set<String> protoDirs = new HashSet<>();
@@ -180,8 +194,7 @@ public class CamelQuarkusGrpcCodegen implements CodeGenProvider {
             return Collections.emptyList();
         }
         Config properties = context.config();
-        String scanDependencies = properties.getOptionalValue(SCAN_DEPENDENCIES_FOR_PROTO, String.class)
-                .orElse("none");
+        String scanDependencies = properties.getValue(SCAN_DEPENDENCIES_FOR_PROTO, String.class);
 
         if ("none".equalsIgnoreCase(scanDependencies)) {
             return Collections.emptyList();
@@ -384,7 +397,6 @@ public class CamelQuarkusGrpcCodegen implements CodeGenProvider {
     }
 
     private static class Executables {
-
         final Path protoc;
         final Path grpc;
 

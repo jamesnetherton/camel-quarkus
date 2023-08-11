@@ -149,3 +149,42 @@ More information about selecting resources for inclusion in the native executabl
 
 At present there is no support for integrating Camel Quarkus gRPC with Quarkus gRPC. If you have both the `camel-quarkus-grpc` and `quarkus-grpc` extension dependency on the classpath, you are likely to encounter problems at build time when compiling your application.
 
+
+[id="extensions-grpc-additional-camel-quarkus-configuration"]
+== Additional Camel Quarkus configuration
+
+[width="100%",cols="80,5,15",options="header"]
+|===
+| Configuration property | Type | Default
+
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.grpc.codegen.enabled]]`link:#quarkus.camel.grpc.codegen.enabled[quarkus.camel.grpc.codegen.enabled]`
+
+If `true`, Camel Quarkus gRPC code generation is run for .proto files discovered from the `proto` directory, or from dependencies specified in the `scan-for-proto` or`scan-for-imports` options. When `false`, code generation for .proto files is disabled.
+| `boolean`
+| `true`
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.grpc.codegen.scan-for-proto]]`link:#quarkus.camel.grpc.codegen.scan-for-proto[quarkus.camel.grpc.codegen.scan-for-proto]`
+
+Camel Quarkus gRPC code generation can scan dependencies of the application for proto files to generate Java stubs from. This property sets the scope of the dependencies to scan. Applicable values:
+
+ - _none_ - default - don't scan dependencies
+ - a comma separated list of _groupId:artifactId_ coordinates to scan
+ - _all_ - scan all dependencies
+| `string`
+| `none`
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.grpc.codegen.scan-for-imports]]`link:#quarkus.camel.grpc.codegen.scan-for-imports[quarkus.camel.grpc.codegen.scan-for-imports]`
+
+Specify the dependencies that are allowed to have proto files that can be imported by this application's protos Applicable values:
+
+ - _none_ - default - don't scan dependencies
+ - a comma separated list of _groupId:artifactId_ coordinates to scan
+ - _all_ - scan all dependencies  By default, _com.google.protobuf:protobuf-java_.
+| `string`
+| `com.google.protobuf:protobuf-java`
+|===
+
+[.configuration-legend]
+{doc-link-icon-lock}[title=Fixed at build time] Configuration property fixed at build time. All other configuration properties are overridable at runtime.
+
