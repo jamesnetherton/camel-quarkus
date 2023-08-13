@@ -183,6 +183,18 @@ Specify the dependencies that are allowed to have proto files that can be import
  - _all_ - scan all dependencies  By default, _com.google.protobuf:protobuf-java_.
 | `string`
 | `com.google.protobuf:protobuf-java`
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.grpc.codegen.scan-for-proto-includes]]`link:#quarkus.camel.grpc.codegen.scan-for-proto-includes[quarkus.camel.grpc.codegen.scan-for-proto-includes]`
+
+Path / file glob pattern includes per dependency containing proto files to be considered for inclusion.
+| ``Map<String,List<String>>``
+| 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.grpc.codegen.scan-for-proto-excludes]]`link:#quarkus.camel.grpc.codegen.scan-for-proto-excludes[quarkus.camel.grpc.codegen.scan-for-proto-excludes]`
+
+Path / file glob pattern includes per dependency containing proto files to be considered for exclusion.
+| ``Map<String,List<String>>``
+| 
 |===
 
 [.configuration-legend]

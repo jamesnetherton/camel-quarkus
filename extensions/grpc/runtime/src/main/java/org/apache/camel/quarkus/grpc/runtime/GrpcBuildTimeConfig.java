@@ -16,6 +16,9 @@
  */
 package org.apache.camel.quarkus.grpc.runtime;
 
+import java.util.List;
+import java.util.Map;
+
 import io.quarkus.runtime.annotations.ConfigGroup;
 import io.quarkus.runtime.annotations.ConfigItem;
 import io.quarkus.runtime.annotations.ConfigPhase;
@@ -66,5 +69,17 @@ public class GrpcBuildTimeConfig {
          */
         @ConfigItem(defaultValue = "com.google.protobuf:protobuf-java")
         public String scanForImports;
+
+        /**
+         * Path / file glob pattern includes per dependency containing proto files to be considered for inclusion.
+         */
+        @ConfigItem
+        public Map<String, List<String>> scanForProtoIncludes;
+
+        /**
+         * Path / file glob pattern includes per dependency containing proto files to be considered for exclusion.
+         */
+        @ConfigItem
+        public Map<String, List<String>> scanForProtoExcludes;
     }
 }

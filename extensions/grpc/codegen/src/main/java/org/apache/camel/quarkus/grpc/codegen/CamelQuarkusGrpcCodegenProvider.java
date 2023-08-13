@@ -61,8 +61,8 @@ public class CamelQuarkusGrpcCodegenProvider implements CodeGenProvider {
     private static final String PROTOC = "protoc";
     private static final String PROTOC_GROUP_ID = "com.google.protobuf";
     private static final String SCAN_DEPENDENCIES_FOR_PROTO = "quarkus.camel.grpc.codegen.scan-for-proto";
-    private static final String SCAN_DEPENDENCIES_FOR_PROTO_INCLUDE_PATTERN = "quarkus.camel.grpc.codegen.scan-for-proto-include.\"%s\"";
-    private static final String SCAN_DEPENDENCIES_FOR_PROTO_EXCLUDE_PATTERN = "quarkus.camel.grpc.codegen.scan-for-proto-exclude.\"%s\"";
+    private static final String SCAN_DEPENDENCIES_FOR_PROTO_INCLUDE_PATTERN = "quarkus.camel.grpc.codegen.scan-for-proto-includes.\"%s\"";
+    private static final String SCAN_DEPENDENCIES_FOR_PROTO_EXCLUDE_PATTERN = "quarkus.camel.grpc.codegen.scan-for-proto-excludes.\"%s\"";
     private static final String SCAN_FOR_IMPORTS = "quarkus.camel.grpc.codegen.scan-for-imports";
 
     private Executables executables;
@@ -210,9 +210,11 @@ public class CamelQuarkusGrpcCodegenProvider implements CodeGenProvider {
             Collection<String> includes = properties
                     .getOptionalValues(String.format(SCAN_DEPENDENCIES_FOR_PROTO_INCLUDE_PATTERN, packageId), String.class)
                     .orElse(List.of());
+            LOG.info(includes);
             Collection<String> excludes = properties
                     .getOptionalValues(String.format(SCAN_DEPENDENCIES_FOR_PROTO_EXCLUDE_PATTERN, packageId), String.class)
                     .orElse(List.of());
+            LOG.info(excludes);
 
             if (scanAll
                     || dependenciesToScan.contains(packageId)) {
