@@ -104,6 +104,11 @@ class KameletProcessor {
             }
         }
 
-        return new CamelContextCustomizerBuildItem(recorder.createTemplateLoaderCustomizer(definitions));
+        //quick workaround for #5230
+        //remove references to Resources, because the list is serialized; resources are loaded later in the recorder
+        definitions.stream().forEach(rd -> rd.setResource(null));
+
+        return new CamelContextCustomizerBuildItem(
+                recorder.createTemplateLoaderCustomizer(definitions));
     }
 }
