@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Disabled;
 
 import static org.hamcrest.Matchers.is;
 
+@Disabled //https://github.com/apache/camel-quarkus/issues/5232
 @QuarkusTest
 @QuarkusTestResource(InfinispanServerTestResource.class)
 public class InfinispanTest extends InfinispanCommonTest {
