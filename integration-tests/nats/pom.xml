@@ -30,6 +30,15 @@
     <name>Camel Quarkus :: Integration Tests :: Nats</name>
     <description>Integration tests for Camel Quarkus Nats extension</description>
 
+    <properties>
+        <!-- his is required for the native execution (probably also for JVM).
+            EdDSAEngine requires sun.security.x509.X509Ke, which is no longer part if the java (since J16)
+             (Similar approach was used in kudu extension) -->
+        <opens>java.base/sun.security.x509=ALL-UNNAMED</opens>
+        <argLine>--add-opens ${opens}</argLine>
+        <quarkus.native.additional-build-args>-J--add-opens=${opens}</quarkus.native.additional-build-args>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.camel.quarkus</groupId>
