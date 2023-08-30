@@ -96,7 +96,7 @@ public class PdfResource {
         StandardProtectionPolicy policy = new StandardProtectionPolicy(ownerPassword, userPassword, permission);
 
         byte[] document = producerTemplate.requestBodyAndHeader(
-                "pdf:create?fontSize=6&pageSize=PAGE_SIZE_A5&font=Courier",
+                "pdf:create?fontSize=6&pageSize=PAGE_SIZE_A5&font=COURIER",
                 message,
                 PdfHeaderConstants.PROTECTION_POLICY_HEADER_NAME,
                 policy,
