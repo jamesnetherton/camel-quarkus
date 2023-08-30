@@ -20,11 +20,13 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
 import org.apache.camel.quarkus.component.infinispan.common.InfinispanCommonTest;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
+@Disabled //https://github.com/apache/camel-quarkus/issues/5232
 @QuarkusTest
 @QuarkusTestResource(InfinispanServerTestResource.class)
 public class InfinispanQuarkusClientTest extends InfinispanCommonTest {
