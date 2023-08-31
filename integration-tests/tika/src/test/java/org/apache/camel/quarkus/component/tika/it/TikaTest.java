@@ -34,13 +34,13 @@ import static org.hamcrest.Matchers.startsWith;
 @QuarkusTest
 class TikaTest {
 
-    @Disabled //https://github.com/apache/camel-quarkus/issues/5234
+    @Disabled //Requires new release of quarkiverse-tike, which adopts tika with pdfBox 3.x https://github.com/apache/camel-quarkus/issues/5234
     @Test
     public void testPdf() throws Exception {
         testParse("quarkus.pdf", "application/pdf", "Hello Quarkus");
     }
 
-    @Disabled //https://github.com/apache/camel-quarkus/issues/5234
+    @Disabled //Requires new release of quarkiverse-tike, which adopts tika with pdfBox 3.x https://github.com/apache/camel-quarkus/issues/5234
     @Test
     public void testOdf() throws Exception {
         testParse("testOpenOffice2.odt", "application/vnd.oasis.opendocument.text",
