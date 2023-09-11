@@ -26,7 +26,6 @@ import java.util.Map;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import org.apache.commons.io.IOUtils;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
@@ -129,7 +128,6 @@ class FlatpackTest {
         assertEquals("FRED", rows[3].get("FIRSTNAME"));
     }
 
-    @Disabled //https://github.com/apache/camel-quarkus/issues/5260
     @Test
     @SuppressWarnings("unchecked")
     public void fixedHeaderAndTrailerShouldSucceed() throws IOException {
