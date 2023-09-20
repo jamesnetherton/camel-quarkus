@@ -16,6 +16,7 @@
  */
 package org.apache.camel.quarkus.component.kamelet.deployment;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,6 +36,7 @@ import org.apache.camel.RoutesBuilder;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.impl.DefaultCamelContext;
 import org.apache.camel.model.RouteTemplateDefinition;
+import org.apache.camel.quarkus.component.kamelet.KameletClasspathResource;
 import org.apache.camel.quarkus.component.kamelet.KameletConfiguration;
 import org.apache.camel.quarkus.component.kamelet.KameletRecorder;
 import org.apache.camel.quarkus.core.deployment.spi.CamelContextCustomizerBuildItem;
@@ -104,9 +106,20 @@ class KameletProcessor {
             }
         }
 
-        //quick workaround for #5230
-        //remove references to Resources, because the list is serialized; resources are loaded later in the recorder
-        definitions.stream().forEach(rd -> rd.setResource(null));
+        // Use Quarkus recorder serialization friendly KameletClasspathResource instead of the default Resource
+        definitions.forEach(definition -> {
+            try {
+                Resource originalResource = definition.getResource();
+                KameletClasspathResource kameletResource = new KameletClasspathResource();
+                kameletResource.setScheme(originalResource.getScheme());
+                kameletResource.setLocation(originalResource.getLocation());
+                kameletResource.setExists(originalResource.exists());
+                kameletResource.setData(originalResource.getInputStream().readAllBytes());
+                definition.setResource(kameletResource);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
 
         return new CamelContextCustomizerBuildItem(
                 recorder.createTemplateLoaderCustomizer(definitions));
