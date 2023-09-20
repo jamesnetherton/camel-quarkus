@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import io.quarkus.test.junit.DisabledOnIntegrationTest;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -29,6 +30,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.is;
 
 @QuarkusTest
 class RestOpenapiTest {
@@ -73,6 +75,39 @@ class RestOpenapiTest {
     @Test
     public void testInvokeClasspathApiEndpoint() {
         invokeApiEndpoint("/rest-openapi/fruits/list/classpath");
+    }
+
+    @DisabledOnIntegrationTest("https://github.com/apache/camel-quarkus/issues/5324")
+    @Test
+    public void testInvokeApiEndpointWithRequestValidationEnabled() {
+        // Empty request body
+        RestAssured.given()
+                .queryParam("port", RestAssured.port)
+                .contentType(ContentType.JSON)
+                .post("/rest-openapi/fruits/add")
+                .then()
+                .statusCode(500)
+                .body(is("A request body is required but none found."));
+
+        // Mandatory JSON description field missing
+        RestAssured.given()
+                .queryParam("port", RestAssured.port)
+                .contentType(ContentType.JSON)
+                .body("{\"name\": \"Orange\"}")
+                .post("/rest-openapi/fruits/add")
+                .then()
+                .statusCode(500)
+                .body(is("Object has missing required properties ([\"description\"])"));
+
+        // Valid request
+        RestAssured.given()
+                .queryParam("port", RestAssured.port)
+                .contentType(ContentType.JSON)
+                .body("{\"name\": \"Orange\",\"description\":\"Tasty fruit\"}")
+                .post("/rest-openapi/fruits/add")
+                .then()
+                .statusCode(200)
+                .body(is("Fruit created"));
     }
 
     private void invokeApiEndpoint(String path) {

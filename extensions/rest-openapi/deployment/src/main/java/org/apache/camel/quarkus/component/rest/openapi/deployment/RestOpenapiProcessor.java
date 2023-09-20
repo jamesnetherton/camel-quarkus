@@ -16,16 +16,55 @@
  */
 package org.apache.camel.quarkus.component.rest.openapi.deployment;
 
+import java.util.List;
+
+import com.github.fge.msgsimple.load.MessageBundleLoader;
+import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
+import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
+import io.quarkus.deployment.builditem.IndexDependencyBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.NativeImageResourceBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.NativeImageResourceDirectoryBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
+import io.quarkus.deployment.pkg.builditem.CurateOutcomeBuildItem;
 
 class RestOpenapiProcessor {
 
     private static final String FEATURE = "camel-rest-openapi";
+    private static final List<String> GROUP_IDS_TO_INDEX = List.of("com.github.java-json-tools", "com.atlassian.oai");
 
     @BuildStep
     FeatureBuildItem feature() {
         return new FeatureBuildItem(FEATURE);
     }
 
+    @BuildStep
+    void indexDependencies(CurateOutcomeBuildItem curateOutcome, BuildProducer<IndexDependencyBuildItem> indexedDependency) {
+        curateOutcome.getApplicationModel()
+                .getDependencies()
+                .stream()
+                .filter(dependency -> GROUP_IDS_TO_INDEX.contains(dependency.getGroupId()))
+                .map(dependency -> new IndexDependencyBuildItem(dependency.getGroupId(), dependency.getArtifactId()))
+                .forEach(indexedDependency::produce);
+    }
+
+    @BuildStep
+    void registerForReflection(CombinedIndexBuildItem combinedIndex, BuildProducer<ReflectiveClassBuildItem> reflectiveClass) {
+        combinedIndex.getIndex()
+                .getAllKnownImplementors(MessageBundleLoader.class)
+                .stream()
+                .map(classInfo -> ReflectiveClassBuildItem.builder(classInfo.name().toString()).build())
+                .forEach(reflectiveClass::produce);
+    }
+
+    @BuildStep
+    void nativeImageResources(
+            BuildProducer<NativeImageResourceDirectoryBuildItem> nativeImageResourceDirectory,
+            BuildProducer<NativeImageResourceBuildItem> nativeImageResource) {
+        nativeImageResourceDirectory.produce(new NativeImageResourceDirectoryBuildItem("swagger/validation"));
+        nativeImageResourceDirectory.produce(new NativeImageResourceDirectoryBuildItem("draftv3"));
+        nativeImageResourceDirectory.produce(new NativeImageResourceDirectoryBuildItem("draftv4"));
+        nativeImageResource.produce(new NativeImageResourceBuildItem("com/github/fge/uritemplate/messages.properties"));
+    }
 }
