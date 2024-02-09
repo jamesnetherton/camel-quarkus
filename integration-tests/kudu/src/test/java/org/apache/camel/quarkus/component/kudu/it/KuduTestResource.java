@@ -17,6 +17,8 @@
 
 package org.apache.camel.quarkus.component.kudu.it;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -34,6 +36,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.utility.TestcontainersConfiguration;
 
 import static org.apache.camel.quarkus.component.kudu.it.KuduRoute.KUDU_AUTHORITY_CONFIG_KEY;
@@ -44,10 +47,15 @@ public class KuduTestResource implements QuarkusTestResourceLifecycleManager {
     private static final int KUDU_MASTER_HTTP_PORT = 8051;
     private static final int KUDU_TABLET_RPC_PORT = 7050;
     private static final int KUDU_TABLET_HTTP_PORT = 8050;
+    private static final int KERBEROS_PORT_1 = 464;
+    private static final int KERBEROS_PORT_2 = 749;
+    private static final int KERBEROS_PORT_3 = 88;
     private static final String KUDU_IMAGE = ConfigProvider.getConfig().getValue("kudu.container.image", String.class);
     private static final String KUDU_MASTER_NETWORK_ALIAS = "kudu-master";
     private static final String KUDU_TABLET_NETWORK_ALIAS = "kudu-tserver";
+    private static final String KUDU_KERBEROS_NETWORK_ALIAS = "kudu-kerberos";
 
+    private GenericContainer<?> kerberosContainer;
     private GenericContainer<?> masterContainer;
     private GenericContainer<?> tabletContainer;
 
@@ -57,18 +65,53 @@ public class KuduTestResource implements QuarkusTestResourceLifecycleManager {
 
         Network kuduNetwork = Network.newNetwork();
 
-        // Setup the Kudu master server container
-        String masterAdvertisedAddress = getRpcAdvertisedAddress(KUDU_MASTER_NETWORK_ALIAS, KUDU_MASTER_RPC_PORT);
-        masterContainer = new GenericContainer<>(KUDU_IMAGE)
-                .withCommand("master")
-                .withExposedPorts(KUDU_MASTER_RPC_PORT, KUDU_MASTER_HTTP_PORT)
+        // Kerberos server for authentication
+        kerberosContainer = new GenericContainer<>("quay.io/jamesnetherton/krb5-server:1.0.0")
+                .withExposedPorts(KERBEROS_PORT_1, KERBEROS_PORT_2, KERBEROS_PORT_3)
                 .withNetwork(kuduNetwork)
-                .withNetworkAliases(KUDU_MASTER_NETWORK_ALIAS)
-                .withEnv("MASTER_ARGS",
-                        "--unlock_unsafe_flags=true --rpc_advertised_addresses=" + masterAdvertisedAddress)
-                .withLogConsumer(new Slf4jLogConsumer(LOG))
+                .withNetworkAliases(KUDU_KERBEROS_NETWORK_ALIAS)
+                .withEnv("KRB5_REALM", "KUDU.LOCAL")
+                .withEnv("KRB5_KDC", "localhost")
+                .withEnv("KRB5_PASS", "test")
                 .waitingFor(Wait.forListeningPort());
-        masterContainer.start();
+        kerberosContainer.start();
+
+        try (InputStream krb5Conf = Thread.currentThread().getContextClassLoader().getResourceAsStream("kudu-krb5.conf")) {
+            // Setup the Kudu master server container
+            String masterAdvertisedAddress = getRpcAdvertisedAddress(KUDU_MASTER_NETWORK_ALIAS, KUDU_MASTER_RPC_PORT);
+            masterContainer = new GenericContainer<>(KUDU_IMAGE)
+                    .withCommand("master")
+                    .withCopyToContainer(Transferable.of(krb5Conf.readAllBytes(), 0640), "/etc/krb5.conf")
+                    .withExposedPorts(KUDU_MASTER_RPC_PORT, KUDU_MASTER_HTTP_PORT)
+                    .withNetwork(kuduNetwork)
+                    .withNetworkAliases(KUDU_MASTER_NETWORK_ALIAS)
+                    .withEnv("MASTER_ARGS",
+                            "--rpc_authentication=required --keytab_file=/etc/krb5.conf --principal=kudu/kudu --unlock_unsafe_flags=true --rpc_advertised_addresses="
+                                    + masterAdvertisedAddress)
+                    .withLogConsumer(new Slf4jLogConsumer(LOG))
+                    .waitingFor(Wait.forListeningPort());
+            masterContainer.start();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        try (InputStream krb5Conf = Thread.currentThread().getContextClassLoader().getResourceAsStream("kudu-krb5.conf")) {
+            // Setup the Kudu master server container
+            String masterAdvertisedAddress = getRpcAdvertisedAddress(KUDU_MASTER_NETWORK_ALIAS, KUDU_MASTER_RPC_PORT);
+            masterContainer = new GenericContainer<>(KUDU_IMAGE)
+                    .withCommand("master")
+                    .withExposedPorts(KUDU_MASTER_RPC_PORT, KUDU_MASTER_HTTP_PORT)
+                    .withNetwork(kuduNetwork)
+                    .withNetworkAliases(KUDU_MASTER_NETWORK_ALIAS)
+                    .withEnv("MASTER_ARGS",
+                            "--rpc_authentication=required --keytab_file=/etc/krb5.conf --principal=kudu/kudu --unlock_unsafe_flags=true --rpc_advertised_addresses="
+                                    + masterAdvertisedAddress)
+                    .withLogConsumer(new Slf4jLogConsumer(LOG))
+                    .waitingFor(Wait.forListeningPort());
+            masterContainer.start();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
         // Force host name and port, so that the tablet container is accessible from KuduResource, KuduTest and KuduIT.
         Consumer<CreateContainerCmd> consumer = cmd -> {
