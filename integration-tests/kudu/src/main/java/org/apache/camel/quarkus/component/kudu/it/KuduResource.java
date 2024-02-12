@@ -16,14 +16,22 @@
  */
 package org.apache.camel.quarkus.component.kudu.it;
 
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.security.auth.Subject;
+import javax.security.auth.login.LoginContext;
+import javax.security.auth.login.LoginException;
+
+import io.quarkus.arc.Unremovable;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Disposes;
 import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -43,13 +51,40 @@ import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
 import org.apache.kudu.client.CreateTableOptions;
+import org.apache.kudu.client.KuduClient;
+import org.apache.kudu.client.KuduException;
 import org.apache.kudu.client.KuduPredicate;
+import org.eclipse.microprofile.config.ConfigProvider;
 
 @Path("/kudu")
 @ApplicationScoped
 public class KuduResource {
     @Inject
     ProducerTemplate producerTemplate;
+
+    @Unremovable
+    @Singleton
+    KuduClient createClient() throws LoginException {
+        String value = ConfigProvider.getConfig().getValue("camel.kudu.test.master.rpc-authority", String.class);
+        LoginContext login = new LoginContext("ExampleLoginContextName");
+        login.login();
+        KuduClient c = Subject.doAs(login.getSubject(), new PrivilegedAction<KuduClient>() {
+            @Override
+            public KuduClient run() {
+                return new KuduClient.KuduClientBuilder(value).build();
+            }
+        });
+        return c;
+    }
+
+    void disposeKuduClient(@Disposes KuduClient client) {
+        try {
+            System.out.println("======> SHUT DOWN NOOOOW!");
+            client.shutdown();
+        } catch (KuduException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @Path("/createTable")
     @PUT

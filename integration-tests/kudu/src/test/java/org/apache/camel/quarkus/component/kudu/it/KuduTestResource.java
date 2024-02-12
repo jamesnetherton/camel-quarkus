@@ -164,10 +164,12 @@ public class KuduTestResource implements QuarkusTestResourceLifecycleManager {
         //        }
         return CollectionHelper.mapOf(
                 KUDU_AUTHORITY_CONFIG_KEY, masterRpcAuthority,
-//                "javax.security.auth.useSubjectCredsOnly", "false",
-                "java.security.krb5.realm", "KUDU.LOCAL",
-                "ava.security.krb5.kdc", "KUDU.LOCAL",
-                "java.security.krb5.conf", "/etc/krb5.conf");
+                "java.security.auth.login.config",
+                "/Users/james/Projects/camel-quarkus/integration-tests/kudu/src/test/resources/jaas.conf");
+        //                "javax.security.auth.useSubjectCredsOnly", "false",
+        //                "java.security.krb5.realm", "KUDU.LOCAL",
+        //                "java.security.krb5.kdc", "KUDU.LOCAL",
+        //                "java.security.krb5.conf", "/etc/krb5.conf");
     }
 
     @Override

@@ -47,34 +47,34 @@ class KuduTest {
     @BeforeAll
     static void setup() {
         String authority = ConfigProvider.getConfig().getValue(KUDU_AUTHORITY_CONFIG_KEY, String.class);
-        client = new KuduClient.KuduClientBuilder(authority).build();
+        //        client = new KuduClient.KuduClientBuilder(authority).build();
     }
 
     @AfterAll
     static void afterAll() {
-        if (client != null) {
-            try {
-                client.close();
-            } catch (KuduException e) {
-                LOG.warn("Failed to close kudu client", e);
-            }
-        }
+        //        if (client != null) {
+        //            try {
+        //                client.close();
+        //            } catch (KuduException e) {
+        //                LOG.warn("Failed to close kudu client", e);
+        //            }
+        //        }
     }
 
     @BeforeEach
     void beforeEach() throws KuduException {
-        createTable();
+        //        createTable();
     }
 
     @AfterEach
     void afterEach() {
-        if (client != null) {
-            try {
-                client.deleteTable(KuduRoute.TABLE_NAME);
-            } catch (KuduException e) {
-                throw new RuntimeException(e);
-            }
-        }
+        //        if (client != null) {
+        //            try {
+        //                client.deleteTable(KuduRoute.TABLE_NAME);
+        //            } catch (KuduException e) {
+        //                throw new RuntimeException(e);
+        //            }
+        //        }
     }
 
     void createTable() throws KuduException {
@@ -87,6 +87,7 @@ class KuduTest {
 
     @Test
     void kuduCrud() throws KuduException {
+        createTable();
         // Create
         RestAssured.given()
                 .contentType(ContentType.JSON)
