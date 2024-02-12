@@ -1,0 +1,36 @@
+/ # kadmin -p admin/admin@KUDU.LOCAL
+Authenticating as principal admin/admin@KUDU.LOCAL with password.
+Password for admin/admin@KUDU.LOCAL:
+kadmin:  add_principal kudu/kudu@KUDU.LOCAL
+No policy specified for kudu/kudu@KUDU.LOCAL; defaulting to no policy
+Enter password for principal "kudu/kudu@KUDU.LOCAL":
+Re-enter password for principal "kudu/kudu@KUDU.LOCAL":
+Principal "kudu/kudu@KUDU.LOCAL" created.
+kadmin:  getprinc kudu/kudu@KUDU.LOCAL
+Principal: kudu/kudu@KUDU.LOCAL
+Expiration date: [never]
+Last password change: Fri Feb 09 14:00:33 UTC 2024
+Password expiration date: [never]
+Maximum ticket life: 0 days 12:00:00
+Maximum renewable life: 7 days 00:00:00
+Last modified: Fri Feb 09 14:00:33 UTC 2024 (admin/admin@KUDU.LOCAL)
+Last successful authentication: [never]
+Last failed authentication: [never]
+Failed password attempts: 0
+Number of keys: 2
+Key: vno 1, aes256-cts-hmac-sha1-96
+Key: vno 1, aes128-cts-hmac-sha1-96
+MKey: vno 1
+Attributes: REQUIRES_PRE_AUTH
+Policy: [none]
+kadmin:  ^C
+kadmin:  ^C
+kadmin:  quit
+/ # ktutil
+ktutil:  add_entry -password -p admin/admin@KUDU.LOCAL -k 1 -e aes256-cts-hmac-sha1-96
+Password for admin/admin@KUDU.LOCAL:
+ktutil:  add_entry -password -p admin/admin@KUDU.LOCAL -k 1 -e aes128-cts-hmac-sha1-96
+Password for admin/admin@KUDU.LOCAL:
+ktutil:  wkt /kudu.keytab
+ktutil:  ^C
+ktutil:  quit
