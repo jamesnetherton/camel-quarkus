@@ -26,6 +26,7 @@ import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.nativeimage.NativeImageResourceBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.NativeImageResourceBundleBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.RuntimeReinitializedClassBuildItem;
 import org.apache.camel.quarkus.component.xslt.CamelXsltConfig;
 import org.apache.camel.support.ResourceHelper;
 
@@ -36,6 +37,11 @@ class XsltNativeImageProcessor {
     ReflectiveClassBuildItem reflectiveClasses() {
         return ReflectiveClassBuildItem.builder("org.apache.camel.component.xslt.XsltBuilder").methods()
                 .build();
+    }
+
+    @BuildStep
+    RuntimeReinitializedClassBuildItem runtimeReinitializedClasses() {
+        return new RuntimeReinitializedClassBuildItem("org.apache.bcel.util.ClassPath");
     }
 
     @BuildStep
