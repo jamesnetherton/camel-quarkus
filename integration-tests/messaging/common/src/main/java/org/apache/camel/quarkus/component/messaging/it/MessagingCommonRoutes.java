@@ -37,10 +37,6 @@ public class MessagingCommonRoutes extends RouteBuilder {
 
     @Override
     public void configure() throws Exception {
-        // Don't start the routes by default, for IBM MQ it is needed to create the destinations beforehand
-        // The routes are later started in AbstractMessagingTest#beforeAll method
-        camelContext.setAutoStartup(false);
-
         fromF("%s:queue:testJmsMessageType?concurrentConsumers=5", componentScheme)
                 .toF("%s:queue:testJmsMessageType2", componentScheme);
 

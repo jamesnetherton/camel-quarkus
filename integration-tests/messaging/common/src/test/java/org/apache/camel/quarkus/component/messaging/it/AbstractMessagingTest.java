@@ -25,34 +25,20 @@ import java.util.Map;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import jakarta.json.bind.JsonbBuilder;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.hamcrest.core.Is.is;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class AbstractMessagingTest {
     protected String queue;
     protected String queue2;
     protected String topic;
-
-    @BeforeAll
-    public void startRoutes(TestInfo info) {
-        // At this point RestAssured is not configured to use the test port
-        // see https://github.com/quarkusio/quarkus/issues/7690#issuecomment-596543310
-        // The comment states it does not work in native, however it seems to work fine
-        RestAssured.given()
-                .port(ConfigProvider.getConfig().getValue("quarkus.http.test-port", Integer.class))
-                .get("/messaging/routes/start");
-    }
 
     @BeforeEach
     public void setupDestinations(TestInfo test) {

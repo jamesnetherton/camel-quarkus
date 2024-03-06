@@ -16,51 +16,23 @@
  */
 package org.apache.camel.quarkus.component.jms.ibmmq.it;
 
-import java.lang.reflect.Method;
-
 import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.ResourceArg;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
-import org.apache.camel.quarkus.component.jms.ibmmq.support.IBMMQDestinations;
 import org.apache.camel.quarkus.component.jms.ibmmq.support.IBMMQTestResource;
 import org.apache.camel.quarkus.messaging.jms.AbstractJmsMessagingTest;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import static org.hamcrest.Matchers.is;
 
 @QuarkusTest
-@QuarkusTestResource(IBMMQTestResource.class)
+@QuarkusTestResource(value = IBMMQTestResource.class, initArgs = {
+        @ResourceArg(name = "testClassName", value = "IBMMQTest")
+})
 @EnabledIfSystemProperty(named = "ibm.mq.container.license", matches = "accept")
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class IBMMQTest extends AbstractJmsMessagingTest {
-    private IBMMQDestinations destinations;
-
-    /**
-     * IBM MQ needs to have the destinations created before you can use them.
-     * <p>
-     * This method is called after the routes start, so the routes will print a warning first that the destinations don't
-     * exist, only then they are
-     * created using this method
-     *
-     * @param test test
-     */
-    @BeforeAll
-    @Override
-    public void startRoutes(TestInfo test) {
-        for (Method method : test.getTestClass().get().getMethods()) {
-            destinations.createQueue(method.getName());
-            // Some tests use two queues
-            destinations.createQueue(method.getName() + "2");
-            destinations.createTopic(method.getName());
-        }
-
-        super.startRoutes(test);
-    }
-
     @Test
     public void connectionFactoryImplementation() {
         RestAssured.get("/messaging/jms/ibmmq/connection/factory")

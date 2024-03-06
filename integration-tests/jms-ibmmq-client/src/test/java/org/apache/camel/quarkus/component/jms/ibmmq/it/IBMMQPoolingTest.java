@@ -52,7 +52,7 @@ public class IBMMQPoolingTest extends AbstractJmsMessagingTest {
      * @param test test
      */
     @BeforeAll
-    @Override
+    //    @Override
     public void startRoutes(TestInfo test) {
         for (Method method : test.getTestClass().get().getMethods()) {
             destinations.createQueue(method.getName());
@@ -61,7 +61,7 @@ public class IBMMQPoolingTest extends AbstractJmsMessagingTest {
             destinations.createTopic(method.getName());
         }
 
-        super.startRoutes(test);
+        //        super.startRoutes(test);
     }
 
     @Test

@@ -18,10 +18,12 @@ package org.apache.camel.quarkus.component.jms.ibmmq.support;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.util.Map;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.apache.camel.util.ObjectHelper;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.testcontainers.containers.GenericContainer;
@@ -41,9 +43,20 @@ public class IBMMQTestResource implements QuarkusTestResourceLifecycleManager {
 
     private GenericContainer<?> container;
     private IBMMQDestinations destinations;
+    private Map<String, String> initArgs;
+
+    @Override
+    public void init(Map<String, String> initArgs) {
+        this.initArgs = initArgs;
+    }
 
     @Override
     public Map<String, String> start() {
+        // Should never happen but check just in case
+        if (this.initArgs == null) {
+            throw new IllegalStateException("initArgs cannot be null");
+        }
+
         container = new GenericContainer<>(DockerImageName.parse(IMAGE_NAME))
                 .withExposedPorts(PORT)
                 .withEnv(Map.of(
@@ -52,10 +65,27 @@ public class IBMMQTestResource implements QuarkusTestResourceLifecycleManager {
                         "MQ_APP_PASSWORD", PASSWORD))
                 .withFileSystemBind(mqscConfig(), MQSC_FILE_CONTAINER_PATH)
                 // AMQ5806I is a message code for queue manager start
-                .waitingFor(Wait.forLogMessage(".*AMQ5806I.*", 1));
+                .waitingFor(Wait.forLogMessage(".*Started web server.*", 1));
         container.start();
 
         destinations = new IBMMQDestinations(container.getHost(), container.getMappedPort(PORT), QUEUE_MANAGER_NAME);
+
+        // Set up queues & topics
+        String testClassName = initArgs.get("testClassName");
+        if (ObjectHelper.isNotEmpty(testClassName)) {
+            try {
+                Class<?> testClass = Thread.currentThread().getContextClassLoader()
+                        .loadClass("org.apache.camel.quarkus.component.jms.ibmmq." + testClassName);
+                for (Method method : testClass.getMethods()) {
+                    destinations.createQueue(method.getName());
+                    // Some tests use two queues
+                    destinations.createQueue(method.getName() + "2");
+                    destinations.createTopic(method.getName());
+                }
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+        }
 
         return Map.of(
                 "ibm.mq.host", container.getHost(),
@@ -76,6 +106,11 @@ public class IBMMQTestResource implements QuarkusTestResourceLifecycleManager {
     @Override
     public void inject(TestInjector testInjector) {
         testInjector.injectIntoFields(destinations, new TestInjector.MatchesType(IBMMQDestinations.class));
+    }
+
+    @Override
+    public void inject(Object testInstance) {
+        QuarkusTestResourceLifecycleManager.super.inject(testInstance);
     }
 
     /**
