@@ -48,6 +48,7 @@
         <module>google</module>
         <module>grpc</module>
         <module>jdbc</module>
+        <module>jt400</module>
         <module>kafka</module>
         <module>mongodb</module>
         <module>process-executor-support</module>

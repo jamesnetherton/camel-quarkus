@@ -21,8 +21,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import com.ibm.as400.access.AS400ConnectionPool;
+import com.ibm.as400.access.MockAS400;
+import com.ibm.as400.access.MockAS400ImplRemote;
 import com.ibm.as400.access.QueuedMessage;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
@@ -31,10 +35,13 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.apache.camel.BindToRegistry;
 import org.apache.camel.ConsumerTemplate;
 import org.apache.camel.Exchange;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.component.jt400.Jt400Endpoint;
+import org.apache.camel.impl.event.CamelContextStartedEvent;
+import org.apache.camel.quarkus.component.jt400.it.mock.MockAS400ConnectionPool;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Path("/jt400")

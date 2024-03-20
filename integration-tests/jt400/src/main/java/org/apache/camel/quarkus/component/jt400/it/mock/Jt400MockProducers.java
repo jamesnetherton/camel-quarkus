@@ -40,23 +40,12 @@ public class Jt400MockProducers {
     }
 
     //-------------------------- mocked backend ------------------------------------------------
-
-    @Produces
-    @ApplicationScoped
-    MockAS400ImplRemote produceMockAS400ImplRemote() {
-        return new MockAS400ImplRemote();
-    }
-
-    @Produces
-    @ApplicationScoped
-    MockAS400 produceMockAS400(MockAS400ImplRemote as400ImplRemote) {
-        return new MockAS400(as400ImplRemote);
-    }
-
     @Produces
     @ApplicationScoped
     @Named("mockPool")
-    AS400ConnectionPool produceConnectionPool(MockAS400 mockAS400) {
+    AS400ConnectionPool produceConnectionPool() {
+        MockAS400ImplRemote remote = new MockAS400ImplRemote();
+        MockAS400 mockAS400 = new MockAS400(remote);
         return new MockAS400ConnectionPool(mockAS400);
     }
 }

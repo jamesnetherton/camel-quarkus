@@ -52,21 +52,11 @@ public class Jt400MockResource {
         DQReadNormal, ok, DQRequestAttributesNormal, DQCommonReply, RCExchangeAttributesReply, RCCallProgramReply
     }
 
-    private static final Logger LOG = Logger.getLogger(Jt400MockResource.class);
-
-    private static final String COMPONENT_JT400 = "jt400";
-
-    @Inject
-    CamelContext context;
-
     @Inject
     ProducerTemplate producerTemplate;
 
     @Inject
     ConsumerTemplate consumerTemplate;
-
-    @Inject
-    MockAS400ImplRemote as400ImplRemote;
 
     @Path("/keyedDataQueue/read")
     @GET
