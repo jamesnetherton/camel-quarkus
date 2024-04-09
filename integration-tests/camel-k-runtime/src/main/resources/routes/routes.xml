@@ -22,4 +22,9 @@
     <from uri="timer:tick"/>
     <to uri="log:info"/>
   </route>
+
+  <route id="foo">
+    <from uri="infinispan:test?hosts=localhost"/>
+    <to uri="log:end"/>
+  </route>
 </routes>

@@ -47,6 +47,12 @@ public class GrpcResource {
     @Inject
     CamelContext context;
 
+    @GET
+    @Path("/hello")
+    public String hello() {
+        return "Hello World";
+    }
+
     @Path("/producer")
     @POST
     @Produces(MediaType.APPLICATION_JSON)

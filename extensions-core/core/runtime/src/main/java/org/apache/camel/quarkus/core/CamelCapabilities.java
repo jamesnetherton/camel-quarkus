@@ -18,6 +18,7 @@ package org.apache.camel.quarkus.core;
 
 public final class CamelCapabilities {
     public static final String BEAN = "org.apache.camel.bean";
+    public static final String CAMEL_K_CORE = "org.apache.camel.k";
     public static final String CLOUD_EVENTS = "org.apache.camel.cloudevents";
     public static final String CORE = "org.apache.camel";
     public static final String XML = "org.apache.camel.xml";

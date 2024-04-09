@@ -16,14 +16,12 @@
  */
 package org.apache.camel.quarkus.k.it;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
 
@@ -99,6 +97,9 @@ public class RuntimeTest {
             Path confProperties = TEMP_DIR.resolve("conf.properties");
             copyResourceToTemp("conf.properties", confProperties.toAbsolutePath());
 
+            System.out.println("-D" + ApplicationConstants.PROPERTY_CAMEL_K_CONF + "=" + confProperties.toAbsolutePath() + " -D"
+                    + ApplicationConstants.PROPERTY_CAMEL_K_CONF_D + "=" + confd.toAbsolutePath());
+
             return Map.of(
                     ApplicationConstants.PROPERTY_CAMEL_K_CONF, confProperties.toAbsolutePath().toString(),
                     ApplicationConstants.PROPERTY_CAMEL_K_CONF_D, confd.toAbsolutePath().toString());
@@ -115,14 +116,14 @@ public class RuntimeTest {
 
         @Override
         public void stop() {
-            try {
-                Files.walk(TEMP_DIR)
-                        .sorted(Comparator.reverseOrder())
-                        .map(Path::toFile)
-                        .forEach(File::delete);
-            } catch (IOException e) {
-                // Ignored
-            }
+            //            try {
+            //                Files.walk(TEMP_DIR)
+            //                        .sorted(Comparator.reverseOrder())
+            //                        .map(Path::toFile)
+            //                        .forEach(File::delete);
+            //            } catch (IOException e) {
+            //                // Ignored
+            //            }
         }
     }
 }
