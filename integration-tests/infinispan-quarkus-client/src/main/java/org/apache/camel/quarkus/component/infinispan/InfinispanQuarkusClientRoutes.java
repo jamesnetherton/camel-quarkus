@@ -19,6 +19,7 @@ package org.apache.camel.quarkus.component.infinispan;
 import java.util.Set;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.apache.camel.CamelContext;
 import org.apache.camel.component.infinispan.remote.InfinispanRemoteComponent;
 import org.apache.camel.component.infinispan.remote.InfinispanRemoteConfiguration;
@@ -33,6 +34,8 @@ import org.infinispan.commons.marshall.ProtoStreamMarshaller;
 
 @ApplicationScoped
 public class InfinispanQuarkusClientRoutes extends InfinispanCommonRoutes {
+    @Inject
+    RemoteCacheManager cacheManager;
 
     @Override
     protected Configuration getConfigurationBuilder() {

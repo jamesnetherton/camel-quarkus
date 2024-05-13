@@ -14,26 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.camel.quarkus.component.infinispan;
+package org.apache.camel.quarkus.component.infinispan.deployment;
 
-import java.util.HashMap;
-import java.util.Map;
+import jakarta.enterprise.event.Observes;
+import org.apache.camel.impl.event.CamelContextStartedEvent;
+import org.apache.camel.support.CamelContextHelper;
+import org.infinispan.client.hotrod.RemoteCacheManager;
+import org.jboss.logging.Logger;
 
-import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
-import org.testcontainers.DockerClientFactory;
+public class CamelStartupObserver {
+    public static final String LOG_MESSAGE = "Default Infinispan cache bean created: ";
+    private static final Logger LOG = Logger.getLogger(CamelStartupObserver.class.getName());
 
-public class InfinispanServerTestResource implements QuarkusTestResourceLifecycleManager {
-
-    @Override
-    public Map<String, String> start() {
-        Map<String, String> config = new HashMap<>();
-        String host = String.format("%s:31222", DockerClientFactory.instance().dockerHostIpAddress());
-        config.put("camel.component.infinispan.hosts", host);
-        return config;
-    }
-
-    @Override
-    public void stop() {
-
+    void init(@Observes CamelContextStartedEvent event) {
+        RemoteCacheManager cache = CamelContextHelper.findSingleByType(event.getContext(), RemoteCacheManager.class);
+        LOG.info(LOG_MESSAGE + (cache != null));
     }
 }
