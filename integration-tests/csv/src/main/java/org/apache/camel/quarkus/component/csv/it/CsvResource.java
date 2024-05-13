@@ -49,10 +49,7 @@ public class CsvResource {
         final List<Map<String, Object>> objects = new ObjectMapper().readValue(json,
                 new TypeReference<List<Map<String, Object>>>() {
                 });
-        return producerTemplate.requestBody(
-                "direct:json-to-csv",
-                objects,
-                String.class);
+        return null;
     }
 
     @SuppressWarnings("unchecked")
@@ -61,6 +58,6 @@ public class CsvResource {
     @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.APPLICATION_JSON)
     public List<List<Object>> csv2json(String csv) throws Exception {
-        return producerTemplate.requestBody("direct:csv-to-json", csv, List.class);
+        return null;
     }
 }
