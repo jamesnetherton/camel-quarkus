@@ -62,14 +62,14 @@ runs:
           const globber = await glob.create(testReportGlobPattern);
           for await (const reportFile of globber.globGenerator()) {
             const file = fs.readFileSync(reportFile);
-            log(`Found JUnit report: ${file.name}`);
+            log(`Found JUnit report: ${reportFile}`);
             const report = junit.parse(file).then((report) => {
               log(`Report errors: ${report.errors}`);
               log(`Report failures: ${report.failures}`);
               if (report.errors > 0 || report.failures > 0) {
                 log(`Test case count: ${report.testcase.length}`);
                 report.testcase.forEach((testCase) => {
-                  log(`Test case failure: ${testcase.failure}`);
+                  log(`Test case failure: ${testCase.failure}`);
                   if (testCase.failure !== undefined) {
                     const shortClassName = `<code>${testCase.classname.substring(testCase.classname.lastIndexOf('.') + 1)}</code>`;
                     const className = `<details><summary>${shortClassName}</summary>\n<code>${testCase.classname}</code></details>`;
