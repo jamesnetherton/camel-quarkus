@@ -33,6 +33,7 @@ group-01:
   - kafka
   - kafka-sasl
   - mllp
+  - langchain4j-embeddings
 group-02:
   - aws2
   - google-bigquery

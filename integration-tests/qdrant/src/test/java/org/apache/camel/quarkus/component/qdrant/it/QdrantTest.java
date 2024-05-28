@@ -21,6 +21,11 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
 import org.junit.jupiter.api.Test;
 
+import static org.apache.camel.quarkus.component.qdrant.it.QdrantRoutes.EMBEDDINGS_COLLECTION_NAME;
+import static org.apache.camel.quarkus.component.qdrant.it.QdrantRoutes.EMBEDDINGS_POINTS_SIZE;
+import static org.apache.camel.quarkus.component.qdrant.it.QdrantRoutes.TEST_COLLECTION_NAME;
+import static org.apache.camel.quarkus.component.qdrant.it.QdrantRoutes.TEST_COLLECTION_SIZE;
+import static org.apache.camel.quarkus.component.qdrant.it.QdrantRoutes.TEST_POINTS_ID;
 import static org.hamcrest.Matchers.is;
 
 @QuarkusTestResource(QdrantTestResource.class)
@@ -29,28 +34,64 @@ class QdrantTest {
 
     @Test
     public void createUpsertRetrieveAndDeleteShouldSucceed() {
-        RestAssured.put("/qdrant/createCollection")
+        RestAssured.given()
+                .queryParam("collectionName", TEST_COLLECTION_NAME)
+                .queryParam("collectionSize", TEST_COLLECTION_SIZE)
+                .put("/qdrant/createCollection")
                 .then()
                 .statusCode(200);
 
-        RestAssured.put("/qdrant/upsert")
+        RestAssured.given()
+                .queryParam("collectionName", TEST_COLLECTION_NAME)
+                .put("/qdrant/upsert")
                 .then()
                 .statusCode(200);
 
-        RestAssured.get("/qdrant/retrieve")
+        RestAssured.given()
+                .queryParam("collectionName", TEST_COLLECTION_NAME)
+                .queryParam("pointsId", TEST_POINTS_ID)
+                .get("/qdrant/retrieve")
                 .then()
                 .statusCode(200)
                 .body(is("1/io.qdrant.client.grpc.Points$RetrievedPoint"));
 
-        RestAssured.delete("/qdrant/delete")
+        RestAssured.given()
+                .queryParam("collectionName", TEST_COLLECTION_NAME)
+                .delete("/qdrant/delete")
                 .then()
                 .statusCode(200)
                 .body(is("1/Completed/2"));
 
-        RestAssured.get("/qdrant/retrieve")
+        RestAssured.given()
+                .queryParam("collectionName", TEST_COLLECTION_NAME)
+                .get("/qdrant/retrieve")
                 .then()
                 .statusCode(200)
                 .body(is("0/"));
     }
 
+    @Test
+    public void langChain4jEmbeddings() {
+        RestAssured.given()
+                .queryParam("collectionName", EMBEDDINGS_COLLECTION_NAME)
+                .queryParam("collectionSize", EMBEDDINGS_POINTS_SIZE)
+                .put("/qdrant/createCollection")
+                .then()
+                .statusCode(200);
+
+        RestAssured.given()
+                .queryParam("collectionName", EMBEDDINGS_COLLECTION_NAME)
+                .body("Hello World")
+                .post("/qdrant/embeddings")
+                .then()
+                .statusCode(200);
+
+        RestAssured.given()
+                .queryParam("collectionName", EMBEDDINGS_COLLECTION_NAME)
+                .queryParam("pointsId", QdrantRoutes.EMBEDDINGS_POINTS_ID)
+                .get("/qdrant/retrieve")
+                .then()
+                .statusCode(200)
+                .body(is("1/io.qdrant.client.grpc.Points$RetrievedPoint"));
+    }
 }

@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import dev.langchain4j.model.embedding.AllMiniLmL6V2EmbeddingModel;
+import dev.langchain4j.model.embedding.EmbeddingModel;
 import io.qdrant.client.ConditionFactory;
 import io.qdrant.client.PointIdFactory;
 import io.qdrant.client.ValueFactory;
@@ -29,11 +31,16 @@ import io.qdrant.client.grpc.Collections;
 import io.qdrant.client.grpc.Points;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.apache.camel.Exchange;
@@ -48,16 +55,24 @@ public class QdrantResource {
     @Inject
     FluentProducerTemplate producer;
 
+    @Singleton
+    @Named
+    EmbeddingModel embeddingModel() {
+        return new AllMiniLmL6V2EmbeddingModel();
+    }
+
     @Path("/createCollection")
     @PUT
     @Produces(MediaType.TEXT_PLAIN)
-    public Response createCollection() {
+    public Response createCollection(
+            @QueryParam("collectionName") String collectionName,
+            @QueryParam("collectionSize") long collectionSize) {
 
-        producer.to("qdrant:testCollection")
+        producer.to("qdrant:" + collectionName)
                 .withHeader(Qdrant.Headers.ACTION, QdrantAction.CREATE_COLLECTION)
                 .withBody(
                         Collections.VectorParams.newBuilder()
-                                .setSize(2)
+                                .setSize(collectionSize)
                                 .setDistance(Collections.Distance.Cosine).build())
                 .request();
 
@@ -67,9 +82,9 @@ public class QdrantResource {
     @Path("/upsert")
     @PUT
     @Produces(MediaType.TEXT_PLAIN)
-    public Response upsert() {
+    public Response upsert(@QueryParam("collectionName") String collectionName) {
 
-        producer.to("qdrant:testCollection")
+        producer.to("qdrant:" + collectionName)
                 .withHeader(Qdrant.Headers.ACTION, QdrantAction.UPSERT)
                 .withBody(
                         Points.PointStruct.newBuilder()
@@ -87,11 +102,12 @@ public class QdrantResource {
     @Path("/retrieve")
     @GET
     @Produces(MediaType.TEXT_PLAIN)
-    public Response retrieve() {
-
-        Exchange exchange = producer.to("qdrant:testCollection")
+    public Response retrieve(
+            @QueryParam("collectionName") String collectionName,
+            @QueryParam("pointsId") long pointsId) {
+        Exchange exchange = producer.to("qdrant:" + collectionName)
                 .withHeader(Qdrant.Headers.ACTION, QdrantAction.RETRIEVE)
-                .withBody(PointIdFactory.id(8))
+                .withBody(PointIdFactory.id(pointsId))
                 .request(Exchange.class);
 
         Collection<?> retrieved = exchange.getIn().getBody(Collection.class);
@@ -102,9 +118,8 @@ public class QdrantResource {
     @Path("/delete")
     @DELETE
     @Produces(MediaType.TEXT_PLAIN)
-    public Response delete() {
-
-        Exchange exchange = producer.to("qdrant:testCollection")
+    public Response delete(@QueryParam("collectionName") String collectionName) {
+        Exchange exchange = producer.to("qdrant:" + collectionName)
                 .withHeader(Qdrant.Headers.ACTION, QdrantAction.DELETE)
                 .withBody(ConditionFactory.matchKeyword("foo", "hello"))
                 .request(Exchange.class);
@@ -114,5 +129,15 @@ public class QdrantResource {
         Object operationValue = exchange.getIn().getHeader(Qdrant.Headers.OPERATION_STATUS_VALUE);
 
         return Response.ok(operationId + "/" + opeartionStatus + "/" + operationValue).build();
+    }
+
+    @Path("/embeddings")
+    @POST
+    @Consumes(MediaType.TEXT_PLAIN)
+    public Response embeddings(String text) {
+        producer.to("direct:embeddings")
+                .withBody(text)
+                .request();
+        return Response.ok().build();
     }
 }
