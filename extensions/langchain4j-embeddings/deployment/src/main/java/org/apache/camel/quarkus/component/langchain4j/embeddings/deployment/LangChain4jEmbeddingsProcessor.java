@@ -17,12 +17,8 @@
 package org.apache.camel.quarkus.component.langchain4j.embeddings.deployment;
 
 import io.quarkus.deployment.annotations.BuildStep;
-import io.quarkus.deployment.annotations.ExecutionTime;
-import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
-import io.quarkus.deployment.pkg.steps.NativeOrNativeSourcesBuild;
-import org.apache.camel.quarkus.core.JvmOnlyRecorder;
-import org.jboss.logging.Logger;
+import io.quarkus.deployment.builditem.nativeimage.JniRuntimeAccessBuildItem;
 
 class LangChain4jEmbeddingsProcessor {
     private static final String FEATURE = "camel-langchain4j-embeddings";
@@ -30,5 +26,9 @@ class LangChain4jEmbeddingsProcessor {
     @BuildStep
     FeatureBuildItem feature() {
         return new FeatureBuildItem(FEATURE);
+    }
+
+    JniRuntimeAccessBuildItem foo() {
+        return new JniRuntimeAccessBuildItem(true, true, true, "ai.djl.huggingface.tokenizers.jni.TokenizersLibrary");
     }
 }
