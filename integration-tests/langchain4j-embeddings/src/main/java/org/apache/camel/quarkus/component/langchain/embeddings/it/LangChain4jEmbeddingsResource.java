@@ -17,7 +17,7 @@
 package org.apache.camel.quarkus.component.langchain.embeddings.it;
 
 import dev.langchain4j.data.embedding.Embedding;
-import dev.langchain4j.model.embedding.AllMiniLmL6V2EmbeddingModel;
+import dev.langchain4j.model.embedding.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import io.quarkus.vertx.http.runtime.devmode.Json;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -45,7 +45,7 @@ public class LangChain4jEmbeddingsResource {
     @Singleton
     @Named
     EmbeddingModel embeddingModel() {
-        return new AllMiniLmL6V2EmbeddingModel();
+        return new AllMiniLmL6V2QuantizedEmbeddingModel();
     }
 
     @Path("/create")

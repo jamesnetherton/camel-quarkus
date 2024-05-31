@@ -21,6 +21,8 @@ import org.apache.camel.builder.RouteBuilder;
 public class LangChain4jEmbeddingsRoutes extends RouteBuilder {
     @Override
     public void configure() throws Exception {
+//        System.load("/Users/james/.djl.ai/tokenizers/0.15.0-0.26.0-osx-aarch64/libtokenizers.dylib");
+
         from("direct:start")
                 .to("langchain4j-embeddings:create-from-text");
     }
