@@ -18,6 +18,7 @@ package org.apache.camel.quarkus.component.langchain4j.embeddings.deployment;
 
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.RuntimeInitializedClassBuildItem;
 
 class LangChain4jEmbeddingsProcessor {
     private static final String FEATURE = "camel-langchain4j-embeddings";
@@ -25,5 +26,10 @@ class LangChain4jEmbeddingsProcessor {
     @BuildStep
     FeatureBuildItem feature() {
         return new FeatureBuildItem(FEATURE);
+    }
+
+    @BuildStep
+    RuntimeInitializedClassBuildItem runtimeInitializedClassBuildItem() {
+        return new RuntimeInitializedClassBuildItem("io.quarkiverse.langchain4j.runtime.aiservice.AiServiceMethodImplementationSupport");
     }
 }
