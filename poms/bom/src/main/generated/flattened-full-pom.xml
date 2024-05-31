@@ -7769,479 +7769,709 @@
         <version>4.0.4</version><!-- io.quarkiverse.cxf:quarkus-cxf-bom:3.11.0 -->
       </dependency>
       <dependency>
-        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
-        <artifactId>quarkus-langchain4j-core-runtime-spi</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
-        <version>999-SNAPSHOT</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-core-runtime-spi</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
       </dependency>
       <dependency>
-        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
-        <artifactId>quarkus-langchain4j-core</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
-        <version>999-SNAPSHOT</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-websockets-next</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
       </dependency>
       <dependency>
-        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
-        <artifactId>quarkus-langchain4j-core-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
-        <version>999-SNAPSHOT</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-anthropic</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
-        <artifactId>langchain4j-milvus</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
-        <version>0.31.0</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-websockets-next-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-testing-internal</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-anthropic-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-bam</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-bam-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-memory-store-redis</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-openai-common</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-openai-common-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-openai</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-openai-testing-internal</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-openai-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-memory-store-redis-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-chroma</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-chroma-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-cohere</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-cohere-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-hugging-face</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-ollama</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-redis</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-pgvector</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-pinecone</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-infinispan</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-mistral-ai</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-watsonx</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-redis-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-pinecone-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-mistral-ai-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-pgvector-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-hugging-face-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-ollama-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-infinispan-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-watsonx-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-neo4j</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-neo4j-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-parsers-base</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-parsers-base-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-easy-rag</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-easy-rag-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-milvus</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-milvus-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-ollama-devservices</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-azure-openai</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-azure-openai-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-openai-devmode-tests</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-openshift-ai</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-openshift-ai-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-qdrant</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-qdrant-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-websockets-next-tests</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-vertex-ai</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-vertex-ai-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-vertex-ai-gemini</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-vertex-ai-gemini-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+      </dependency>
+      <dependency>
+        <groupId>dev.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>langchain4j-milvus</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.30.0</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
         <exclusions>
           <exclusion>
-            <groupId>com.google.android</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
-            <artifactId>annotations</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
+            <groupId>com.google.android</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+            <artifactId>annotations</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
           </exclusion>
           <exclusion>
-            <groupId>org.apache.logging.log4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
-            <artifactId>log4j-slf4j-impl</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
+            <groupId>org.apache.logging.log4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+            <artifactId>log4j-slf4j-impl</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
           </exclusion>
           <exclusion>
-            <groupId>org.checkerframework</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
-            <artifactId>checker-qual</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
+            <groupId>org.checkerframework</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+            <artifactId>checker-qual</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
           </exclusion>
           <exclusion>
-            <groupId>org.codehaus.mojo</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
-            <artifactId>animal-sniffer-annotations</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
+            <groupId>org.codehaus.mojo</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+            <artifactId>animal-sniffer-annotations</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
           </exclusion>
         </exclusions>
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-core</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-core</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-easy-rag</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-easy-rag</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-anthropic</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-open-ai</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-azure-open-ai</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-azure-open-ai</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-bedrock</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-hugging-face</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-chatglm</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-local-ai</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-cohere</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-vertex-ai</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-dashscope</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-vertex-ai-gemini</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-hugging-face</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-dashscope</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-jina</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-qianfan</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-local-ai</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-zhipu-ai</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-mistral-ai</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-ollama</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-nomic</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-bedrock</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-ollama</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-chatglm</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-open-ai</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-mistral-ai</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-qianfan</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-cohere</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-vertex-ai</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-nomic</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-vertex-ai-gemini</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-anthropic</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-zhipu-ai</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-cassandra</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-azure-ai-search</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-chroma</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-azure-cosmos-mongo-vcore</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-elasticsearch</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-cassandra</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-infinispan</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-chroma</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-opensearch</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-elasticsearch</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-pgvector</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-infinispan</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-pinecone</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-mongodb-atlas</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-qdrant</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-neo4j</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-redis</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-opensearch</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-vespa</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-pgvector</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-weaviate</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-pinecone</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-neo4j</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-qdrant</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-vearch</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-redis</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-mongodb-atlas</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-vearch</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-embeddings-all-minilm-l6-v2</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-vespa</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-embeddings-all-minilm-l6-v2-q</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-weaviate</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-embeddings-bge-small-en</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-azure-cosmos-nosql</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-embeddings-bge-small-en-q</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-embeddings-all-minilm-l6-v2</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-embeddings-bge-small-v15-en</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-embeddings-all-minilm-l6-v2-q</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-embeddings-bge-small-en-v15-q</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-embeddings-bge-small-en</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-embeddings-bge-small-zh</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-embeddings-bge-small-en-q</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-embeddings-bge-small-zh-q</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-embeddings-bge-small-v15-en</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-embeddings-e5-small-v2</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-embeddings-bge-small-en-v15-q</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-embeddings-e5-small-v2-q</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-embeddings-bge-small-zh</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-code-execution-engine-graalvm-polyglot</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-embeddings-bge-small-zh-q</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-document-loader-tencent-cos</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-embeddings-e5-small-v2</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-document-loader-amazon-s3</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-embeddings-e5-small-v2-q</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-document-loader-github</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-code-execution-engine-graalvm-polyglot</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-document-loader-azure-storage-blob</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-code-execution-engine-judge0</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-document-parser-apache-pdfbox</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-document-loader-amazon-s3</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-document-parser-apache-poi</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-document-loader-azure-storage-blob</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-document-parser-apache-tika</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-document-loader-github</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-embedding-store-filter-parser-sql</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-document-loader-tencent-cos</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>langchain4j-core</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <type>test-jar</type><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <classifier>tests</classifier><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-document-parser-apache-pdfbox</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.ai4j</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>openai4j</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>0.17.0</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-document-parser-apache-poi</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>com.azure</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>azure-ai-openai</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>1.0.0-beta.7</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-document-parser-apache-tika</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>com.azure</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>azure-search-documents</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>11.6.3</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-embedding-store-filter-parser-sql</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>com.azure</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>azure-storage-blob</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>12.25.3</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-web-search-engine-google-custom</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>com.azure</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>azure-storage-common</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>12.24.3</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-experimental-sql</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>com.azure</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>azure-identity</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>1.11.4</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>langchain4j-core</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <type>test-jar</type><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <classifier>tests</classifier><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>com.squareup.retrofit2</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>converter-gson</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>2.9.0</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.ai4j</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>openai4j</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>0.17.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>com.squareup.okhttp3</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>okhttp-sse</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>4.12.0</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>com.azure</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>azure-ai-openai</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>1.0.0-beta.8</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>com.knuddels</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>jtokkit</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>1.0.0</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>com.azure</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>azure-search-documents</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>11.6.4</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.projectlombok</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>lombok</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>1.18.30</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>com.azure</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>azure-storage-blob</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>12.26.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.jsoup</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>jsoup</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>1.16.1</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>com.azure</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>azure-storage-common</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>12.25.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.slf4j</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>slf4j-api</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>2.0.7</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>com.azure</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>azure-identity</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>1.12.1</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>com.google.code.gson</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>gson</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>2.10.1</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>com.squareup.retrofit2</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>converter-gson</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>2.9.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.junit.jupiter</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>junit-jupiter-engine</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>5.10.0</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>com.squareup.okhttp3</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>okhttp-sse</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>4.12.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.junit.jupiter</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>junit-jupiter-params</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>5.10.0</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>com.knuddels</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>jtokkit</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>1.0.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.junit.jupiter</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>junit-jupiter</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>5.10.0</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>org.projectlombok</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>lombok</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>1.18.30</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.opensearch</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>opensearch-testcontainers</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>2.0.1</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>org.jsoup</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>jsoup</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>1.16.1</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.mockito</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>mockito-core</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>4.11.0</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>org.slf4j</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>slf4j-api</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>2.0.7</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.mockito</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>mockito-junit-jupiter</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>4.11.0</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>com.google.code.gson</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>gson</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>2.10.1</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>net.bytebuddy</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>byte-buddy</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>1.14.10</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>org.junit.jupiter</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>junit-jupiter-engine</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>5.10.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.assertj</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>assertj-core</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>3.24.2</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>org.junit.jupiter</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>junit-jupiter-params</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>5.10.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.tinylog</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>tinylog-impl</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>2.6.2</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>org.junit.jupiter</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>junit-jupiter</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>5.10.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.tinylog</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>slf4j-tinylog</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>2.6.2</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>org.opensearch</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>opensearch-testcontainers</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>2.0.1</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.opensearch.client</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>opensearch-java</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>2.9.0</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>org.mockito</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>mockito-core</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>4.11.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>software.amazon.awssdk</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>opensearch</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>2.20.161</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>org.mockito</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>mockito-junit-jupiter</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>4.11.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>com.amazonaws</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>aws-java-sdk-core</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>1.12.564</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>net.bytebuddy</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>byte-buddy</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>1.14.10</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-      </dependency>
-      <dependency>
-        <groupId>org.assertj</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>assertj-core</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>3.24.2</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-      </dependency>
-      <dependency>
-        <groupId>org.tinylog</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>tinylog-impl</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>2.6.2</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-      </dependency>
-      <dependency>
-        <groupId>org.tinylog</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>slf4j-tinylog</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>2.6.2</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-      </dependency>
-      <dependency>
-        <groupId>org.opensearch.client</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>opensearch-java</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>2.9.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>opensearch</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>2.20.161</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-      </dependency>
-      <dependency>
-        <groupId>com.amazonaws</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>aws-java-sdk-core</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>1.12.564</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>apache-client</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>2.20.161</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>software.amazon.awssdk</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>apache-client</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>2.20.161</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
         <exclusions>
           <exclusion>
             <groupId>commons-logging</groupId>
@@ -8250,39 +8480,24 @@
         </exclusions>
       </dependency>
       <dependency>
-        <groupId>co.elastic.clients</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>elasticsearch-java</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>8.9.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>co.elastic.clients</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>elasticsearch-java</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>8.9.0</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>jackson-databind</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>2.16.1</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.apache.opennlp</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>opennlp-tools</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>1.9.4</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>com.fasterxml.jackson.dataformat</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>jackson-dataformat-xml</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>2.16.1</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.awaitility</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>awaitility</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>4.2.0</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>org.apache.opennlp</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>opennlp-tools</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>1.9.4</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-      </dependency>
-      <dependency>
-        <groupId>org.awaitility</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>awaitility</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>4.2.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-      </dependency>
-      <dependency>
-        <groupId>org.kohsuke</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>github-api</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>1.318</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-      </dependency>
-      <dependency>
-        <groupId>ch.qos.logback</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>logback-classic</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>1.3.14</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.kohsuke</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>github-api</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>1.318</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
         <groupId>org.testcontainers</groupId><!-- org.testcontainers:testcontainers-bom:1.19.7 -->
@@ -8575,6 +8790,11 @@
         <version>2.16.1</version><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
       </dependency>
       <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
+        <artifactId>jackson-databind</artifactId><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
+        <version>2.16.1</version><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
+      </dependency>
+      <dependency>
         <groupId>com.fasterxml.jackson.dataformat</groupId><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
         <artifactId>jackson-dataformat-avro</artifactId><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
         <version>2.16.1</version><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
@@ -8612,6 +8832,11 @@
       <dependency>
         <groupId>com.fasterxml.jackson.dataformat</groupId><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
         <artifactId>jackson-dataformat-toml</artifactId><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
+        <version>2.16.1</version><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.dataformat</groupId><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
+        <artifactId>jackson-dataformat-xml</artifactId><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
         <version>2.16.1</version><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
       </dependency>
       <dependency>
@@ -23697,6 +23922,11 @@
         <groupId>com.ibm.informix</groupId><!-- io.debezium:debezium-bom:2.5.2.Final -->
         <artifactId>ifx-changestream-client</artifactId><!-- io.debezium:debezium-bom:2.5.2.Final -->
         <version>1.1.3</version><!-- io.debezium:debezium-bom:2.5.2.Final -->
+      </dependency>
+      <dependency>
+        <groupId>ch.qos.logback</groupId><!-- io.debezium:debezium-bom:2.5.2.Final -->
+        <artifactId>logback-classic</artifactId><!-- io.debezium:debezium-bom:2.5.2.Final -->
+        <version>1.2.13</version><!-- io.debezium:debezium-bom:2.5.2.Final -->
       </dependency>
       <dependency>
         <groupId>org.graalvm.js</groupId><!-- io.debezium:debezium-bom:2.5.2.Final -->

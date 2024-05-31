@@ -7670,49 +7670,39 @@
       <dependency>
         <groupId>io.quarkiverse.langchain4j</groupId>
         <artifactId>quarkus-langchain4j-core-runtime-spi</artifactId>
-        <version>999-SNAPSHOT</version>
-      </dependency>
-      <dependency>
-        <groupId>io.quarkiverse.langchain4j</groupId>
-        <artifactId>quarkus-langchain4j-core</artifactId>
-        <version>999-SNAPSHOT</version>
-      </dependency>
-      <dependency>
-        <groupId>io.quarkiverse.langchain4j</groupId>
-        <artifactId>quarkus-langchain4j-core-deployment</artifactId>
-        <version>999-SNAPSHOT</version>
+        <version>0.14.2</version>
       </dependency>
       <dependency>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j</artifactId>
-        <version>0.31.0</version>
+        <version>0.30.0</version>
       </dependency>
       <dependency>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-core</artifactId>
-        <version>0.31.0</version>
+        <version>0.30.0</version>
       </dependency>
       <dependency>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-core</artifactId>
-        <version>0.31.0</version>
+        <version>0.30.0</version>
         <type>test-jar</type>
         <classifier>tests</classifier>
       </dependency>
       <dependency>
         <groupId>com.azure</groupId>
         <artifactId>azure-storage-blob</artifactId>
-        <version>12.26.0</version>
+        <version>12.25.3</version>
       </dependency>
       <dependency>
         <groupId>com.azure</groupId>
         <artifactId>azure-storage-common</artifactId>
-        <version>12.25.0</version>
+        <version>12.24.3</version>
       </dependency>
       <dependency>
         <groupId>com.azure</groupId>
         <artifactId>azure-identity</artifactId>
-        <version>1.12.1</version>
+        <version>1.11.4</version>
       </dependency>
       <dependency>
         <groupId>com.squareup.retrofit2</groupId>
@@ -7791,16 +7781,6 @@
         <version>8.9.0</version>
       </dependency>
       <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-databind</artifactId>
-        <version>2.16.1</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.dataformat</groupId>
-        <artifactId>jackson-dataformat-xml</artifactId>
-        <version>2.16.1</version>
-      </dependency>
-      <dependency>
         <groupId>org.apache.opennlp</groupId>
         <artifactId>opennlp-tools</artifactId>
         <version>1.9.4</version>
@@ -7831,6 +7811,11 @@
         <version>2.16.1</version>
       </dependency>
       <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>2.16.1</version>
+      </dependency>
+      <dependency>
         <groupId>com.fasterxml.jackson.dataformat</groupId>
         <artifactId>jackson-dataformat-avro</artifactId>
         <version>2.16.1</version>
@@ -7853,6 +7838,11 @@
       <dependency>
         <groupId>com.fasterxml.jackson.dataformat</groupId>
         <artifactId>jackson-dataformat-protobuf</artifactId>
+        <version>2.16.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.dataformat</groupId>
+        <artifactId>jackson-dataformat-xml</artifactId>
         <version>2.16.1</version>
       </dependency>
       <dependency>

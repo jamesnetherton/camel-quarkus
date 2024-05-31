@@ -7668,116 +7668,106 @@
         <version>4.0.4</version><!-- io.quarkiverse.cxf:quarkus-cxf-bom:3.11.0 -->
       </dependency>
       <dependency>
-        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
-        <artifactId>quarkus-langchain4j-core-runtime-spi</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
-        <version>999-SNAPSHOT</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
+        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <artifactId>quarkus-langchain4j-core-runtime-spi</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
+        <version>0.14.2</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:0.14.2 -->
       </dependency>
       <dependency>
-        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
-        <artifactId>quarkus-langchain4j-core</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
-        <version>999-SNAPSHOT</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>io.quarkiverse.langchain4j</groupId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
-        <artifactId>quarkus-langchain4j-core-deployment</artifactId><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
-        <version>999-SNAPSHOT</version><!-- io.quarkiverse.langchain4j:quarkus-langchain4j-bom:999-SNAPSHOT -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <artifactId>langchain4j-core</artifactId><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-bom:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>langchain4j-core</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>0.30.0</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <type>test-jar</type><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <classifier>tests</classifier><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <artifactId>langchain4j-core</artifactId><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-bom:0.31.0 -->
+        <groupId>com.azure</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>azure-storage-blob</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>12.25.3</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>dev.langchain4j</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>langchain4j-core</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>0.31.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <type>test-jar</type><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <classifier>tests</classifier><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>com.azure</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>azure-storage-common</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>12.24.3</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>com.azure</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>azure-storage-blob</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>12.26.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>com.azure</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>azure-identity</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>1.11.4</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>com.azure</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>azure-storage-common</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>12.25.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>com.squareup.retrofit2</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>converter-gson</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>2.9.0</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>com.azure</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>azure-identity</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>1.12.1</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.projectlombok</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>lombok</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>1.18.30</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>com.squareup.retrofit2</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>converter-gson</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>2.9.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.jsoup</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>jsoup</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>1.16.1</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>org.projectlombok</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>lombok</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>1.18.30</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.slf4j</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>slf4j-api</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>2.0.7</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>org.jsoup</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>jsoup</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>1.16.1</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>com.google.code.gson</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>gson</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>2.10.1</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>org.slf4j</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>slf4j-api</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>2.0.7</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.junit.jupiter</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>junit-jupiter-engine</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>5.10.0</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>com.google.code.gson</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>gson</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>2.10.1</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.junit.jupiter</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>junit-jupiter-params</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>5.10.0</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>org.junit.jupiter</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>junit-jupiter-engine</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>5.10.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.junit.jupiter</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>junit-jupiter</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>5.10.0</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>org.junit.jupiter</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>junit-jupiter-params</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>5.10.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.mockito</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>mockito-core</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>4.11.0</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>org.junit.jupiter</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>junit-jupiter</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>5.10.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>net.bytebuddy</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>byte-buddy</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>1.14.10</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>org.mockito</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>mockito-core</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>4.11.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.opensearch.client</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>opensearch-java</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>2.9.0</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>net.bytebuddy</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>byte-buddy</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>1.14.10</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>com.amazonaws</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>aws-java-sdk-core</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>1.12.564</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>org.opensearch.client</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>opensearch-java</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>2.9.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-      </dependency>
-      <dependency>
-        <groupId>com.amazonaws</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>aws-java-sdk-core</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>1.12.564</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-      </dependency>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>apache-client</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>2.20.161</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>software.amazon.awssdk</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>apache-client</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>2.20.161</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
         <exclusions>
           <exclusion>
             <groupId>commons-logging</groupId>
@@ -7786,24 +7776,14 @@
         </exclusions>
       </dependency>
       <dependency>
-        <groupId>co.elastic.clients</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>elasticsearch-java</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>8.9.0</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>co.elastic.clients</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>elasticsearch-java</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>8.9.0</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>jackson-databind</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>2.16.1</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.dataformat</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>jackson-dataformat-xml</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>2.16.1</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-      </dependency>
-      <dependency>
-        <groupId>org.apache.opennlp</groupId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <artifactId>opennlp-tools</artifactId><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
-        <version>1.9.4</version><!-- dev.langchain4j:langchain4j-parent:0.31.0 -->
+        <groupId>org.apache.opennlp</groupId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <artifactId>opennlp-tools</artifactId><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
+        <version>1.9.4</version><!-- dev.langchain4j:langchain4j-parent:0.30.0 -->
       </dependency>
       <dependency>
         <groupId>org.testcontainers</groupId><!-- org.testcontainers:testcontainers-bom:1.19.7 -->
@@ -7831,6 +7811,11 @@
         <version>2.16.1</version><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
       </dependency>
       <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
+        <artifactId>jackson-databind</artifactId><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
+        <version>2.16.1</version><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
+      </dependency>
+      <dependency>
         <groupId>com.fasterxml.jackson.dataformat</groupId><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
         <artifactId>jackson-dataformat-avro</artifactId><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
         <version>2.16.1</version><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
@@ -7853,6 +7838,11 @@
       <dependency>
         <groupId>com.fasterxml.jackson.dataformat</groupId><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
         <artifactId>jackson-dataformat-protobuf</artifactId><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
+        <version>2.16.1</version><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.dataformat</groupId><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
+        <artifactId>jackson-dataformat-xml</artifactId><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
         <version>2.16.1</version><!-- com.fasterxml.jackson:jackson-bom:2.16.1 -->
       </dependency>
       <dependency>
