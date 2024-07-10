@@ -1,0 +1,5 @@
+---
+application-properties:
+  log.message: Hello World
+dependencies:
+  - org.apache.camel.quarkus:camel-quarkus-bean:3.13.0-SNAPSHOT

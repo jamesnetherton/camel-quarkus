@@ -1,0 +1,16 @@
+---
+language: java
+dependencies:
+  - org.apache.camel.quarkus:camel-quarkus-direct:3.14.0-SNAPSHOT
+  - org.apache.camel.quarkus:camel-quarkus-jackson:3.14.0-SNAPSHOT
+  - org.apache.camel.quarkus:camel-quarkus-rest:3.14.0-SNAPSHOT
+  - io.quarkiverse.messaginghub:quarkus-pooled-jms:2.4.0
+test-dependencies:
+  - org.apache.camel.quarkus:camel-quarkus-junit5:3.14.0-SNAPSHOT
+  - org.apache.camel.quarkus:camel-quarkus-http:3.14.0-SNAPSHOT
+sources:
+  - application.properties.ftl
+  - Book.ftl
+  - IBMMQConnectionFactory.ftl
+  - JMSRoutes.ftl
+  - JMSTest.ftl
