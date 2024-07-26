@@ -1,7 +1,7 @@
 = Testing
 :page-aliases: testing.adoc
 
-Testing offers a good way to ensure camel routes behave as expected over time.
+Testing offers a good way to ensure camel routes behave as expected over time. It's also great fun!.
 Before going deeper into the subject, it is strongly advised to read xref:user-guide/first-steps.adoc[First Steps] and https://quarkus.io/guides/getting-started-testing[Quarkus testing].
 
 When it comes to testing a route in the context of Quarkus, the recommended approach is to write local integration tests.
