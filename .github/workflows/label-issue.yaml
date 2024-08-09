@@ -34,7 +34,7 @@ permissions:
 
 jobs:
   label-issue:
-    if: "github.repository == 'apache/camel-quarkus' &&
+    if: "github.repository == 'jamesnetherton/camel-quarkus' &&
          !contains(github.event.issue.labels.*.name, 'autolabel/ignore') &&
          !contains(github.event.issue.labels.*.name, 'build/camel-main') &&
          !contains(github.event.issue.labels.*.name, 'build/quarkus-main')"
@@ -134,24 +134,24 @@ jobs:
               }
             }
 
-            // Strip the / prefix as it seems to break GraphQL searches
-            const sanitizedLabels = Array.from(labels).map(label => {
-              const parts = label.split('/');
-              return parts.length > 1 ? parts[1] : parts[0];
-            });
-
             // Check to see if labels already exist, and if not, create them so we can set the color
-            const labelQuery = `{
-              repository(owner: "${context.repo.owner}", name: "${context.repo.repo}") {
-                labels(first: 50, query: "name: ${sanitizedLabels.join(' || ')}") {
-                  nodes {
-                    name
+            const labelQuery = `
+              query($cursor: String) {
+                repository(owner: "${context.repo.owner}", name: "${context.repo.repo}") {
+                  labels(first: 50, after: $cursor) {
+                    nodes {
+                      name
+                    }
+                    pageInfo {
+                      endCursor
+                      hasNextPage
+                    }
                   }
                 }
               }
-            }`;
+            `;
 
-            labelQueryResults = await github.graphql(labelQuery);
+            const labelQueryResults = await github.graphql.paginate(labelQuery);
 
             if (labelQueryResults && labelQueryResults.repository.labels) {
               const existingLabels = labelQueryResults.repository.labels.nodes.map(node => node.name);
