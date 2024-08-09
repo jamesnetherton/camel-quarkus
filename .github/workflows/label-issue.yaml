@@ -151,7 +151,7 @@ jobs:
               }
             `;
 
-            const labelQueryResults = await github.graphql.paginate(labelQuery);
+            const labelQueryResults = await github.paginate(labelQuery);
 
             if (labelQueryResults && labelQueryResults.repository.labels) {
               const existingLabels = labelQueryResults.repository.labels.nodes.map(node => node.name);
