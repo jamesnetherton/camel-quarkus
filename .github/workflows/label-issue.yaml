@@ -135,17 +135,15 @@ jobs:
             }
 
             // Check to see if labels already exist, and if not, create them so we can set the color
-            const labelQueryResults = await github.paginate(
+            const existingLabels = await github.paginate(
               `GET /repos/${context.repo.owner}/${context.repo.repo}/issues`,
               { owner: context.repo.owner, name: context.repo.repo },
               (response) => response.data.map((label) => label.name)
             );
             
-            console.log(labelQueryResults);
+            console.log(existingLabels);
 
-            if (labelQueryResults && labelQueryResults.repository.labels) {
-              const existingLabels = labelQueryResults.repository.labels.nodes.map(node => node.name);
-
+            if (existingLabels) {
               for (let label of labels) {
                 if (!existingLabels.includes(label)) {
                   labelColor = 'ededed';
