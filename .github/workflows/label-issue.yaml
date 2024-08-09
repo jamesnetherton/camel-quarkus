@@ -136,7 +136,7 @@ jobs:
 
             // Check to see if labels already exist, and if not, create them so we can set the color
             const existingLabels = await github.paginate(
-              `GET /repos/${context.repo.owner}/${context.repo.repo}/issues`,
+              `GET /repos/${context.repo.owner}/${context.repo.repo}/labels`,
               { owner: context.repo.owner, name: context.repo.repo },
               (response) => response.data.map((label) => label.name)
             );
