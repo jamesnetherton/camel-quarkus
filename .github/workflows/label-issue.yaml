@@ -135,23 +135,13 @@ jobs:
             }
 
             // Check to see if labels already exist, and if not, create them so we can set the color
-            const labelQuery = `
-              query($cursor: String) {
-                repository(owner: "${context.repo.owner}", name: "${context.repo.repo}") {
-                  labels(first: 50, after: $cursor) {
-                    nodes {
-                      name
-                    }
-                    pageInfo {
-                      endCursor
-                      hasNextPage
-                    }
-                  }
-                }
-              }
-            `;
-
-            const labelQueryResults = await github.paginate(labelQuery);
+            const labelQueryResults = await github.paginate(
+              `GET /repos/${context.repo.owner}/${context.repo.repo}/issues`,
+              { owner: context.repo.owner, name: context.repo.repo },
+              (response) => response.data.map((label) => label.name)
+            );
+            
+            console.log(labelQueryResults);
 
             if (labelQueryResults && labelQueryResults.repository.labels) {
               const existingLabels = labelQueryResults.repository.labels.nodes.map(node => node.name);
