@@ -19,7 +19,9 @@ package org.apache.camel.quarkus.component.azure.eventhubs.it;
 import java.util.Optional;
 
 import com.azure.core.amqp.AmqpTransportType;
+import com.azure.storage.blob.BlobContainerAsyncClient;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.apache.camel.builder.RouteBuilder;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -32,28 +34,33 @@ public class AzureEventhubsRoutes extends RouteBuilder {
     @ConfigProperty(name = "azure.storage.account-key")
     String azureStorageAccountKey;
 
-    @ConfigProperty(name = "azure.event.hubs.connection.string")
+    @ConfigProperty(name = "azure.event.hubs.connection-string")
     Optional<String> connectionString;
 
-    @ConfigProperty(name = "azure.event.hubs.blob.container.name")
+    @ConfigProperty(name = "azure.blob.container.name")
     Optional<String> azureBlobContainerName;
+
+    @ConfigProperty(name = "azure.blob.service.url")
+    Optional<String> azureBlobServiceUrl;
 
     @ConfigProperty(name = "camel.quarkus.start.mock.backend", defaultValue = "true")
     boolean startMockBackend;
 
+    @Inject
+    BlobContainerAsyncClient client;
+
     @Override
     public void configure() throws Exception {
-        if (connectionString.isPresent() && azureBlobContainerName.isPresent()) {
-            from("azure-eventhubs:?connectionString=RAW(" + connectionString.get()
-                    + ")&blobAccountName=RAW(" + azureStorageAccountName
-                    + ")&blobAccessKey=RAW(" + azureStorageAccountKey
-                    + ")&blobContainerName=RAW(" + azureBlobContainerName.get() + ")&amqpTransportType="
-                    + AmqpTransportType.AMQP)
-                    .to("mock:azure-consumed");
-        } else if (!startMockBackend) {
-            throw new IllegalStateException(
-                    "azure.event.hubs.connection.string and azure.event.hubs.blob.container.name must be set when camel.quarkus.start.mock.backend == false");
-        }
-    }
+        client.createIfNotExists().block().booleanValue();
 
+        //        if (connectionString.isPresent() && azureBlobContainerName.isPresent()) {
+        from("azure-eventhubs:?connectionString=RAW(" + connectionString.get()
+                + ")&amqpTransportType="
+                + AmqpTransportType.AMQP + "&checkpointStore=#foo")
+                .to("mock:azure-consumed");
+        //        } else if (!startMockBackend) {
+        //            throw new IllegalStateException(
+        //                    "azure.event.hubs.connection.string and azure.event.hubs.blob.container.name must be set when camel.quarkus.start.mock.backend == false");
+        //        }
+    }
 }

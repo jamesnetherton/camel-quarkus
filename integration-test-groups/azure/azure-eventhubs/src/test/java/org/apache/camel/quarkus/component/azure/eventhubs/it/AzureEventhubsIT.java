@@ -17,12 +17,7 @@
 package org.apache.camel.quarkus.component.azure.eventhubs.it;
 
 import io.quarkus.test.junit.QuarkusIntegrationTest;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
-@EnabledIfEnvironmentVariable(named = "AZURE_STORAGE_ACCOUNT_NAME", matches = ".+")
-@EnabledIfEnvironmentVariable(named = "AZURE_STORAGE_ACCOUNT_KEY", matches = ".+")
-@EnabledIfEnvironmentVariable(named = "AZURE_BLOB_CONTAINER_NAME", matches = ".+")
-@EnabledIfEnvironmentVariable(named = "AZURE_EVENT_HUBS_CONNECTION_STRING", matches = ".+")
 @QuarkusIntegrationTest
 class AzureEventhubsIT extends AzureEventhubsTest {
 

@@ -51,7 +51,7 @@ public class AzureEventhubsResource {
     @Inject
     CamelContext context;
 
-    @ConfigProperty(name = "azure.event.hubs.connection.string")
+    @ConfigProperty(name = "azure.event.hubs.connection-string")
     Optional<String> connectionString;
 
     private volatile String message;
@@ -61,7 +61,7 @@ public class AzureEventhubsResource {
      * For some reason if we send just a single message, it is not always received by the consumer.
      * Sending multiple messages seems to be more reliable.
      */
-    @Scheduled(every = "1s")
+    @Scheduled(every = "5s")
     void schedule() {
         if (message != null) {
             final String endpointUri = "azure-eventhubs:?connectionString=RAW(" + connectionString.get() + ")";

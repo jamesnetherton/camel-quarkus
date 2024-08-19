@@ -22,6 +22,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.HostConfig;
+import com.github.dockerjava.api.model.Ports;
 import io.quarkus.runtime.LaunchMode;
 import io.quarkus.runtime.configuration.ConfigUtils;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
@@ -31,18 +34,24 @@ import org.eclipse.microprofile.config.ConfigProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.Network;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.utility.MountableFile;
 
 public class AzureStorageTestResource implements QuarkusTestResourceLifecycleManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(AzureStorageTestResource.class);
     private static final String AZURITE_IMAGE = ConfigProvider.getConfig().getValue("azurite.container.image", String.class);
+    private Map<String, String> initArgs = new LinkedHashMap<>();
+    private GenericContainer<?> container;
+    private GenericContainer<?> eventHubsEmulatorContainer;
+    private Network network = Network.newNetwork();
 
     public enum Service {
         blob(10000),
         queue(10001),
-        datalake(-1, "dfs") // Datalake not supported by Azurite https://github.com/Azure/Azurite/issues/553
-        ;
+        datalake(-1, "dfs"), // Datalake not supported by Azurite https://github.com/Azure/Azurite/issues/553
+        eventhubs(-1);
 
         private final int azuritePort;
         private final String azureServiceCode;
@@ -60,7 +69,7 @@ public class AzureStorageTestResource implements QuarkusTestResourceLifecycleMan
             return Stream.of(values())
                     .mapToInt(Service::getAzuritePort)
                     .filter(p -> p >= 0)
-                    .mapToObj(p -> Integer.valueOf(p))
+                    .boxed()
                     .toArray(Integer[]::new);
         }
 
@@ -73,18 +82,20 @@ public class AzureStorageTestResource implements QuarkusTestResourceLifecycleMan
         }
     }
 
-    private GenericContainer<?> container;
+    @Override
+    public void init(Map<String, String> initArgs) {
+        this.initArgs = initArgs;
+    }
 
     @Override
     public Map<String, String> start() {
-
         final SmallRyeConfig config = ConfigUtils.configBuilder(true, LaunchMode.NORMAL).build();
 
         final String realAzureStorageAccountName = System.getenv("AZURE_STORAGE_ACCOUNT_NAME");
         final boolean realCredentialsProvided = realAzureStorageAccountName != null
                 && System.getenv("AZURE_STORAGE_ACCOUNT_KEY") != null;
 
-        final String azureBlobContainername = "camel-quarkus-" + UUID.randomUUID().toString();
+        final String azureBlobContainername = "camel-quarkus-" + UUID.randomUUID();
 
         final String azureStorageAccountName = config
                 .getValue("azure.storage.account-name", String.class);
@@ -94,6 +105,8 @@ public class AzureStorageTestResource implements QuarkusTestResourceLifecycleMan
             MockBackendUtils.logMockBackendUsed();
             try {
                 container = new GenericContainer<>(AZURITE_IMAGE)
+                        .withNetworkAliases("azurite")
+                        .withNetwork(network)
                         .withExposedPorts(Service.getAzuritePorts())
                         .withLogConsumer(new Slf4jLogConsumer(LOGGER))
                         .waitingFor(Wait.forListeningPort());
@@ -109,6 +122,54 @@ public class AzureStorageTestResource implements QuarkusTestResourceLifecycleMan
                                             + "/"
                                             + azureStorageAccountName);
                         });
+
+                String eventHubs = initArgs.get("eventHubs");
+                if (eventHubs != null && eventHubs.equals("true")) {
+                    eventHubsEmulatorContainer = new GenericContainer<>(
+                            "mcr.microsoft.com/azure-messaging/eventhubs-emulator:1.2.4-preview-arm64")
+                            .withNetwork(network)
+                            .withCreateContainerCmdModifier(createContainerCmd -> {
+                                Ports portBindings = new Ports();
+                                portBindings.bind(ExposedPort.tcp(5671), Ports.Binding.bindPort(5671));
+                                portBindings.bind(ExposedPort.tcp(5672), Ports.Binding.bindPort(5672));
+                                HostConfig hostConfig = HostConfig.newHostConfig()
+                                        .withPortBindings(portBindings)
+                                        .withNetworkMode(network.getId());
+                                createContainerCmd.withHostName("eventhubs-emulator").withHostConfig(hostConfig);
+                            })
+                            .withExposedPorts(5671, 5672)
+                            .withEnv("BLOB_SERVER", "azurite")
+                            .withEnv("METADATA_SERVER", "azurite")
+                            .withEnv("ACCEPT_EULA", "Y")
+                            .withCopyFileToContainer(MountableFile.forClasspathResource("config.json"),
+                                    "/Eventhubs_Emulator/ConfigFiles/Config.json")
+                            .withLogConsumer(new Slf4jLogConsumer(LOGGER))
+                            .waitingFor(Wait.forLogMessage(".*Emulator Service is Successfully Up.*", 1));
+                    eventHubsEmulatorContainer.start();
+
+                    String foo = "Endpoint=sb://%s:%d;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;EntityPath=eh1";
+
+                    result.put("azure.event.hubs.connection-string",
+                            "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;EntityPath=eh1");
+
+                    /*
+                        volumes:
+                          - "${CONFIG_PATH}:/Eventhubs_Emulator/ConfigFiles/Config.json"
+                        ports:
+                          - "5672:5672"
+                        environment:
+                          BLOB_SERVER: azurite
+                          METADATA_SERVER: azurite
+                          ACCEPT_EULA: ${ACCEPT_EULA}
+                        depends_on:
+                          - azurite
+                        networks:
+                          eh-emulator:
+                            aliases:
+                              - "eventhubs-emulator"
+                     */
+
+                }
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -132,8 +193,16 @@ public class AzureStorageTestResource implements QuarkusTestResourceLifecycleMan
     @Override
     public void stop() {
         try {
+            if (eventHubsEmulatorContainer != null) {
+                eventHubsEmulatorContainer.stop();
+            }
+
             if (container != null) {
                 container.stop();
+            }
+
+            if (network != null) {
+                network.close();
             }
         } catch (Exception e) {
             // ignored
