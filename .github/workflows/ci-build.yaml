@@ -81,7 +81,7 @@ env:
 
 jobs:
   pre-build-checks:
-    if: github.repository == 'apache/camel-quarkus'
+    if: github.repository == 'jamesnetherton/camel-quarkus'
     runs-on: ubuntu-latest
     outputs:
       continue-build: ${{ steps.pre-build-checks.outputs.continue-build }}
@@ -288,6 +288,7 @@ jobs:
           if [[ ${JVM_MODULES[@]} ]]; then
             eval ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} clean test \
               -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+              -Dquarkus.debug.print-startup-times=true \
               -Pdocker,ci \
               -pl "${JVM_MODULES[*]}"
           fi
@@ -296,6 +297,7 @@ jobs:
             eval ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} clean verify \
               -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
               -Dquarkus.native.builder-image.pull=missing \
+              -Dquarkus.debug.print-startup-times=true \
               -Pnative,docker,ci \
               --fail-at-end \
               -pl "${NATIVE_MODULES[*]}"
@@ -436,6 +438,7 @@ jobs:
           cd integration-tests-jvm
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+            -Dquarkus.debug.print-startup-times=true \
             --fail-at-end \
             clean test
       - name: Report test failures
@@ -488,6 +491,7 @@ jobs:
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
             -pl "${TEST_MODULES// /,}" \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+            -Dquarkus.debug.print-startup-times=true \
             --fail-at-end \
             clean verify
       - name: Report test failures
@@ -539,6 +543,7 @@ jobs:
           cd integration-tests
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
             -Dskip-testcontainers-tests -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+            -Dquarkus.debug.print-startup-times=true \
             --fail-at-end \
             clean verify
       - name: Report test failures
@@ -602,6 +607,7 @@ jobs:
 
             ../mvnw ${CQ_MAVEN_ARGS} clean verify \
               -Dformatter.skip -Dimpsort.skip \
+              -Dquarkus.debug.print-startup-times=true \
               -Dquarkus.native.builder-image.pull=missing \
               -Pnative,docker,ci
 
