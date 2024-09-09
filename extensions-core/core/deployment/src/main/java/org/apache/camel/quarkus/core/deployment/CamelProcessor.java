@@ -43,7 +43,6 @@ import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.ApplicationArchivesBuildItem;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.NativeImageResourceBuildItem;
-import io.quarkus.maven.dependency.ArtifactKey;
 import io.quarkus.runtime.RuntimeValue;
 import io.smallrye.common.annotation.Identifier;
 import org.apache.camel.impl.converter.BaseTypeConverterRegistry;
@@ -76,6 +75,7 @@ import org.apache.camel.quarkus.core.deployment.util.PathFilter;
 import org.apache.camel.quarkus.core.util.FileUtils;
 import org.apache.camel.spi.TypeConverterLoader;
 import org.apache.camel.spi.TypeConverterRegistry;
+import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.AnnotationTarget;
 import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
@@ -287,26 +287,20 @@ class CamelProcessor {
             }
         }
 
-        Set<String> internalConverters = new HashSet<>();
-        //ignore all @converters from org.apache.camel:camel-* dependencies
-        for (ApplicationArchive archive : applicationArchives.getAllApplicationArchives()) {
-            ArtifactKey artifactKey = archive.getKey();
-            if (artifactKey != null && "org.apache.camel".equals(artifactKey.getGroupId())
-                    && artifactKey.getArtifactId().startsWith("camel-")) {
-                internalConverters.addAll(archive.getIndex().getAnnotations(CONVERTER_TYPE)
-                        .stream().filter(a -> a.target().kind() == AnnotationTarget.Kind.CLASS)
-                        .map(a -> a.target().asClass().name().toString())
-                        .collect(Collectors.toSet()));
-            }
-        }
-
-        Set<Class<?>> convertersClasses = index
-                .getAnnotations(CONVERTER_TYPE)
-                .stream().filter(a -> a.target().kind() == AnnotationTarget.Kind.CLASS &&
-                        (a.value("generateBulkLoader") == null || !a.value("generateBulkLoader").asBoolean()) &&
-                        (a.value("generateLoader") == null || !a.value("generateLoader").asBoolean()))
-                .map(a -> a.target().asClass().name().toString())
-                .filter(s -> !internalConverters.contains(s))
+        // Discover all non-camel-core type converters
+        Set<Class<?>> convertersClasses = applicationArchives.getAllApplicationArchives()
+                .stream()
+                .filter(archive -> !archive.getKey().getGroupId().equals("org.apache.camel"))
+                .flatMap(archive -> archive.getIndex().getAnnotations(CONVERTER_TYPE).stream())
+                .filter(annotationInstance -> (annotationInstance.value("generateBulkLoader") == null
+                        || !annotationInstance.value("generateBulkLoader").asBoolean()) &&
+                        (annotationInstance.value("generateLoader") == null
+                                || !annotationInstance.value("generateLoader").asBoolean()))
+                .map(AnnotationInstance::target)
+                .filter(annotationTarget -> annotationTarget.kind().equals(AnnotationTarget.Kind.CLASS))
+                .map(AnnotationTarget::asClass)
+                .map(ClassInfo::name)
+                .map(DotName::toString)
                 .map(s -> CamelSupport.loadClass(s, TCCL))
                 .collect(Collectors.toSet());
 
