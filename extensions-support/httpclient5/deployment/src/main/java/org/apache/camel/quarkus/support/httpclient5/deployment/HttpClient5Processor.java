@@ -19,7 +19,10 @@ package org.apache.camel.quarkus.support.httpclient5.deployment;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.nativeimage.NativeImageResourceBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.RuntimeInitializedClassBuildItem;
+import org.apache.hc.client5.http.auth.BasicUserPrincipal;
+import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
 
 class HttpClient5Processor {
     private static final String NTLM_ENGINE_IMPL = "org.apache.hc.client5.http.impl.auth.NTLMEngineImpl";
@@ -33,5 +36,11 @@ class HttpClient5Processor {
     @BuildStep
     void runtimeInitializedClasses(BuildProducer<RuntimeInitializedClassBuildItem> runtimeInitializedClasses) {
         runtimeInitializedClasses.produce(new RuntimeInitializedClassBuildItem(NTLM_ENGINE_IMPL));
+    }
+
+    @BuildStep
+    void registerForSerialization(BuildProducer<ReflectiveClassBuildItem> reflectiveClass) {
+        reflectiveClass.produce(ReflectiveClassBuildItem.builder(UsernamePasswordCredentials.class).serialization().build());
+        reflectiveClass.produce(ReflectiveClassBuildItem.builder(BasicUserPrincipal.class).serialization().build());
     }
 }
