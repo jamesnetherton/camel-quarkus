@@ -18,12 +18,18 @@ package org.apache.camel.quarkus.jolokia;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.Principal;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.management.RuntimeMBeanException;
 
 import io.netty.buffer.ByteBufInputStream;
+import io.quarkus.arc.Arc;
+import io.quarkus.arc.InjectableInstance;
+import io.quarkus.arc.InstanceHandle;
+import io.quarkus.security.identity.SecurityIdentity;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
@@ -46,6 +52,12 @@ final class JolokiaHandler implements Handler<RoutingContext> {
     public void handle(RoutingContext routingContext) {
         HttpServerRequest request = routingContext.request();
         String pathOffset = Utils.pathOffset(request.path(), routingContext);
+        InstanceHandle<SecurityIdentity> instance = Arc.container().instance(SecurityIdentity.class);
+        if (instance.isAvailable()) {
+            SecurityIdentity securityIdentity = instance.get();
+            Principal principal = securityIdentity.getPrincipal();
+            System.out.println("===== > " + principal.getName());
+        }
 
         requestHandler.checkAccess(request.scheme(), request.remoteAddress().host(), request.remoteAddress().host(),
                 getOriginOrReferer(request));

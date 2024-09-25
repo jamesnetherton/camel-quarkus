@@ -185,6 +185,7 @@
 *** xref:reference/extensions/jsh-dsl.adoc[JavaShell DSL]
 *** xref:reference/extensions/jfr.adoc[Jfr]
 *** xref:reference/extensions/jira.adoc[Jira]
+*** xref:reference/extensions/jolokia.adoc[Jolokia]
 *** xref:reference/extensions/json-patch.adoc[JsonPatch]
 *** xref:reference/extensions/kafka.adoc[Kafka]
 *** xref:reference/extensions/kamelet.adoc[Kamelet]
