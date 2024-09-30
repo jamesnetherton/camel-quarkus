@@ -16,11 +16,16 @@
  */
 package org.apache.camel.quarkus.jolokia;
 
+import java.util.function.BooleanSupplier;
+
+import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
+import io.quarkus.deployment.annotations.BuildSteps;
 import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
+import io.quarkus.deployment.builditem.RunTimeConfigBuilderBuildItem;
 import io.quarkus.deployment.builditem.ShutdownContextBuildItem;
 import io.quarkus.runtime.RuntimeValue;
 import io.quarkus.vertx.http.deployment.BodyHandlerBuildItem;
@@ -29,6 +34,7 @@ import io.quarkus.vertx.http.deployment.RouteBuildItem;
 import org.jolokia.server.core.http.HttpRequestHandler;
 import org.jolokia.server.core.service.api.JolokiaContext;
 
+@BuildSteps(onlyIf = JolokiaProcessor.JolokiaEnabled.class)
 public class JolokiaProcessor {
     private static final String FEATURE = "camel-jolokia";
 
@@ -71,5 +77,33 @@ public class JolokiaProcessor {
                 .handler(recorder.getHandler(jolokiaHttpRequestHandler.getHandler()))
                 .blockingRoute()
                 .build());
+    }
+
+    @BuildStep(onlyIf = JolokiaKubernetesSupportEnabled.class)
+    RunTimeConfigBuilderBuildItem jolokiaSecurityConfiguration() {
+        return new RunTimeConfigBuilderBuildItem(JolokiaRuntimeConfigBuilder.class);
+    }
+
+    @BuildStep(onlyIf = JolokiaKubernetesSupportEnabled.class)
+    AdditionalBeanBuildItem jolokiaSecurityIdentityAugmentor() {
+        return AdditionalBeanBuildItem.builder().addBeanClass(JolokiaSecurityIdentityAugmentor.class).build();
+    }
+
+    static final class JolokiaEnabled implements BooleanSupplier {
+        JolokiaBuildTimeConfig config;
+
+        @Override
+        public boolean getAsBoolean() {
+            return config.enabled();
+        }
+    }
+
+    static final class JolokiaKubernetesSupportEnabled implements BooleanSupplier {
+        JolokiaBuildTimeConfig config;
+
+        @Override
+        public boolean getAsBoolean() {
+            return config.kubernetes().enabled();
+        }
     }
 }

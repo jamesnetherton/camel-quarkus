@@ -32,3 +32,40 @@ Expose JMX runtime metrics with Jolokia
 ifeval::[{doc-show-user-guide-link} == true]
 Check the xref:user-guide/index.adoc[User guide] for more information about writing Camel Quarkus applications.
 endif::[]
+
+[id="extensions-jolokia-additional-camel-quarkus-configuration"]
+== Additional Camel Quarkus configuration
+
+[width="100%",cols="80,5,15",options="header"]
+|===
+| Configuration property | Type | Default
+
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.jolokia.enabled]]`link:#quarkus.camel.jolokia.enabled[quarkus.camel.jolokia.enabled]`
+
+Enables Jolokia support.
+| `boolean`
+| `true`
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.jolokia.kubernetes.enabled]]`link:#quarkus.camel.jolokia.kubernetes.enabled[quarkus.camel.jolokia.kubernetes.enabled]`
+
+Enables Kubernetes support.
+| `boolean`
+| `true`
+
+| [[quarkus.camel.jolokia.kubernetes.service-ca-cert]]`link:#quarkus.camel.jolokia.kubernetes.service-ca-cert[quarkus.camel.jolokia.kubernetes.service-ca-cert]`
+
+Absolute path of the CA certificate the Jolokia should use for client authentication.
+| link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/io/File.html[`File`]
+| `/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt`
+
+| [[quarkus.camel.jolokia.kubernetes.client-principal]]`link:#quarkus.camel.jolokia.kubernetes.client-principal[quarkus.camel.jolokia.kubernetes.client-principal]`
+
+The principal which must be given in a client certificate to allow access to Jolokia.
+| `string`
+| required icon:exclamation-circle[title=Configuration property is required]
+|===
+
+[.configuration-legend]
+{doc-link-icon-lock}[title=Fixed at build time] Configuration property fixed at build time. All other configuration properties are overridable at runtime.
+
