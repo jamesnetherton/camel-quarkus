@@ -32,4 +32,10 @@ public class KameletConfiguration {
      */
     @ConfigItem
     public Optional<List<String>> identifiers;
+
+    /**
+     * Whether to validate that the dependencies listed in the Kamelet YAML have been added to the application.
+     */
+    @ConfigItem(defaultValue = "true")
+    public Boolean validateDependencies;
 }

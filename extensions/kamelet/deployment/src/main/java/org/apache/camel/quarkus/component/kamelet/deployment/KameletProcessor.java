@@ -24,13 +24,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 
+import io.quarkus.bootstrap.model.ApplicationModel;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
+import io.quarkus.deployment.pkg.builditem.CurateOutcomeBuildItem;
+import io.quarkus.maven.dependency.ResolvedDependency;
 import org.apache.camel.CamelContext;
 import org.apache.camel.ExtendedCamelContext;
 import org.apache.camel.Ordered;
@@ -50,6 +54,15 @@ class KameletProcessor {
     private static final Logger LOGGER = Logger.getLogger(KameletProcessor.class);
     private static final String FEATURE = "camel-kamelet";
 
+    static final class ValidateKameletDependenciesEnabled implements BooleanSupplier {
+        KameletConfiguration config;
+
+        @Override
+        public boolean getAsBoolean() {
+            return config.validateDependencies;
+        }
+    }
+
     @BuildStep
     FeatureBuildItem feature() {
         return new FeatureBuildItem(FEATURE);
@@ -62,6 +75,21 @@ class KameletProcessor {
             public Optional<Resource> resolve(String id, CamelContext context) throws Exception {
                 return Optional.ofNullable(
                         PluginHelper.getResourceLoader(context).resolveResource("/kamelets/" + id + ".kamelet.yaml"));
+            }
+        });
+    }
+
+    @BuildStep(onlyIf = ValidateKameletDependenciesEnabled.class)
+    KameletDependencyValidatorBuildItem kameletDependencyValidator(KameletConfiguration config) {
+        return new KameletDependencyValidatorBuildItem(new KameletDependencyValidator());
+    }
+
+    @BuildStep(onlyIfNot = ValidateKameletDependenciesEnabled.class)
+    KameletDependencyValidatorBuildItem disabledKameletDependencyValidator(KameletConfiguration config) {
+        return new KameletDependencyValidatorBuildItem(new DependencyValidator() {
+            @Override
+            public void validateDependencies(Collection<ResolvedDependency> runtimeDependencies) {
+                // NoOp
             }
         });
     }
@@ -91,14 +119,17 @@ class KameletProcessor {
     @Record(ExecutionTime.STATIC_INIT)
     @BuildStep
     CamelContextCustomizerBuildItem configureTemplates(
+            CurateOutcomeBuildItem curateOutcome,
+            KameletDependencyValidatorBuildItem dependencyCollector,
             List<KameletResourceBuildItem> resources,
             BuildProducer<ReflectiveClassBuildItem> reflectiveClass,
             KameletRecorder recorder) throws Exception {
 
+        DependencyValidator validator = dependencyCollector.getValidator();
         List<RouteTemplateDefinition> definitions = new ArrayList<>();
-
         try (CamelContext context = new DefaultCamelContext()) {
             ExtendedCamelContext ecc = context.getCamelContextExtension();
+            ecc.getRegistry().bind("kameletDependencyValidator", validator);
 
             for (KameletResourceBuildItem item : resources) {
                 Resource resource = item.getResource();
@@ -128,42 +159,50 @@ class KameletProcessor {
             }
         }
 
-        // TODO: Improve / remove this https://github.com/apache/camel-quarkus/issues/5230
-        // Use Quarkus recorder serialization friendly EmptyKameletResource instead of the default Resource.
-        // The resource will get reevaluated at runtime and replaced if it exists
+        ApplicationModel applicationModel = curateOutcome.getApplicationModel();
+        validator.validateDependencies(applicationModel.getRuntimeDependencies());
+
         definitions.forEach(definition -> {
-            Resource originalResource = definition.getResource();
-            EmptyKameletResource resource = new EmptyKameletResource();
-            resource.setScheme(originalResource.getScheme());
-            resource.setLocation(originalResource.getLocation());
-            resource.setExists(originalResource.exists());
-            definition.setResource(resource);
-            //remove references to camelContext https://github.com/apache/camel-quarkus/issues/5849
-            definition.setCamelContext(null);
-            if (definition.getRoute() != null && definition.getRoute().getOutputs() != null) {
-                definition.getRoute().getOutputs().forEach(o -> o.setCamelContext(null));
-            }
-
-            if (definition.getTemplateBeans() != null) {
-                Set<String> beanClassNames = new HashSet<>();
-                definition.getTemplateBeans().forEach(bean -> {
-                    bean.setResource(resource);
-
-                    String beanType = bean.getType();
-                    if (beanType != null && beanType.startsWith("#class:")) {
-                        String className = beanType.substring("#class:".length());
-                        beanClassNames.add(className);
-                    }
-                });
-
-                reflectiveClass.produce(ReflectiveClassBuildItem.builder(beanClassNames.toArray(new String[0]))
-                        .fields()
-                        .methods()
-                        .build());
-            }
+            processRouteTemplateDefinition(reflectiveClass, definition);
         });
 
         return new CamelContextCustomizerBuildItem(
                 recorder.createTemplateLoaderCustomizer(definitions));
+    }
+
+    private void processRouteTemplateDefinition(BuildProducer<ReflectiveClassBuildItem> reflectiveClass,
+            RouteTemplateDefinition definition) {
+        // TODO: Improve / remove this https://github.com/apache/camel-quarkus/issues/5230
+        // Use Quarkus recorder serialization friendly EmptyKameletResource instead of the default Resource.
+        // The resource will get reevaluated at runtime and replaced if it exists
+        Resource originalResource = definition.getResource();
+        EmptyKameletResource resource = new EmptyKameletResource();
+        resource.setScheme(originalResource.getScheme());
+        resource.setLocation(originalResource.getLocation());
+        resource.setExists(originalResource.exists());
+        definition.setResource(resource);
+        definition.setCamelContext(null);
+
+        if (definition.getRoute() != null && definition.getRoute().getOutputs() != null) {
+            definition.getRoute().getOutputs().forEach(o -> o.setCamelContext(null));
+        }
+
+        if (definition.getTemplateBeans() != null) {
+            Set<String> beanClassNames = new HashSet<>();
+            definition.getTemplateBeans().forEach(bean -> {
+                bean.setResource(resource);
+
+                String beanType = bean.getType();
+                if (beanType != null && beanType.startsWith("#class:")) {
+                    String className = beanType.substring("#class:".length());
+                    beanClassNames.add(className);
+                }
+            });
+
+            reflectiveClass.produce(ReflectiveClassBuildItem.builder(beanClassNames.toArray(new String[0]))
+                    .fields()
+                    .methods()
+                    .build());
+        }
     }
 }

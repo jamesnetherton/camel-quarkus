@@ -85,6 +85,12 @@ List of kamelets identifiers to pre-load at build time.
 Each individual identifier is used to set the related `org.apache.camel.model.RouteTemplateDefinition` id.
 | List of `string`
 | 
+
+|icon:lock[title=Fixed at build time] [[quarkus.camel.kamelet.validate-dependencies]]`link:#quarkus.camel.kamelet.validate-dependencies[quarkus.camel.kamelet.validate-dependencies]`
+
+Whether to validate that the dependencies listed in the Kamelet YAML have been added to the application.
+| `boolean`
+| `true`
 |===
 
 [.configuration-legend]
