@@ -547,7 +547,9 @@
                                     <exclude>**/*.conf</exclude>
                                     <exclude>**/*.csv</exclude>
                                     <exclude>**/*.der</exclude>
+                                    <exclude>**/*.delimited</exclude>
                                     <exclude>**/*.ext</exclude>
+                                    <exclude>**/*.fixedlength</exclude>
                                     <exclude>**/*.ftl</exclude>
                                     <exclude>**/*.graphql</exclude>
                                     <exclude>**/*.ics</exclude>
