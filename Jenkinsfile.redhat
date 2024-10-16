@@ -41,6 +41,10 @@ pipeline {
                 label "rhel||pipeline||pipeline-large"
             }
             steps {
+                if (env.CHANGE_BRANCH?.startsWith("snyk")) {
+                    error "Automated Synk PRs are ignored"
+                }
+
                 // Clean up any orphaned containers that may be lingering
                 sh "echo 'ws: ${WORKSPACE} node: ${NODE_NAME}'"
                 sh "df -h"
