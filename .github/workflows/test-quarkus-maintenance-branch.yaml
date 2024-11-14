@@ -21,7 +21,10 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: "The major.minor of the Quarkus branch to test"
+        description: "The name of the Quarkus branch to test"
+        options:
+          - 3.15
+          - 3.8
         required: true
 env:
   LANG: en_US.UTF-8
@@ -61,7 +64,7 @@ jobs:
       - name: Build Quarkus
         run: |
           cd ../
-          git clone --depth 1 --branch ${{branch}} https://github.com/quarkusio/quarkus.git \
+          git clone --depth 1 --branch ${{github.event.inputs.branch}} https://github.com/quarkusio/quarkus.git \
             && cd quarkus \
             && echo "Current Quarkus commit:" $(git rev-parse HEAD) \
             && sed -i '/<module>integration-tests<\/module>/d' pom.xml \
