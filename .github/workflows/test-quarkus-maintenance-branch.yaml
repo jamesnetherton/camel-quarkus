@@ -21,7 +21,8 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: "The name of the Quarkus branch to test"
+        type: choice
+        description: "The Quarkus maintenance branch to test"
         options:
           - 3.15
           - 3.8
