@@ -43,6 +43,7 @@ on:
       - '.github/workflows/pr-validate.yml'
       - '.github/workflows/quarkus-master-cron.yaml'
       - '.github/workflows/synchronize-dependabot-branch.yaml'
+      - '.github/workflows/test-quarkus-maintenance-branch.yaml'
       - 'docs/antora.yml'
 
 concurrency:

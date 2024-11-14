@@ -53,10 +53,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - name: Set Workflow Build ID
-        run: |
-          [ ! -d ~/build-data ] && mkdir -p ~/build-data
-          echo "${{ github.run_id }}-${{ github.run_number }}-$(uuidgen)" > ~/build-data/build-id.txt
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -72,6 +68,7 @@ jobs:
             && ./mvnw ${CQ_MAVEN_ARGS} clean install -Dquickly -Prelocations -T1C
       - name: Update extension metadata
         run: |
+          sed -i 's|<quarkus.version>.*</quarkus.version>|<quarkus.version>${{ github.event.inputs.branch }}.999-SNAPSHOT</quarkus.version>|' pom.xml
           ./mvnw -N cq:update-quarkus-metadata ${CQ_MAVEN_ARGS}
       - name: mvn clean install -DskipTests
         run: |
