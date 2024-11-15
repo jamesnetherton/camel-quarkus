@@ -72,7 +72,7 @@ jobs:
           ./mvnw -N cq:update-quarkus-metadata ${CQ_MAVEN_ARGS}
       - name: mvn clean install -DskipTests
         run: |
-          eval ./mvnw ${CQ_MAVEN_ARGS} -V -ntp -e -Daether.connector.http.connectionMaxTtl=120 clean install -DskipTests -Dquarkus.build.skip -Pformat
+          eval ./mvnw -V -ntp -e -Daether.connector.http.connectionMaxTtl=120 clean install -DskipTests -Dquarkus.build.skip -Pformat
       - name: Sync Maven properties
         run: |
           ./mvnw cq:sync-versions ${CQ_MAVEN_ARGS} -N
