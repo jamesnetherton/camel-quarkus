@@ -61,11 +61,11 @@ public class CassandraqlTestResource implements QuarkusTestResourceLifecycleMana
                     // Note: The cassandra component does not depend on any of these being set.
                     // They're added to test the component with the (optional) QuarkusCqlSession
                     // produced by the Quarkus extension
-                    "quarkus.cassandra.contact-points", cassandraUrl,
-                    "quarkus.cassandra.local-datacenter", "datacenter1",
-                    "quarkus.cassandra.auth.username", container.getUsername(),
-                    "quarkus.cassandra.auth.password", container.getPassword(),
-                    "quarkus.cassandra.keyspace", CassandraqlRoutes.KEYSPACE);
+                    "cassandra.contact-points", cassandraUrl,
+                    "cassandra.local-datacenter", "datacenter1",
+                    "cassandra.auth.username", container.getUsername(),
+                    "cassandra.auth.password", container.getPassword(),
+                    "cassandra.keyspace", CassandraqlRoutes.KEYSPACE);
 
         } catch (Exception e) {
             LOGGER.error("Container does not start", e);

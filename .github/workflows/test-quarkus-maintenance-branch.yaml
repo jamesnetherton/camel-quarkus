@@ -79,7 +79,7 @@ jobs:
       - name: Tar Maven Repo
         shell: bash
         run: |
-          tar -czf ${{ runner.temp }}/maven-repo.tgz -C ~ build-data .m2/repository
+          tar -czf ${{ runner.temp }}/maven-repo.tgz -C ~ .m2/repository
           ls -lh ${{ runner.temp }}/maven-repo.tgz
           df -h /
       - name: Persist Maven Repo

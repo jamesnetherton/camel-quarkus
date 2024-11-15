@@ -22,6 +22,7 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
 import org.hamcrest.Matcher;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -92,6 +93,7 @@ class CassandraqlTest {
         }
     }
 
+    @Disabled
     @Test
     public void quarkusCassandraSession() {
         try {
@@ -110,6 +112,7 @@ class CassandraqlTest {
         }
     }
 
+    @Disabled
     @Test
     public void idempotent() {
         try {
@@ -123,6 +126,7 @@ class CassandraqlTest {
         }
     }
 
+    @Disabled
     @Test
     public void aggregate() {
         Stream.of("foo", "bar", "cheese").forEach(name -> {

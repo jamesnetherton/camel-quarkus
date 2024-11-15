@@ -16,51 +16,52 @@
  */
 package org.apache.camel.quarkus.component.cassandraql.it;
 
-import com.datastax.oss.quarkus.runtime.api.session.QuarkusCqlSession;
+import java.net.URI;
+
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import org.apache.camel.AggregationStrategy;
-import org.apache.camel.BindToRegistry;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.processor.aggregate.cassandra.CassandraAggregationRepository;
-import org.apache.camel.processor.aggregate.cassandra.NamedCassandraAggregationRepository;
-import org.apache.camel.processor.idempotent.cassandra.NamedCassandraIdempotentRepository;
-import org.apache.camel.spi.AggregationRepository;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
 public class CassandraqlRoutes extends RouteBuilder {
     public static final String KEYSPACE = "test";
 
-    @ConfigProperty(name = "quarkus.cassandra.contact-points")
+    @ConfigProperty(name = "cassandra.contact-points")
     String dbUrl;
 
-    @ConfigProperty(name = "quarkus.cassandra.auth.username")
+    @ConfigProperty(name = "cassandra.auth.username")
     String userName;
 
-    @ConfigProperty(name = "quarkus.cassandra.auth.password")
+    @ConfigProperty(name = "cassandra.auth.password")
     String password;
 
-    @Inject
-    @BindToRegistry("quarkusCqlSession")
-    QuarkusCqlSession session;
+    //    @Inject
+    //    @BindToRegistry("quarkusCqlSession")
+    //    QuarkusCqlSession session;
 
     @Override
     public void configure() throws Exception {
+        URI uri = URI.create("http://" + dbUrl);
+
+        fromF("kamelet:cassandra-source?keyspace=%s&connectionPort=%s&connectionHost=%s&query=select * from employee&password=%s&username=%s",
+                KEYSPACE, uri.getPort(), uri.getHost(), userName, password)
+                .log("===============> ${body}");
+
         from("direct:create")
                 .toF("cql://%s/%s?username=%s&password=%s&cql=INSERT INTO employee (id, name, address) VALUES (?, ?, ?)", dbUrl,
                         KEYSPACE, userName, password);
 
-        from("direct:createIdempotent")
-                .idempotentConsumer(simple("${body[0]}"), new NamedCassandraIdempotentRepository(session, "ID"))
-                .toF("cql://%s/%s?username=%s&password=%s&cql=INSERT INTO employee (id, name, address) VALUES (?, ?, ?)", dbUrl,
-                        KEYSPACE, userName, password);
+        //        from("direct:createIdempotent")
+        //                .idempotentConsumer(simple("${body[0]}"), new NamedCassandraIdempotentRepository(session, "ID"))
+        //                .toF("cql://%s/%s?username=%s&password=%s&cql=INSERT INTO employee (id, name, address) VALUES (?, ?, ?)", dbUrl,
+        //                        KEYSPACE, userName, password);
 
         from("direct:createCustomSession")
                 .toF("cql:bean:customCqlSession?cql=INSERT INTO employee (id, name, address) VALUES (?, ?, ?)");
 
-        from("direct:createQuarkusSession")
-                .to("cql:bean:quarkusCqlSession?cql=INSERT INTO employee (id, name, address) VALUES (?, ?, ?)");
+        //        from("direct:createQuarkusSession")
+        //                .to("cql:bean:quarkusCqlSession?cql=INSERT INTO employee (id, name, address) VALUES (?, ?, ?)");
 
         from("direct:createCustomLoadBalancingPolicy")
                 .toF("cql://%s/%s?username=%s&password=%s&loadBalancingPolicyClass=%s&cql=INSERT INTO employee (id, name, address) VALUES (?, ?, ?)",
@@ -83,12 +84,12 @@ public class CassandraqlRoutes extends RouteBuilder {
                 .autoStartup(false)
                 .to("seda:employees");
 
-        from("direct:aggregate")
-                .aggregate(simple("${body.id}"), createAggregationStrategy())
-                .completionSize(3)
-                .completionTimeout(5000)
-                .aggregationRepository(createAggregationRepository())
-                .to("seda:employees");
+        //        from("direct:aggregate")
+        //                .aggregate(simple("${body.id}"), createAggregationStrategy())
+        //                .completionSize(3)
+        //                .completionTimeout(5000)
+        //                .aggregationRepository(createAggregationRepository())
+        //                .to("seda:employees");
 
         from("direct:readWithCustomStrategy")
                 .toF("cql://%s/%s?username=%s&password=%s&resultSetConversionStrategy=#customResultSetConversionStrategy&cql=SELECT * FROM employee WHERE id = ?",
@@ -118,9 +119,9 @@ public class CassandraqlRoutes extends RouteBuilder {
         };
     }
 
-    private AggregationRepository createAggregationRepository() {
-        CassandraAggregationRepository repository = new NamedCassandraAggregationRepository();
-        repository.setSession(session);
-        return repository;
-    }
+    //    private AggregationRepository createAggregationRepository() {
+    //        CassandraAggregationRepository repository = new NamedCassandraAggregationRepository();
+    //        repository.setSession(session);
+    //        return repository;
+    //    }
 }

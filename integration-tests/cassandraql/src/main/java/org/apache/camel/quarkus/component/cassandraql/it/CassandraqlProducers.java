@@ -30,9 +30,9 @@ public class CassandraqlProducers {
 
     @Named
     public CqlSession customCqlSession(
-            @ConfigProperty(name = "quarkus.cassandra.auth.username") String username,
-            @ConfigProperty(name = "quarkus.cassandra.auth.password") String password,
-            @ConfigProperty(name = "quarkus.cassandra.contact-points") String dbUrl) {
+            @ConfigProperty(name = "cassandra.auth.username") String username,
+            @ConfigProperty(name = "cassandra.auth.password") String password,
+            @ConfigProperty(name = "cassandra.contact-points") String dbUrl) {
         String[] urlParts = dbUrl.split(":");
         CqlSessionBuilder sessionBuilder = CqlSession.builder();
         sessionBuilder.addContactPoint(new InetSocketAddress(urlParts[0], Integer.parseInt(urlParts[1])));
