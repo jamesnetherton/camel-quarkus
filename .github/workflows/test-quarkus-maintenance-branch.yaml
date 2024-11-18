@@ -68,7 +68,6 @@ jobs:
             && ./mvnw ${CQ_MAVEN_ARGS} clean install -Dquickly -Prelocations -T1C
       - name: Update extension metadata
         run: |
-          sed -i 's|<quarkus.version>.*</quarkus.version>|<quarkus.version>${{ github.event.inputs.branch }}.999-SNAPSHOT</quarkus.version>|' pom.xml
           ./mvnw -N cq:update-quarkus-metadata ${CQ_MAVEN_ARGS}
       - name: mvn clean install -DskipTests
         run: |
