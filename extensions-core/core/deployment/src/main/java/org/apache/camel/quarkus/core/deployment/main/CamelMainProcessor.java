@@ -175,6 +175,9 @@ public class CamelMainProcessor {
             List<CamelRuntimeTaskBuildItem> runtimeTasks,
             CamelMainConfig camelMainConfig) {
 
+        // Register initial properties with PropertiesComponent
+        recorder.registerInitialProperties(main.getInstance());
+
         // Run the customizer before starting the context to give a last chance
         // to amend the Camel Context setup.
         //

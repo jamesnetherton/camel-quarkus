@@ -33,6 +33,7 @@ import org.apache.camel.quarkus.core.CamelConfig.FailureRemedy;
 import org.apache.camel.quarkus.core.CamelProducers;
 import org.apache.camel.quarkus.core.CamelRuntime;
 import org.apache.camel.quarkus.core.RegistryRoutesLoader;
+import org.apache.camel.quarkus.core.util.ConfigUtils;
 import org.apache.camel.spi.CamelContextCustomizer;
 import org.eclipse.microprofile.config.ConfigProvider;
 
@@ -105,5 +106,9 @@ public class CamelMainRecorder {
     public void customizeDevModeCamelMain(RuntimeValue<CamelMain> main) {
         Optional<String> profile = ConfigProvider.getConfig().getOptionalValue("camel.main.profile", String.class);
         main.getValue().getMainConfigurationProperties().setProfile(profile.orElse("dev"));
+    }
+
+    public void registerInitialProperties(RuntimeValue<CamelMain> main) {
+        main.getValue().setInitialProperties(ConfigUtils.getPropertiesForActiveProfiles());
     }
 }
