@@ -58,8 +58,8 @@ runs:
       run: |
         ./mvnw cq:sync-versions ${CQ_MAVEN_ARGS} -N
     - name: Fail if there are uncommitted changes
-      uses: ./github/actions/check-uncommitted-changes
+      uses: ./.github/actions/check-uncommitted-changes
     - name: Upload Maven Repository
-      uses: ./github/actions/upload-maven-repo
+      uses: ./.github/actions/upload-maven-repo
     - name: Set Up Test Matrices
-      uses: ./github/actions/setup-test-matrices
+      uses: ./.github/actions/setup-test-matrices
