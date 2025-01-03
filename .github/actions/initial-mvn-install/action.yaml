@@ -25,6 +25,8 @@ runs:
       uses: ./.github/actions/check-disk-space
     - name: Setup runner node
       uses: ./.github/actions/setup-runner
+      with:
+        download-maven-repo: 'false'
     - name: Build Camel
       if: github.ref == 'refs/heads/camel-main' || github.base_ref == 'camel-main'
       shell: bash
