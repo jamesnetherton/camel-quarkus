@@ -1,0 +1,81 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+name: 'Native Tests'
+description: 'Runs native mode integration tests'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Reclaim Disk Space
+      uses: .github/actions/reclaim-disk-space
+    - name: Checkout
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      with:
+        ref: ${{ env.CHECKOUT_REF }}
+        fetch-depth: 0
+    - name: Set up JDK 17
+      uses: actions/setup-java@7a6d8a8234af8eb26422e24e3006232cccaa061b # v4.6.0
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+    - name: Download Maven Repository
+      uses: ./github/actions/download-maven-repo
+    - name: Integration Tests
+      run: |
+        for MODULE in $(yq -M -N e ".${{ matrix.category }}" tooling/scripts/test-categories.yaml | grep -vE '^\s*#' | cut -f2 -d' '); do
+          if [[ "${MODULE}" == "null" ]]; then
+            continue
+          fi
+
+          MODULE="integration-tests/$(echo ${MODULE} | sed 's/^[ \t]*//;s/[ \t]*$//')"
+
+          if [[ "x$(./mvnw org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=ci.native.tests.skip -DforceStdout -q -f ${MODULE})" == "xtrue" ]]; then
+            JVM_MODULES+=("${MODULE}")
+          else
+            NATIVE_MODULES+=("${MODULE}")
+          fi
+        done
+
+        if [[ ${#JVM_MODULES[@]} -eq 0 ]] && [[ ${#NATIVE_MODULES[@]} -eq 0 ]]; then
+          echo "No test modules were found for category ${{ matrix.category }}"
+          exit 1
+        fi
+
+        IFS=,
+        if [[ ${JVM_MODULES[@]} ]]; then
+          eval ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} clean test \
+            -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+            -Pdocker,ci \
+            -pl "${JVM_MODULES[*]}"
+        fi
+
+        if [[ ${NATIVE_MODULES[@]} ]]; then
+          eval ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} clean verify \
+            -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+            -Dquarkus.native.builder-image.pull=missing \
+            -Pnative,docker,ci \
+            --fail-at-end \
+            -pl "${NATIVE_MODULES[*]}"
+        fi
+    - name: Report test failures
+      uses: ./.github/actions/test-summary-report
+      if: ${{ failure() }}
+      with:
+        test-report-xml-base-dir: integration-tests
+    - name: Fail if there are uncommitted changes
+      uses: ./github/actions/check-uncommitted-changes
