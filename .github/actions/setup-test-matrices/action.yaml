@@ -23,6 +23,7 @@ runs:
   steps:
     - name: Setup Native Test Matrix
       id: set-native-matrix
+      shell: bash
       run: |
         CATEGORIES=$(yq -M -N -I 0 -o=json e 'keys' tooling/scripts/test-categories.yaml | tr '"' "'")
         echo "matrix={'category': ${CATEGORIES}}" >> $GITHUB_OUTPUT
@@ -37,6 +38,7 @@ runs:
         echo "alternate-jvm-matrix={'include': [{'name': 'group-01', 'modules': '${GROUP1_MODULES}'},{'name': 'group-02', 'modules': '${GROUP2_MODULES}'}]}" >> $GITHUB_OUTPUT
     - name: Setup Examples Matrix
       id: set-examples-matrix
+      shell: bash
       run: |
         EXAMPLES_BRANCH="camel-quarkus-main"
         if [[ ${GITHUB_REF_NAME} =~ [0-9]+.[0-9]+.x ]]; then

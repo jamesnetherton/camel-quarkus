@@ -22,5 +22,6 @@ runs:
   using: "composite"
   steps:
     - name: Check free space on disk
+      shell: bash
       run: |
         df -h /

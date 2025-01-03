@@ -22,4 +22,5 @@ runs:
   using: "composite"
   steps:
     - name: Reclaim Disk Space
+      shell: bash
       run: ./.github/reclaim-disk-space.sh
