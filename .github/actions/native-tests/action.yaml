@@ -69,4 +69,4 @@ runs:
       with:
         test-report-xml-base-dir: integration-tests
     - name: Fail if there are uncommitted changes
-      uses: ./github/actions/check-uncommitted-changes
+      uses: ./.github/actions/check-uncommitted-changes
