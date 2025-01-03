@@ -16,7 +16,7 @@
 #
 
 name: 'Upload Maven Repository'
-description: 'Tars and uploads the local .m2 directory as a build artifact'
+description: 'Compresses and uploads the local .m2 directory as a build artifact'
 
 runs:
   using: "composite"
