@@ -105,7 +105,7 @@ jobs:
           fetch-depth: 1
           ref: ${{ env.CHECKOUT_REF }}
       - name: Setup runner node
-        uses: .github/actions/setup-runner
+        uses: ./.github/actions/setup-runner
         with:
           download-maven-repo: 'false'
       - name: Pre build checks
@@ -242,8 +242,6 @@ jobs:
           ref: ${{ env.CHECKOUT_REF }}
       - name: Run Integration Tests Alternative Platform
         uses: ./.github/actions/integration-tests-alternative
-        with:
-          test-modules: ${{ matrix.modules }}
 
   examples-tests:
     name: Examples Tests - ${{matrix.name}}

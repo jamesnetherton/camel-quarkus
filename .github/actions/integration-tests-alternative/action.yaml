@@ -30,7 +30,7 @@ runs:
   using: "composite"
   steps:
     - name: Reclaim Disk Space
-      run: ./.github/reclaim-disk-space.sh
+      uses: ./.github/actions/reclaim-disk-space
     - name: Setup runner node
       uses: ./.github/actions/setup-runner
       with:
