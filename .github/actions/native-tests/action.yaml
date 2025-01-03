@@ -26,6 +26,7 @@ runs:
     - name: Setup runner node
       uses: ./.github/actions/setup-runner
     - name: Integration Tests
+      shell: bash
       run: |
         for MODULE in $(yq -M -N e ".${{ matrix.category }}" tooling/scripts/test-categories.yaml | grep -vE '^\s*#' | cut -f2 -d' '); do
           if [[ "${MODULE}" == "null" ]]; then

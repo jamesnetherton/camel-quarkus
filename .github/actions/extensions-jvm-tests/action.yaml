@@ -26,6 +26,7 @@ runs:
       with:
         java-version: ${{ matrix.java }}
     - name: cd integration-tests-jvm && mvn clean test
+      shell: bash
       run: |
         cd integration-tests-jvm
         ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \

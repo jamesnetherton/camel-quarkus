@@ -27,6 +27,7 @@ runs:
       uses: ./.github/actions/setup-runner
     - name: Build Camel
       if: github.ref == 'refs/heads/camel-main' || github.base_ref == 'camel-main'
+      shell: bash
       run: |
         cd ../
         git clone --depth 1 --branch main https://github.com/apache/camel.git \
@@ -35,6 +36,7 @@ runs:
           && ./mvnw ${CQ_MAVEN_ARGS} clean install -Dquickly -T1C
     - name: Build Quarkus
       if: github.ref == 'refs/heads/quarkus-main' || github.base_ref == 'quarkus-main'
+      shell: bash
       run: |
         git clone --depth 1 --branch main https://github.com/quarkusio/quarkus.git \
           && cd quarkus \
@@ -42,12 +44,15 @@ runs:
           && sed -i '/<module>integration-tests<\/module>/d' pom.xml \
           && ./mvnw ${CQ_MAVEN_ARGS} clean install -Dquickly -Prelocations -T1C
     - name: Update extension metadata
+      shell: bash
       run: |
         ./mvnw -N cq:update-quarkus-metadata ${CQ_MAVEN_ARGS}
     - name: mvn clean install -DskipTests
+      shell: bash
       run: |
         ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} clean install -DskipTests -Dquarkus.build.skip -Pformat
     - name: Sync Maven properties
+      shell: bash
       run: |
         ./mvnw cq:sync-versions ${CQ_MAVEN_ARGS} -N
     - name: Fail if there are uncommitted changes

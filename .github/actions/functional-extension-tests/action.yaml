@@ -24,6 +24,7 @@ runs:
     - name: Setup runner node
       uses: ./.github/actions/setup-runner
     - name: cd extensions-core && mvn test
+      shell: bash
       run: |
         cd extensions-core
         ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
@@ -36,6 +37,7 @@ runs:
       with:
         test-report-xml-base-dir: extensions-core
     - name: cd extensions && mvn test
+      shell: bash
       run: |
         cd extensions
         ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
@@ -48,6 +50,7 @@ runs:
       with:
         test-report-xml-base-dir: extensions
     - name: cd test-framework && mvn test
+      shell: bash
       run: |
         cd test-framework
         ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
@@ -60,6 +63,7 @@ runs:
       with:
         test-report-xml-base-dir: test-framework
     - name: cd tooling && mvn verify
+      shell: bash
       run: |
         cd tooling
         ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
@@ -72,6 +76,7 @@ runs:
       with:
         test-report-xml-base-dir: tooling
     - name: cd catalog && mvn test
+      shell: bash
       run: |
         cd catalog
         ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
