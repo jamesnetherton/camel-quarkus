@@ -1,0 +1,61 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+name: 'Integration Tests Alternative'
+description: 'Runs tests for a specified JDK version'
+inputs:
+  java-version:
+    description: 'The version of the JDK to test with'
+    required: true
+    default: '17'
+  test-modules:
+    description: 'The modules to test'
+    required: false
+    default: ''
+runs:
+  using: "composite"
+  steps:
+    - name: Reclaim Disk Space
+      run: .github/reclaim-disk-space.sh
+    - name: Setup runner node
+      uses: .github/actions/setup-runner
+      with:
+        java-version: ${{ inputs.java-version }}
+    - name: Download Maven Repo
+      uses: .github/actions/download-maven-repo
+    - name: PDFBox font cache
+      uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+      if: runner.os == 'Windows'
+      with:
+        path: ~/.pdfbox.cache
+        key: ${{ runner.os }}-pdfbox-cache
+    - name: cd integration-tests && mvn clean verify
+      shell: bash
+      env:
+        TEST_MODULES: ${{ inputs.test-modules }}
+      run: |
+        cd integration-tests
+        ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+          -pl "${TEST_MODULES// /,}" \
+          -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+          --fail-at-end \
+          clean verify
+    - name: Report test failures
+      uses: ./.github/actions/test-summary-report
+      if: ${{ failure() }}
+      with:
+        test-report-xml-base-dir: integration-tests

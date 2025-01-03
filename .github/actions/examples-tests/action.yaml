@@ -1,0 +1,73 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+name: 'Camel Quarkus Examples Tests'
+description: 'Runs tests for each Camel Quarkus example project'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup runner node
+      uses: .github/actions/setup-runner
+    - name: set CQ_VERSION
+      run: echo "CQ_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout -N)" >> $GITHUB_ENV
+    - name: clone and verify examples
+      env:
+        EXAMPLE_MODULES: ${{matrix.examples}}
+      shell: '/usr/bin/bash {0}'
+      run: |
+        EXAMPLES_BRANCH="camel-quarkus-main"
+
+        if [[ ${GITHUB_REF_NAME} =~ [0-9]+.[0-9]+.x ]]; then
+            EXAMPLES_BRANCH=${GITHUB_REF_NAME}
+        elif [[ ${GITHUB_BASE_REF} =~ [0-9]+.[0-9]+.x ]]; then
+            EXAMPLES_BRANCH=${GITHUB_BASE_REF}
+        fi
+
+        git clone --depth 1 --branch ${EXAMPLES_BRANCH} https://github.com/apache/camel-quarkus-examples.git \
+          && cd camel-quarkus-examples \
+          && echo "Current Examples commit:" $(git rev-parse HEAD) \
+          && ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} org.l2x6.cq:cq-maven-plugin:2.10.0:examples-set-platform -Dcq.camel-quarkus.version=${CQ_VERSION}
+
+        BUILD_FAILURES=()
+
+        for MODULE in ${EXAMPLE_MODULES//,/ }; do
+          cd ${MODULE}
+
+          ../mvnw ${CQ_MAVEN_ARGS} clean verify \
+            -Dformatter.skip -Dimpsort.skip \
+            -Dquarkus.native.builder-image.pull=missing \
+            -Pnative,docker,ci
+
+          if [[ $? -ne 0 ]]; then
+            BUILD_FAILURES[${#BUILD_FAILURES[@]}]=${MODULE}
+          fi
+
+          cd -
+        done
+
+        if [[ ${#BUILD_FAILURES[@]} -gt 0 ]]; then
+          echo -e "\nBuild errors were encountered in the following projects:\n"
+          for FAILURE in ${BUILD_FAILURES[@]}; do
+              echo "* ${FAILURE}"
+          done
+          echo -e "\nCheck build logs for further information."
+          exit 1
+        fi
+    - name: Report test failures
+      uses: ./.github/actions/test-summary-report
+      if: ${{ failure() }}
