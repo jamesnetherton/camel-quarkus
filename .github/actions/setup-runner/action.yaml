@@ -19,10 +19,10 @@ runs:
   using: composite
   steps:
     - name: Set up JDK 17
-      uses: .github/actions/setup-java
+      uses: ./.github/actions/setup-java
       with:
         distribution: ${{ inputs.distribution }}
         java-version: ${{ inputs.java-version }}
     - name: Download Maven Repo
-      uses: .github/actions/download-maven-repo
+      uses: ./.github/actions/download-maven-repo
       if: inputs.download-maven-repo == 'true'

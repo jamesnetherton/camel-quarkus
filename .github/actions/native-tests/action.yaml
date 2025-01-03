@@ -22,19 +22,9 @@ runs:
   using: "composite"
   steps:
     - name: Reclaim Disk Space
-      uses: .github/actions/reclaim-disk-space
-    - name: Checkout
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      with:
-        ref: ${{ env.CHECKOUT_REF }}
-        fetch-depth: 0
-    - name: Set up JDK 17
-      uses: actions/setup-java@7a6d8a8234af8eb26422e24e3006232cccaa061b # v4.6.0
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-    - name: Download Maven Repository
-      uses: ./github/actions/download-maven-repo
+      uses: ./.github/actions/reclaim-disk-space
+    - name: Setup runner node
+      uses: ./.github/actions/setup-runner
     - name: Integration Tests
       run: |
         for MODULE in $(yq -M -N e ".${{ matrix.category }}" tooling/scripts/test-categories.yaml | grep -vE '^\s*#' | cut -f2 -d' '); do

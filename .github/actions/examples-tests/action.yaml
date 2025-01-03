@@ -22,7 +22,7 @@ runs:
   using: "composite"
   steps:
     - name: Setup runner node
-      uses: .github/actions/setup-runner
+      uses: ./.github/actions/setup-runner
     - name: set CQ_VERSION
       run: echo "CQ_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout -N)" >> $GITHUB_ENV
     - name: clone and verify examples

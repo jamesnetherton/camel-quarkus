@@ -22,7 +22,7 @@ runs:
   using: "composite"
   steps:
     - name: Setup runner node
-      uses: .github/actions/setup-runner
+      uses: ./.github/actions/setup-runner
     - name: cd extensions-core && mvn test
       run: |
         cd extensions-core

@@ -24,7 +24,7 @@ runs:
     - name: Check free space on disk
       uses: ./.github/actions/check-disk-space
     - name: Setup runner node
-      uses: .github/actions/setup-runner
+      uses: ./.github/actions/setup-runner
     - name: Build Camel
       if: github.ref == 'refs/heads/camel-main' || github.base_ref == 'camel-main'
       run: |

@@ -167,7 +167,7 @@ jobs:
           fetch-depth: 1
           ref: ${{ env.CHECKOUT_REF }}
       - name: Run Native Tests
-        uses: .github/actions/native-tests
+        uses: ./.github/actions/native-tests
 
   functional-extension-tests:
     runs-on: ubuntu-latest
@@ -182,7 +182,7 @@ jobs:
           fetch-depth: 1
           ref: ${{ env.CHECKOUT_REF }}
       - name: Run Functional Extension Tests
-        uses: .github/actions/functional-extension-tests
+        uses: ./.github/actions/functional-extension-tests
 
   extensions-jvm-tests:
     runs-on: ubuntu-latest
@@ -200,7 +200,7 @@ jobs:
           fetch-depth: 1
           ref: ${{ env.CHECKOUT_REF }}
       - name: Run Extension JVM Tests
-        uses: .github/actions/extension-jvm-tests
+        uses: ./.github/actions/extensions-jvm-tests
 
   integration-tests-alternative-jdk:
     name: Integration Tests Alternative JDK 21 ${{matrix.name}}
@@ -219,7 +219,7 @@ jobs:
           fetch-depth: 1
           ref: ${{ env.CHECKOUT_REF }}
       - name: Run Integration Tests Alternative JDK
-        uses: .github/actions/integration-tests-alternative
+        uses: ./.github/actions/integration-tests-alternative
         with:
           java-version: '21'
           test-modules: ${{ matrix.modules }}
@@ -241,7 +241,7 @@ jobs:
           fetch-depth: 1
           ref: ${{ env.CHECKOUT_REF }}
       - name: Run Integration Tests Alternative Platform
-        uses: .github/actions/integration-tests-alternative
+        uses: ./.github/actions/integration-tests-alternative
         with:
           test-modules: ${{ matrix.modules }}
 
