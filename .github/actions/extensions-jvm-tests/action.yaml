@@ -22,7 +22,7 @@ runs:
   using: "composite"
   steps:
     - name: Setup runner node
-      uses: .github/actions/setup-runner
+      uses: ./.github/actions/setup-runner
       with:
         java-version: ${{ matrix.java }}
     - name: cd integration-tests-jvm && mvn clean test
