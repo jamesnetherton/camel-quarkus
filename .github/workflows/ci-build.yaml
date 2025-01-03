@@ -149,6 +149,11 @@ jobs:
     env:
       MAVEN_OPTS: -Xmx4600m
     steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 1
+          ref: ${{ env.CHECKOUT_REF }}
       - name: Build Camel Quarkus
         uses: ./.github/actions/initial-mvn-install
 
