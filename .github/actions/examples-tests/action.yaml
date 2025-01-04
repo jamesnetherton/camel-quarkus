@@ -24,6 +24,7 @@ runs:
     - name: Setup runner node
       uses: ./.github/actions/setup-runner
     - name: set CQ_VERSION
+      shell: bash
       run: echo "CQ_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout -N)" >> $GITHUB_ENV
     - name: clone and verify examples
       env:
