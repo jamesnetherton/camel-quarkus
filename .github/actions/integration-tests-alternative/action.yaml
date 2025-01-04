@@ -47,11 +47,19 @@ runs:
         TEST_MODULES: ${{ inputs.test-modules }}
       run: |
         cd integration-tests
-        ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-          -pl "${TEST_MODULES// /,}" \
-          -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-          --fail-at-end \
-          clean verify
+
+        if [[ -z "${TEST_MODULES}" ]]; then
+          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+            -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+            --fail-at-end \
+            clean verify
+        else
+          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+            -pl "${TEST_MODULES// /,}" \
+            -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+            --fail-at-end \
+            clean verify
+        fi
     - name: Report test failures
       uses: ./.github/actions/test-summary-report
       if: ${{ failure() }}
