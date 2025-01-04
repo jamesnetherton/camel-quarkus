@@ -17,6 +17,16 @@
 
 name: 'Initial Maven Install'
 description: 'Performs the initial mvn install build step'
+outputs:
+  matrix:
+    description: 'The native integratio test module matrix'
+    value: ${{ steps.setup-test-matrices.outputs.matrix }}
+  examples-matrix:
+    description: 'The examples project module matrix'
+    value: ${{ steps.setup-test-matrices.outputs.examples-matrix }}
+  alternate-jvm-matrix:
+    description: 'The alnative JVM module matrix'
+    value: ${{ steps.setup-test-matrices.outputs.alternate-jvm-matrix }}
 
 runs:
   using: "composite"
@@ -62,4 +72,5 @@ runs:
     - name: Upload Maven Repository
       uses: ./.github/actions/upload-maven-repo
     - name: Set Up Test Matrices
+      id: setup-test-matrices
       uses: ./.github/actions/setup-test-matrices
