@@ -26,6 +26,10 @@ inputs:
     description: 'The modules to test'
     required: false
     default: ''
+  maven-extra-args:
+    description: 'Additional arguments to pass to the Maven build'
+    required: false
+    default: ''
 runs:
   using: "composite"
   steps:
@@ -49,12 +53,12 @@ runs:
         cd integration-tests
 
         if [[ -z "${TEST_MODULES}" ]]; then
-          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} ${{ inputs.maven-extra-args }} \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
             --fail-at-end \
             clean verify
         else
-          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} ${{ inputs.maven-extra-args }} \
             -pl "${TEST_MODULES// /,}" \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
             --fail-at-end \

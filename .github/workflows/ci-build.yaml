@@ -248,6 +248,8 @@ jobs:
           ref: ${{ env.CHECKOUT_REF }}
       - name: Run Integration Tests Alternative Platform
         uses: ./.github/actions/integration-tests-alternative
+        with:
+          maven-extra-args: '-Dskip-testcontainers-tests'
 
   examples-tests:
     name: Examples Tests - ${{matrix.name}}
