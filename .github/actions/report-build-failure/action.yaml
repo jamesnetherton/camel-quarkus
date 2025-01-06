@@ -15,21 +15,18 @@
 # limitations under the License.
 #
 
-name: 'Upload Maven Repository'
-description: 'Compresses and uploads the local .m2 directory as a build artifact'
+name: 'Report Build Failure'
+description: 'Report build failure'
 
 runs:
   using: "composite"
   steps:
-    - name: Tar Maven Repo
+    - name: Report Build Failure
       shell: bash
       run: |
-        tar -czf ${{ runner.temp }}/maven-repo.tgz -C ~ .m2/repository -C ~ build-data
-        ls -lh ${{ runner.temp }}/maven-repo.tgz
-        df -h /
-    - name: Persist Maven Repo
-      uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
-      with:
-        name: maven-repo
-        path: ${{ runner.temp }}/maven-repo.tgz
-        retention-days: 1
+        # Abort rebase in case something went wrong as we may have broken pom.xml files
+        if [[ -e ".git/rebase" || -e ".git/rebase-apply" || -e ".git/rebase-merge" ]]; then
+          git rebase --abort
+        fi
+
+        ./mvnw ${CQ_MAVEN_ARGS} verify -N -Pbuild-notification -Dstatus=${{ job.status }} -DissueId=${{ env.ISSUE_ID }} -Dtoken=${{ secrets.GITHUB_TOKEN }} -DbuildId=$(cat ~/build-data/build-id.txt) -Drepo=${GITHUB_REPOSITORY} -Dbranch=camel-main -Dbranch-commit=$(cat ~/build-data/main-sha.txt)

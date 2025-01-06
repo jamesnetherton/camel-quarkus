@@ -23,6 +23,11 @@ runs:
   steps:
     - name: Setup runner node
       uses: ./.github/actions/setup-runner
+    - name: Rebase from main branch
+      if: github.event_name == 'schedule'
+      uses: ./.github/actions/rebase-branch
+      with:
+        source: 'main-sha.txt'
     - name: set CQ_VERSION
       shell: bash
       run: echo "CQ_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout -N)" >> $GITHUB_ENV
@@ -72,3 +77,6 @@ runs:
     - name: Report test failures
       uses: ./.github/actions/test-summary-report
       if: ${{ failure() }}
+    - name: Report build failure
+      if: (failure() || cancelled()) && github.event_name == 'schedule'
+      uses: ./.github/actions/report-build-failure

@@ -25,6 +25,11 @@ runs:
       uses: ./.github/actions/setup-runner
       with:
         java-version: ${{ matrix.java }}
+    - name: Rebase from main branch
+      if: github.event_name == 'schedule'
+      uses: ./.github/actions/rebase-branch
+      with:
+        source: 'main-sha.txt'
     - name: cd integration-tests-jvm && mvn clean test
       shell: bash
       run: |
@@ -38,3 +43,6 @@ runs:
       if: ${{ failure() }}
       with:
         test-report-xml-base-dir: integration-tests-jvm
+    - name: Report build failure
+      if: (failure() || cancelled()) && github.event_name == 'schedule'
+      uses: ./.github/actions/report-build-failure

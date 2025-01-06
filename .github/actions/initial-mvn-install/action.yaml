@@ -17,15 +17,17 @@
 
 name: 'Initial Maven Install'
 description: 'Performs the initial mvn install build step'
+inputs:
+  
 outputs:
   matrix:
-    description: 'The native integratio test module matrix'
+    description: 'The native integration test module matrix'
     value: ${{ steps.setup-test-matrices.outputs.matrix }}
   examples-matrix:
     description: 'The examples project module matrix'
     value: ${{ steps.setup-test-matrices.outputs.examples-matrix }}
   alternate-jvm-matrix:
-    description: 'The alnative JVM module matrix'
+    description: 'The alternative JVM module matrix'
     value: ${{ steps.setup-test-matrices.outputs.alternate-jvm-matrix }}
 
 runs:
@@ -33,12 +35,17 @@ runs:
   steps:
     - name: Check free space on disk
       uses: ./.github/actions/check-disk-space
+    - name: Set workflow build ID
+      uses: ./.github/actions/set-workflow-build
+    - name: Rebase from main branch
+      if: github.event_name == 'schedule'
+      uses: ./.github/actions/rebase-branch
     - name: Setup runner node
       uses: ./.github/actions/setup-runner
       with:
         download-maven-repo: 'false'
     - name: Build Camel
-      if: github.ref == 'refs/heads/camel-main' || github.base_ref == 'camel-main'
+      if: github.ref == 'refs/heads/camel-main' || github.base_ref == 'camel-main' || github.workflow == 'Daily Build Camel Main branch'
       shell: bash
       run: |
         cd ../
@@ -47,7 +54,7 @@ runs:
           && echo "Current Camel commit:" $(git rev-parse HEAD) \
           && ./mvnw ${CQ_MAVEN_ARGS} clean install -Dquickly -T1C
     - name: Build Quarkus
-      if: github.ref == 'refs/heads/quarkus-main' || github.base_ref == 'quarkus-main'
+      if: github.ref == 'refs/heads/quarkus-main' || github.base_ref == 'quarkus-main' || github.workflow == 'Daily Build Quarkus Main branch'
       shell: bash
       run: |
         git clone --depth 1 --branch main https://github.com/quarkusio/quarkus.git \
@@ -74,3 +81,6 @@ runs:
     - name: Set Up Test Matrices
       id: setup-test-matrices
       uses: ./.github/actions/setup-test-matrices
+    - name: Report build failure
+      if: (failure() || cancelled()) && github.event_name == 'schedule'
+      uses: ./.github/actions/report-build-failure
