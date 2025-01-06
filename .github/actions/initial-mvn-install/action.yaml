@@ -34,7 +34,7 @@ runs:
     - name: Check free space on disk
       uses: ./.github/actions/check-disk-space
     - name: Set workflow build ID
-      uses: ./.github/actions/set-workflow-build
+      uses: ./.github/actions/set-workflow-build-id
     - name: Setup runner node
       uses: ./.github/actions/setup-runner
       with:
