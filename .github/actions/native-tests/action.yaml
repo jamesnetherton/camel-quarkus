@@ -25,6 +25,11 @@ runs:
       uses: ./.github/actions/reclaim-disk-space
     - name: Setup runner node
       uses: ./.github/actions/setup-runner
+    - name: Rebase from main branch
+      if: github.event_name == 'schedule'
+      uses: ./.github/actions/rebase-branch
+      with:
+        source: 'main-sha.txt'
     - name: Integration Tests
       shell: bash
       run: |
@@ -70,3 +75,6 @@ runs:
         test-report-xml-base-dir: integration-tests
     - name: Fail if there are uncommitted changes
       uses: ./.github/actions/check-uncommitted-changes
+    - name: Report build failure
+      if: (failure() || cancelled()) && github.event_name == 'schedule'
+      uses: ./.github/actions/report-build-failure

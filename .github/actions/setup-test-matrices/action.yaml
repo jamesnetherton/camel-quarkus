@@ -19,7 +19,7 @@ name: 'Setup Test Matrices'
 description: 'Sets up test matrices for matrix jobs'
 outputs:
   matrix:
-    description: 'The native integratio test module matrix'
+    description: 'The native integration test module matrix'
     value: ${{ steps.set-native-matrix.outputs.matrix }}
   examples-matrix:
     description: 'The examples project module matrix'

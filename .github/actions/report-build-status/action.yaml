@@ -15,21 +15,23 @@
 # limitations under the License.
 #
 
-name: 'Upload Maven Repository'
-description: 'Compresses and uploads the local .m2 directory as a build artifact'
+name: 'Report Build Status'
+description: 'Reports the current build status to a given GitHub issue'
+inputs:
+  status:
+    description: 'The current job status'
+    required: true
+    default: ${{ job.status }}
+outputs:
+  overall-build-status:
+    description: 'The aggregated status of all workflow steps. Will be empty unless the status input property is set to verify'
+    value: ${{ steps.report.outputs.overall_build_status }}
 
 runs:
   using: "composite"
   steps:
-    - name: Tar Maven Repo
+    - name: Report build status
+      id: report
       shell: bash
       run: |
-        tar -czf ${{ runner.temp }}/maven-repo.tgz -C ~ .m2/repository -C ~ build-data
-        ls -lh ${{ runner.temp }}/maven-repo.tgz
-        df -h /
-    - name: Persist Maven Repo
-      uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
-      with:
-        name: maven-repo
-        path: ${{ runner.temp }}/maven-repo.tgz
-        retention-days: 1
+        ./mvnw ${CQ_MAVEN_ARGS} verify -N -Pbuild-notification -Dstatus=${{ inputs.status }} -DissueId=${{ env.ISSUE_ID }} -Dtoken=${{ secrets.GITHUB_TOKEN }} -DbuildId=$(cat ~/build-data/build-id.txt) -Drepo=${GITHUB_REPOSITORY} -Dbranch=$(git branch --show-current) -Dbranch-commit=$(cat ~/build-data/main-sha.txt)

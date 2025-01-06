@@ -15,21 +15,27 @@
 # limitations under the License.
 #
 
-name: 'Upload Maven Repository'
-description: 'Compresses and uploads the local .m2 directory as a build artifact'
+name: 'Rebase branch'
+description: 'Rebases a target branch from the given source branch'
+inputs:
+  source:
+    description: 'The source to rebase from. Either a branch name or branch-sha.txt file containing an explicit commit SHA'
+    default: 'main'
+    required: true
 
 runs:
   using: "composite"
   steps:
-    - name: Tar Maven Repo
+    - name: Rebase from branch ${{ inputs.source }}
       shell: bash
       run: |
-        tar -czf ${{ runner.temp }}/maven-repo.tgz -C ~ .m2/repository -C ~ build-data
-        ls -lh ${{ runner.temp }}/maven-repo.tgz
-        df -h /
-    - name: Persist Maven Repo
-      uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
-      with:
-        name: maven-repo
-        path: ${{ runner.temp }}/maven-repo.tgz
-        retention-days: 1
+        git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git fetch origin ${{ inputs.source }}
+
+        if [[ "${{ inputs.source }}" *-sha.txt ]]; then
+          git rebase origin/${{ inputs.source }}
+          git rev-parse origin/${{ inputs.source }} > ~/build-data/${{ inputs.source }}-sha.txt
+        else
+          git rebase $(cat ~/build-data/${{ inputs.source }})
+        fi
