@@ -20,7 +20,7 @@ name: Daily Build Camel Main branch
 on:
   schedule:
     # Run every day at midnight
-    - cron:  '56 10 * * *'
+    - cron:  '05 11 * * *'
 
 env:
   LANG: en_US.UTF-8
