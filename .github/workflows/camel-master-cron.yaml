@@ -20,7 +20,7 @@ name: Daily Build Camel Main branch
 on:
   schedule:
     # Run every day at midnight
-    - cron:  '05 11 * * *'
+    - cron:  '25 11 * * *'
 
 env:
   LANG: en_US.UTF-8
@@ -33,7 +33,6 @@ jobs:
   initial-mvn-install:
     if: github.repository == 'jamesnetherton/camel-quarkus'
     runs-on: ubuntu-latest
-    needs: pre-build-checks
     outputs:
       matrix: ${{ steps.initial-mvn-install.outputs.matrix }}
       examples-matrix: ${{ steps.initial-mvn-install.outputs.examples-matrix }}
