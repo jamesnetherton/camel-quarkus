@@ -37,9 +37,6 @@ runs:
       uses: ./.github/actions/check-disk-space
     - name: Set workflow build ID
       uses: ./.github/actions/set-workflow-build
-    - name: Rebase from main branch
-      if: github.event_name == 'schedule'
-      uses: ./.github/actions/rebase-branch
     - name: Setup runner node
       uses: ./.github/actions/setup-runner
       with:

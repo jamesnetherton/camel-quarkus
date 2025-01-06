@@ -23,11 +23,6 @@ runs:
   steps:
     - name: Setup runner node
       uses: ./.github/actions/setup-runner
-    - name: Rebase from main branch
-      if: github.event_name == 'schedule'
-      uses: ./.github/actions/rebase-branch
-      with:
-        source: 'main-sha.txt'
     - name: cd extensions-core && mvn test
       shell: bash
       run: |
