@@ -17,8 +17,6 @@
 
 name: 'Initial Maven Install'
 description: 'Performs the initial mvn install build step'
-inputs:
-  
 outputs:
   matrix:
     description: 'The native integration test module matrix'
