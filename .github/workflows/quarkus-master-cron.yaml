@@ -33,7 +33,6 @@ jobs:
   initial-mvn-install:
     if: github.repository == 'jamesnetherton/camel-quarkus'
     runs-on: ubuntu-latest
-    needs: pre-build-checks
     outputs:
       matrix: ${{ steps.initial-mvn-install.outputs.matrix }}
       examples-matrix: ${{ steps.initial-mvn-install.outputs.examples-matrix }}
