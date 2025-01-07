@@ -19,7 +19,7 @@ name: 'Rebase branch'
 description: 'Rebases a target branch from the given source branch'
 inputs:
   source:
-    description: 'The source to rebase from. Either a branch name or branch-sha.txt file containing an explicit commit SHA'
+    description: 'The source branch to rebase from.'
     default: 'main-testing'
     required: true
 
@@ -33,8 +33,8 @@ runs:
         git config --local user.name "github-actions[bot]"
         git fetch origin ${{ inputs.source }}
 
-        if [[ "${{ inputs.source }}" == *-sha.txt ]]; then
-          git rebase $(cat ~/build-data/${{ inputs.source }})
+        if [[ -f ~/build-data/${{ inputs.source }}-sha.txt ]]; then
+          git rebase $(cat ~/build-data/${{ inputs.source }}-sha.txt
         else
           [ ! -d ~/build-data ] && mkdir -p ~/build-data
           git rebase origin/${{ inputs.source }}
