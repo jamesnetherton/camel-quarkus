@@ -20,7 +20,7 @@ name: Daily Build Camel Main branch
 on:
   schedule:
     # Run every day at midnight
-    - cron:  '55 7 * * *'
+    - cron:  '0 8 * * *'
 
 env:
   LANG: en_US.UTF-8
@@ -46,7 +46,7 @@ jobs:
           ref: camel-main
       - name: Rebase from main branch
         uses: ./.github/actions/rebase-branch
-      - name: Build Camel Quarkus
+      - name: Initial mvn install
         id: initial-mvn-install
         uses: ./.github/actions/initial-mvn-install
 
