@@ -36,6 +36,7 @@ runs:
         if [[ "${{ inputs.source }}" == *-sha.txt ]]; then
           git rebase $(cat ~/build-data/${{ inputs.source }})
         else
+          [ ! -d ~/build-data ] && mkdir -p ~/build-data
           git rebase origin/${{ inputs.source }}
           git rev-parse origin/${{ inputs.source }} > ~/build-data/${{ inputs.source }}-sha.txt
         fi
