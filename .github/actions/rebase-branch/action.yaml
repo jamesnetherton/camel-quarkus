@@ -34,8 +34,8 @@ runs:
         git fetch origin ${{ inputs.source }}
 
         if [[ "${{ inputs.source }}" == *-sha.txt ]]; then
+          git rebase $(cat ~/build-data/${{ inputs.source }})
+        else
           git rebase origin/${{ inputs.source }}
           git rev-parse origin/${{ inputs.source }} > ~/build-data/${{ inputs.source }}-sha.txt
-        else
-          git rebase $(cat ~/build-data/${{ inputs.source }})
         fi
