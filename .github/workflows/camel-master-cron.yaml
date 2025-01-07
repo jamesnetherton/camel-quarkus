@@ -20,7 +20,7 @@ name: Daily Build Camel Main branch
 on:
   schedule:
     # Run every day at midnight
-    - cron:  '15 11 * * *'
+    - cron:  '10 12 * * *'
 
 env:
   LANG: en_US.UTF-8
@@ -65,7 +65,7 @@ jobs:
       - name: Rebase from main branch
         uses: ./.github/actions/rebase-branch
         with:
-          source: 'main-sha.txt'
+          source: 'main-testing-sha.txt'
       - name: Run Native Tests
         uses: ./.github/actions/native-tests
 
@@ -82,7 +82,7 @@ jobs:
       - name: Rebase from main branch
         uses: ./.github/actions/rebase-branch
         with:
-          source: 'main-sha.txt'
+          source: 'main-testing-sha.txt'
       - name: Run Functional Extension Tests
         uses: ./.github/actions/functional-extension-tests
 
@@ -103,7 +103,7 @@ jobs:
       - name: Rebase from main branch
         uses: ./.github/actions/rebase-branch
         with:
-          source: 'main-sha.txt'
+          source: 'main-testing-sha.txt'
       - name: Run Extension JVM Tests
         uses: ./.github/actions/extensions-jvm-tests
 
@@ -125,7 +125,7 @@ jobs:
       - name: Rebase from main branch
         uses: ./.github/actions/rebase-branch
         with:
-          source: 'main-sha.txt'
+          source: 'main-testing-sha.txt'
       - name: Run Integration Tests Alternative JDK
         uses: ./.github/actions/integration-tests-alternative
         with:
@@ -150,7 +150,7 @@ jobs:
       - name: Rebase from main branch
         uses: ./.github/actions/rebase-branch
         with:
-          source: 'main-sha.txt'
+          source: 'main-testing-sha.txt'
       - name: Run Integration Tests Alternative Platform
         uses: ./.github/actions/integration-tests-alternative
         with:
@@ -172,7 +172,7 @@ jobs:
       - name: Rebase from main branch
         uses: ./.github/actions/rebase-branch
         with:
-          source: 'main-sha.txt'
+          source: 'main-testing-sha.txt'
       - name: Run Examples Tests - ${{matrix.name}}
         uses: ./.github/actions/examples-tests
 
@@ -189,7 +189,7 @@ jobs:
       - name: Rebase from main branch
         uses: ./.github/actions/rebase-branch
         with:
-          source: 'main-sha.txt'
+          source: 'main-testing-sha.txt'
       - name: Report build status
         id: report
         uses: ./.github/actions/report-build-status
