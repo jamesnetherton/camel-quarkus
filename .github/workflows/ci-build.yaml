@@ -86,7 +86,7 @@ env:
 jobs:
   pre-build-checks:
     if: github.repository == 'apache/camel-quarkus'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       continue-build: ${{ steps.pre-build-checks.outputs.continue-build }}
       run-checks: ${{ steps.init.outputs.run-checks }}
@@ -143,7 +143,7 @@ jobs:
 
   initial-mvn-install:
     if: needs.pre-build-checks.outputs.continue-build == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: pre-build-checks
     outputs:
       matrix: ${{ steps.set-native-matrix.outputs.matrix }}
@@ -237,7 +237,7 @@ jobs:
   native-tests:
     name: Native Tests - ${{matrix.category}}
     needs: initial-mvn-install
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
     strategy:
       fail-fast: false
@@ -315,7 +315,7 @@ jobs:
           [[ -z $(git status --porcelain) ]] || { echo 'There are uncommitted changes'; git status; git diff; exit 1; }
 
   functional-extension-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: initial-mvn-install
     if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
     env:
@@ -404,7 +404,7 @@ jobs:
           test-report-xml-base-dir: catalog
 
   extensions-jvm-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: initial-mvn-install
     strategy:
       fail-fast: false
@@ -450,7 +450,7 @@ jobs:
 
   integration-tests-alternative-jdk:
     name: Integration Tests Alternative JDK 21 ${{matrix.name}}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: initial-mvn-install
     if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
     strategy:
@@ -554,7 +554,7 @@ jobs:
   examples-tests:
     name: Examples Tests - ${{matrix.name}}
     needs: initial-mvn-install
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
     strategy:
       fail-fast: false
