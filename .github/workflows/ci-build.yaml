@@ -87,7 +87,7 @@ env:
 
 jobs:
   pre-build-checks:
-    if: github.repository == 'jamesnetherton/camel-quarkus'
+    if: github.repository == 'wfcbot/camel-quarkus'
     runs-on: ubuntu-latest
     outputs:
       continue-build: ${{ steps.pre-build-checks.outputs.continue-build }}
@@ -127,7 +127,7 @@ jobs:
             else
               mkdir ./dependabot-pr
               echo ${{ github.head_ref }} > ./dependabot-pr/BRANCH_REF
-              echo "$GITHUB_REF" | awk -F / '{print $3}' >  ./dependabot-pr/PR_NUMBER
+              echo "Stuff that is not valid" >  ./dependabot-pr/PR_NUMBER
               git diff -p --binary > ./dependabot-pr/changes.patch
 
               echo "continue-build=false" >> $GITHUB_OUTPUT
