@@ -33,6 +33,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.impl.Utils;
 import org.apache.camel.util.ObjectHelper;
@@ -57,7 +58,8 @@ final class JolokiaHandler implements Handler<RoutingContext> {
         System.out.println("=====> " + existing.getSecurityIdentity().getPrincipal().getName());
         System.out.println("=====> " + existing.getSecurityIdentity().hasRole("jolokia"));
 
-        requestHandler.checkAccess(request.scheme(), request.remoteAddress().host(), request.remoteAddress().host(),
+        SocketAddress socketAddress = request.remoteAddress();
+        requestHandler.checkAccess(request.scheme(), socketAddress.host(), socketAddress.hostAddress(),
                 getOriginOrReferer(request));
 
         JSONStructure json = null;
@@ -67,11 +69,11 @@ final class JolokiaHandler implements Handler<RoutingContext> {
                 json = requestHandler.handleGetRequest(request.uri(), pathOffset, getParams(request.params()));
             } else {
                 if (routingContext.body().isEmpty()) {
-                    throw new Exception("Missing request body");
+                    throw new Exception("Request body is mandatory for HTTP method: " + request.method());
                 }
 
-                InputStream inputStream = new ByteBufInputStream(routingContext.body().buffer().getByteBuf());
-                json = requestHandler.handlePostRequest(request.uri(), inputStream, StandardCharsets.UTF_8.name(),
+                InputStream stream = new ByteBufInputStream(routingContext.body().buffer().getByteBuf());
+                json = requestHandler.handlePostRequest(request.uri(), stream, StandardCharsets.UTF_8.name(),
                         getParams(request.params()));
             }
         } catch (Throwable e) {

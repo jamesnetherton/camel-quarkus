@@ -16,6 +16,7 @@ public class JolokiaRuntimeConfigBuilder implements ConfigBuilder {
                         "quarkus.http.ssl.certificate.trust-store-file", "/Users/james/Downloads/localhost.p12",
                         "quarkus.http.ssl.certificate.trust-store-password", "localhost",
                         "quarkus.http.auth.permission.jolokia.paths", "/q/jolokia/*",
+                        "quarkus.http.auth.policy.jolokia.roles-allowed", "jolokia",
                         "quarkus.http.auth.permission.jolokia.policy", "authenticated"),
                         "camel-quarkus-jolokia", 50));
     }

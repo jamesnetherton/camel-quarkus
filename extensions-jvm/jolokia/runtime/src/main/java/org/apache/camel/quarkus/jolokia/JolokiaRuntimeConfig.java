@@ -1,6 +1,7 @@
 package org.apache.camel.quarkus.jolokia;
 
 import java.io.File;
+import java.util.Optional;
 
 import io.quarkus.runtime.annotations.ConfigPhase;
 import io.quarkus.runtime.annotations.ConfigRoot;
@@ -25,6 +26,6 @@ public interface JolokiaRuntimeConfig {
         /**
          * The principal which must be given in a client certificate to allow access to Jolokia.
          */
-        String clientPrincipal();
+        Optional<String> clientPrincipal();
     }
 }
