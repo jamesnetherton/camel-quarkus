@@ -18,7 +18,7 @@ package org.apache.camel.quarkus.jolokia;
 
 import java.util.function.BooleanSupplier;
 
-import io.quarkus.arc.deployment.SyntheticBeanBuildItem;
+import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.BuildSteps;
@@ -28,12 +28,9 @@ import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.RunTimeConfigBuilderBuildItem;
 import io.quarkus.deployment.builditem.ShutdownContextBuildItem;
 import io.quarkus.runtime.RuntimeValue;
-import io.quarkus.security.identity.SecurityIdentityAugmentor;
-import io.quarkus.tls.TlsCertificateBuildItem;
 import io.quarkus.vertx.http.deployment.BodyHandlerBuildItem;
 import io.quarkus.vertx.http.deployment.NonApplicationRootPathBuildItem;
 import io.quarkus.vertx.http.deployment.RouteBuildItem;
-import jakarta.enterprise.context.ApplicationScoped;
 import org.jolokia.server.core.http.HttpRequestHandler;
 import org.jolokia.server.core.service.api.JolokiaContext;
 
@@ -82,27 +79,20 @@ public class JolokiaProcessor {
                 .build());
     }
 
-    @Record(ExecutionTime.RUNTIME_INIT)
     @BuildStep(onlyIf = JolokiaKubernetesSupportEnabled.class)
     void kubernetesConfiguration(
-            JolokiaRuntimeConfig runtimeConfig,
             BuildProducer<RunTimeConfigBuilderBuildItem> runtimeConfigBuilder,
-            BuildProducer<SyntheticBeanBuildItem> syntheticBean,
-            BuildProducer<TlsCertificateBuildItem> tlsCertificate,
-            CamelJolokiaRecorder recorder) {
+            BuildProducer<AdditionalBeanBuildItem> additionalBean) {
 
-        // Set up Quarkus security configuration
-        //runtimeConfigBuilder.produce(new RunTimeConfigBuilderBuildItem(JolokiaRuntimeConfigBuilder.class));
+        // Set up Quarkus TLS runtime configuration
+        runtimeConfigBuilder.produce(new RunTimeConfigBuilderBuildItem(JolokiaTLSConfigBuilder.class));
 
-        // Configure SecurityIdentityAugmentor for client auth
-        syntheticBean.produce(
-                SyntheticBeanBuildItem.create(SecurityIdentityAugmentor.class)
-                        .runtimeValue(recorder.createSecurityIdentityAugmentor(runtimeConfig))
-                        .scope(ApplicationScoped.class)
-                        .setRuntimeInit()
-                        .done());
-
-        tlsCertificate.produce(new TlsCertificateBuildItem("jolokia", recorder.createSupplier(runtimeConfig)));
+        // Configure SecurityIdentityAugmentor for client authentication
+        additionalBean.produce(
+                AdditionalBeanBuildItem.builder()
+                        .addBeanClass(JolokiaSecurityIdentityAugmentor.class)
+                        .setUnremovable()
+                        .build());
     }
 
     static final class JolokiaEnabled implements BooleanSupplier {

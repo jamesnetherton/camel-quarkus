@@ -17,22 +17,12 @@
 package org.apache.camel.quarkus.jolokia;
 
 import java.io.IOException;
-import java.security.KeyStore;
-import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
-
-import javax.net.ssl.SSLContext;
 
 import io.quarkus.runtime.RuntimeValue;
 import io.quarkus.runtime.ShutdownContext;
 import io.quarkus.runtime.annotations.Recorder;
-import io.quarkus.security.identity.SecurityIdentityAugmentor;
-import io.quarkus.tls.TlsConfiguration;
 import io.vertx.core.Handler;
-import io.vertx.core.net.KeyCertOptions;
-import io.vertx.core.net.SSLOptions;
-import io.vertx.core.net.TrustOptions;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.RoutingContext;
 import org.jboss.logging.Logger;
@@ -89,66 +79,6 @@ public class CamelJolokiaRecorder {
 
     public RuntimeValue<HttpRequestHandler> createJolokiaHttpRequestHandler(RuntimeValue<JolokiaContext> jolokiaContext) {
         return new RuntimeValue<>(new HttpRequestHandler(jolokiaContext.getValue()));
-    }
-
-    public RuntimeValue<SecurityIdentityAugmentor> createSecurityIdentityAugmentor(JolokiaRuntimeConfig runtimeConfig) {
-        return new RuntimeValue<>(new JolokiaSecurityIdentityAugmentor(runtimeConfig.kubernetes().clientPrincipal()));
-    }
-
-    public Supplier<TlsConfiguration> createSupplier(JolokiaRuntimeConfig runtimeConfig) {
-        return new Supplier<TlsConfiguration>() {
-            @Override
-            public TlsConfiguration get() {
-                return new TlsConfiguration() {
-                    @Override
-                    public KeyStore getKeyStore() {
-                        System.out.println("====> " + runtimeConfig.kubernetes().clientPrincipal());
-                        runtimeConfig.kubernetes().clientPrincipal().toString();
-                        return null;
-                    }
-
-                    @Override
-                    public KeyCertOptions getKeyStoreOptions() {
-                        return null;
-                    }
-
-                    @Override
-                    public KeyStore getTrustStore() {
-                        return null;
-                    }
-
-                    @Override
-                    public TrustOptions getTrustStoreOptions() {
-                        return null;
-                    }
-
-                    @Override
-                    public SSLOptions getSSLOptions() {
-                        return null;
-                    }
-
-                    @Override
-                    public SSLContext createSSLContext() throws Exception {
-                        return null;
-                    }
-
-                    @Override
-                    public Optional<String> getHostnameVerificationAlgorithm() {
-                        return Optional.empty();
-                    }
-
-                    @Override
-                    public boolean usesSni() {
-                        return false;
-                    }
-
-                    @Override
-                    public boolean reload() {
-                        return false;
-                    }
-                };
-            }
-        };
     }
 
     static final class CamelQuarkusJolokiaRestrictor {

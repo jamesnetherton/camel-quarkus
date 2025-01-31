@@ -12,14 +12,11 @@ import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.security.identity.SecurityIdentityAugmentor;
 import io.quarkus.security.runtime.QuarkusSecurityIdentity;
 import io.smallrye.mutiny.Uni;
+import jakarta.inject.Inject;
 
 public class JolokiaSecurityIdentityAugmentor implements SecurityIdentityAugmentor {
-    private final Optional<String> clientPrincipal;
-
-    public JolokiaSecurityIdentityAugmentor(Optional<String> clientPrincipal) {
-        System.out.println(clientPrincipal);
-        this.clientPrincipal = clientPrincipal;
-    }
+    @Inject
+    JolokiaRuntimeConfig config;
 
     @Override
     public Uni<SecurityIdentity> augment(SecurityIdentity identity, AuthenticationRequestContext context) {
@@ -40,6 +37,7 @@ public class JolokiaSecurityIdentityAugmentor implements SecurityIdentityAugment
     private Set<String> extractRoles(X509Certificate certificate) {
         String name = certificate.getSubjectX500Principal().getName();
         System.out.println(name);
+        Optional<String> clientPrincipal = config.kubernetes().clientPrincipal();
         System.out.println(clientPrincipal.orElse(null));
         if (clientPrincipal.isPresent() && name.equals(clientPrincipal.get())) {
             return Collections.singleton("jolokia");
