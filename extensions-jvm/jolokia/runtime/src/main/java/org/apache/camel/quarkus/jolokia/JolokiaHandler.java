@@ -51,7 +51,6 @@ final class JolokiaHandler implements Handler<RoutingContext> {
     public void handle(RoutingContext routingContext) {
         HttpServerRequest request = routingContext.request();
         String pathOffset = Utils.pathOffset(request.path(), routingContext);
-        InstanceHandle<SecurityIdentity> instance = Arc.container().instance(SecurityIdentity.class);
 
         QuarkusHttpUser existing = (QuarkusHttpUser) routingContext.user();
         System.out.println("=====> " + existing);
