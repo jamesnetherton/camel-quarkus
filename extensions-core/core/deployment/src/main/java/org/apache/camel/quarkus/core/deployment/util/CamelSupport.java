@@ -31,8 +31,12 @@ import java.util.stream.Stream;
 
 import io.quarkus.deployment.ApplicationArchive;
 import io.quarkus.deployment.builditem.ApplicationArchivesBuildItem;
+import org.apache.camel.CamelContext;
+import org.apache.camel.impl.DefaultCamelContext;
 import org.apache.camel.impl.engine.AbstractCamelContext;
+import org.apache.camel.impl.engine.DefaultExecutorServiceManager;
 import org.apache.camel.quarkus.core.deployment.spi.CamelServiceBuildItem;
+import org.apache.camel.support.DefaultThreadPoolFactory;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.jandex.ClassInfo;
 
@@ -128,5 +132,20 @@ public final class CamelSupport {
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static CamelContext newBuildTimeCamelContext(boolean init) {
+        CamelContext context = new DefaultCamelContext(false);
+
+        // TODO: Remove this: https://github.com/apache/camel-quarkus/issues/6642
+        DefaultExecutorServiceManager executorServiceManager = new DefaultExecutorServiceManager(context);
+        executorServiceManager.setThreadPoolFactory(new DefaultThreadPoolFactory());
+        context.setExecutorServiceManager(executorServiceManager);
+
+        if (init) {
+            context.init();
+        }
+
+        return context;
     }
 }
