@@ -79,6 +79,13 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>libraries-bom</artifactId>
+                <version>${google-cloud-libraries-bom.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
                 <groupId>com.datastax.oss.quarkus</groupId>
                 <artifactId>cassandra-quarkus-bom</artifactId>
                 <version>${cassandra-quarkus.version}</version>
