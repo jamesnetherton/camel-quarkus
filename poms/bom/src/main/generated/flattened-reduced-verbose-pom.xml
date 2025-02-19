@@ -8386,29 +8386,9 @@
         <version>1.1.0</version><!-- com.azure:azure-sdk-bom:1.2.31 -->
       </dependency>
       <dependency>
-        <groupId>com.google.cloud</groupId><!-- com.google.cloud:first-party-dependencies:3.42.0 -->
-        <artifactId>google-cloud-core</artifactId><!-- com.google.cloud:first-party-dependencies:3.42.0 -->
-        <version>2.50.0</version><!-- com.google.cloud:first-party-dependencies:3.42.0 -->
-        <type>test-jar</type><!-- com.google.cloud:first-party-dependencies:3.42.0 -->
-      </dependency>
-      <dependency>
-        <groupId>com.google.cloud</groupId><!-- com.google.cloud:first-party-dependencies:3.42.0 -->
-        <artifactId>google-cloud-core</artifactId><!-- com.google.cloud:first-party-dependencies:3.42.0 -->
-        <version>2.50.0</version><!-- com.google.cloud:first-party-dependencies:3.42.0 -->
-        <classifier>tests</classifier><!-- com.google.cloud:first-party-dependencies:3.42.0 -->
-      </dependency>
-      <dependency>
         <groupId>com.google.auto.value</groupId><!-- com.google.cloud:google-cloud-shared-config:1.14.0 -->
         <artifactId>auto-value-annotations</artifactId><!-- com.google.cloud:google-cloud-shared-config:1.14.0 -->
         <version>1.11.0</version><!-- com.google.cloud:google-cloud-shared-config:1.14.0 -->
-      </dependency>
-      <dependency>
-        <groupId>com.google.auth</groupId><!-- com.google.api:gapic-generator-java-bom:2.52.0 -->
-        <artifactId>google-auth-library-oauth2-http</artifactId><!-- com.google.api:gapic-generator-java-bom:2.52.0 -->
-        <version>1.31.0</version><!-- com.google.api:gapic-generator-java-bom:2.52.0 -->
-        <type>test-jar</type><!-- com.google.api:gapic-generator-java-bom:2.52.0 -->
-        <classifier>testlib</classifier><!-- com.google.api:gapic-generator-java-bom:2.52.0 -->
-        <scope>test</scope><!-- com.google.api:gapic-generator-java-bom:2.52.0 -->
       </dependency>
       <dependency>
         <groupId>com.google.api</groupId><!-- com.google.api:gapic-generator-java-bom:2.52.0 -->
@@ -8427,52 +8407,13 @@
       </dependency>
       <dependency>
         <groupId>com.google.api</groupId><!-- com.google.api:gax-bom:2.60.0 -->
-        <artifactId>gax</artifactId><!-- com.google.api:gax-bom:2.60.0 -->
-        <version>2.60.0</version><!-- com.google.api:gax-bom:2.60.0 -->
-        <type>test-jar</type><!-- com.google.api:gax-bom:2.60.0 -->
-        <classifier>testlib</classifier><!-- com.google.api:gax-bom:2.60.0 -->
-      </dependency>
-      <dependency>
-        <groupId>com.google.api</groupId><!-- com.google.api:gax-bom:2.60.0 -->
-        <artifactId>gax</artifactId><!-- com.google.api:gax-bom:2.60.0 -->
-        <version>2.60.0</version><!-- com.google.api:gax-bom:2.60.0 -->
-        <classifier>testlib</classifier><!-- com.google.api:gax-bom:2.60.0 -->
-      </dependency>
-      <dependency>
-        <groupId>com.google.api</groupId><!-- com.google.api:gax-bom:2.60.0 -->
         <artifactId>gax-grpc</artifactId><!-- com.google.api:gax-bom:2.60.0 -->
-        <version>2.60.0</version><!-- com.google.api:gax-bom:2.60.0 -->
-      </dependency>
-      <dependency>
-        <groupId>com.google.api</groupId><!-- com.google.api:gax-bom:2.60.0 -->
-        <artifactId>gax-grpc</artifactId><!-- com.google.api:gax-bom:2.60.0 -->
-        <version>2.60.0</version><!-- com.google.api:gax-bom:2.60.0 -->
-        <type>test-jar</type><!-- com.google.api:gax-bom:2.60.0 -->
-        <classifier>testlib</classifier><!-- com.google.api:gax-bom:2.60.0 -->
-      </dependency>
-      <dependency>
-        <groupId>com.google.api</groupId><!-- com.google.api:gax-bom:2.60.0 -->
-        <artifactId>gax-grpc</artifactId><!-- com.google.api:gax-bom:2.60.0 -->
-        <version>2.60.0</version><!-- com.google.api:gax-bom:2.60.0 -->
-        <classifier>testlib</classifier><!-- com.google.api:gax-bom:2.60.0 -->
-      </dependency>
-      <dependency>
-        <groupId>com.google.api</groupId><!-- com.google.api:gax-bom:2.60.0 -->
-        <artifactId>gax-httpjson</artifactId><!-- com.google.api:gax-bom:2.60.0 -->
         <version>2.60.0</version><!-- com.google.api:gax-bom:2.60.0 -->
       </dependency>
       <dependency>
         <groupId>com.google.api</groupId><!-- com.google.api:gax-bom:2.60.0 -->
         <artifactId>gax-httpjson</artifactId><!-- com.google.api:gax-bom:2.60.0 -->
         <version>2.60.0</version><!-- com.google.api:gax-bom:2.60.0 -->
-        <type>test-jar</type><!-- com.google.api:gax-bom:2.60.0 -->
-        <classifier>testlib</classifier><!-- com.google.api:gax-bom:2.60.0 -->
-      </dependency>
-      <dependency>
-        <groupId>com.google.api</groupId><!-- com.google.api:gax-bom:2.60.0 -->
-        <artifactId>gax-httpjson</artifactId><!-- com.google.api:gax-bom:2.60.0 -->
-        <version>2.60.0</version><!-- com.google.api:gax-bom:2.60.0 -->
-        <classifier>testlib</classifier><!-- com.google.api:gax-bom:2.60.0 -->
       </dependency>
       <dependency>
         <groupId>com.google.cloud</groupId><!-- com.google.cloud:google-cloud-core-bom:2.50.0 -->
@@ -8776,30 +8717,6 @@
         <groupId>io.debezium</groupId><!-- io.debezium:debezium-bom:3.0.7.Final -->
         <artifactId>debezium-connector-sqlserver</artifactId><!-- io.debezium:debezium-bom:3.0.7.Final -->
         <version>3.0.7.Final</version><!-- io.debezium:debezium-bom:3.0.7.Final -->
-      </dependency>
-      <dependency>
-        <groupId>io.debezium</groupId><!-- io.debezium:debezium-bom:3.0.7.Final -->
-        <artifactId>debezium-core</artifactId><!-- io.debezium:debezium-bom:3.0.7.Final -->
-        <version>3.0.7.Final</version><!-- io.debezium:debezium-bom:3.0.7.Final -->
-        <type>test-jar</type><!-- io.debezium:debezium-bom:3.0.7.Final -->
-      </dependency>
-      <dependency>
-        <groupId>io.debezium</groupId><!-- io.debezium:debezium-bom:3.0.7.Final -->
-        <artifactId>debezium-embedded</artifactId><!-- io.debezium:debezium-bom:3.0.7.Final -->
-        <version>3.0.7.Final</version><!-- io.debezium:debezium-bom:3.0.7.Final -->
-        <type>test-jar</type><!-- io.debezium:debezium-bom:3.0.7.Final -->
-      </dependency>
-      <dependency>
-        <groupId>io.debezium</groupId><!-- io.debezium:debezium-bom:3.0.7.Final -->
-        <artifactId>debezium-connector-mysql</artifactId><!-- io.debezium:debezium-bom:3.0.7.Final -->
-        <version>3.0.7.Final</version><!-- io.debezium:debezium-bom:3.0.7.Final -->
-        <type>test-jar</type><!-- io.debezium:debezium-bom:3.0.7.Final -->
-      </dependency>
-      <dependency>
-        <groupId>io.debezium</groupId><!-- io.debezium:debezium-bom:3.0.7.Final -->
-        <artifactId>debezium-connector-binlog</artifactId><!-- io.debezium:debezium-bom:3.0.7.Final -->
-        <version>3.0.7.Final</version><!-- io.debezium:debezium-bom:3.0.7.Final -->
-        <type>test-jar</type><!-- io.debezium:debezium-bom:3.0.7.Final -->
       </dependency>
       <dependency>
         <groupId>com.hazelcast</groupId><!-- com.hazelcast:quarkus-hazelcast-client-bom:4.0.0 -->
