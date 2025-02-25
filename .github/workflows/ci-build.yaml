@@ -20,7 +20,7 @@ name: Camel Quarkus CI
 on:
   push:
     branches:
-      - main
+      - mains-combined
       - camel-main
       - quarkus-main
       - "[0-9]+.[0-9]+.x"
@@ -85,7 +85,7 @@ env:
 
 jobs:
   pre-build-checks:
-    if: github.repository == 'apache/camel-quarkus'
+    if: github.repository == 'jamesnetherton/camel-quarkus'
     runs-on: ubuntu-latest
     outputs:
       continue-build: ${{ steps.pre-build-checks.outputs.continue-build }}
@@ -162,10 +162,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
       - name: Build Camel
-        if: github.ref == 'refs/heads/camel-main' || github.base_ref == 'camel-main'
         run: |
           cd ../
-          git clone --depth 1 --branch main https://github.com/apache/camel.git \
+          git clone --depth 1 --branch camel-4.10.x https://github.com/apache/camel.git \
             && cd camel \
             && echo "Current Camel commit:" $(git rev-parse HEAD) \
             && ./mvnw ${CQ_MAVEN_ARGS} clean install -Dquickly -T1C
