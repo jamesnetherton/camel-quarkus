@@ -33,30 +33,39 @@
     <name>Camel Quarkus :: Integration Tests :: Product :: Group 01</name>
 
     <modules>
-        <module>../../../integration-tests/amqp</module>
-        <module>../../../integration-tests/avro</module>
-        <module>../../../integration-tests/bean-validator</module>
-        <module>../../../integration-tests/beanio</module>
-        <module>../../../integration-tests/bindy</module>
-        <module>../../../integration-tests/cassandraql</module>
-        <module>../../../integration-tests/core-discovery-disabled</module>
-        <module>../../../integration-tests/crypto</module>
-        <module>../../../integration-tests/elasticsearch-rest-client</module>
-        <module>../../../integration-tests/fhir</module>
-        <module>../../../integration-tests/ftp</module>
-        <module>../../../integration-tests/google-bigquery</module>
-        <module>../../../integration-tests/google-pubsub</module>
-        <module>../../../integration-tests/google-secret-manager</module>
-        <module>../../../integration-tests/graphql</module>
-        <module>../../../integration-tests/grpc</module>
-        <module>../../../integration-tests/hashicorp-vault</module>
-        <module>../../../integration-tests/hl7</module>
-        <module>../../../integration-tests/infinispan</module>
-        <module>../../../integration-tests/infinispan-common</module>
-        <module>../../../integration-tests/infinispan-quarkus-client</module>
-        <module>../../../integration-tests/jackson-avro</module>
-        <module>../../../integration-tests/jackson-protobuf</module>
-        <module>../../../integration-tests/jasypt</module>
-        <module>../../../integration-tests/jaxb</module>
+        <module>../../../integration-test-groups/aws2/aws-secrets-manager</module>
+        <module>../../../integration-test-groups/aws2/aws2-cw</module>
+        <module>../../../integration-test-groups/aws2/aws2-ddb</module>
+        <module>../../../integration-test-groups/aws2/aws2-kinesis</module>
+        <module>../../../integration-test-groups/aws2/aws2-lambda</module>
+        <module>../../../integration-test-groups/aws2/aws2-sqs</module>
+        <module>../../../integration-test-groups/aws2/aws2-sqs-sns</module>
+        <module>../../../integration-test-groups/azure/azure-eventhubs</module>
+        <module>../../../integration-test-groups/azure/azure-key-vault</module>
+        <module>../../../integration-test-groups/azure/azure-servicebus</module>
+        <module>../../../integration-test-groups/azure/azure-storage-blob</module>
+        <module>../../../integration-test-groups/azure/azure-storage-queue</module>
+        <module>../../../integration-test-groups/compression/zip-deflater</module>
+        <module>../../../integration-test-groups/compression/zipfile</module>
+        <module>../../../integration-test-groups/cxf-soap/cxf-soap-client</module>
+        <module>../../../integration-test-groups/cxf-soap/cxf-soap-converter</module>
+        <module>../../../integration-test-groups/cxf-soap/cxf-soap-metrics</module>
+        <module>../../../integration-test-groups/cxf-soap/cxf-soap-mtom</module>
+        <module>../../../integration-test-groups/cxf-soap/cxf-soap-mtom-awt</module>
+        <module>../../../integration-test-groups/cxf-soap/cxf-soap-rest</module>
+        <module>../../../integration-test-groups/cxf-soap/cxf-soap-server</module>
+        <module>../../../integration-test-groups/cxf-soap/cxf-soap-ssl</module>
+        <module>../../../integration-test-groups/cxf-soap/cxf-soap-ws-security-client</module>
+        <module>../../../integration-test-groups/cxf-soap/cxf-soap-ws-security-server</module>
+        <module>../../../integration-test-groups/cxf-soap/cxf-soap-ws-trust</module>
+        <module>../../../integration-test-groups/dataformats-json/json-gson</module>
+        <module>../../../integration-test-groups/dataformats-json/json-jackson</module>
+        <module>../../../integration-test-groups/foundation/bean</module>
+        <module>../../../integration-test-groups/foundation/browse</module>
+        <module>../../../integration-test-groups/foundation/component-name-resolver</module>
+        <module>../../../integration-test-groups/foundation/controlbus</module>
+        <module>../../../integration-test-groups/foundation/core</module>
+        <module>../../../integration-test-groups/foundation/core-annotations</module>
+        <module>../../../integration-test-groups/foundation/core-languages</module>
     </modules>
 </project>

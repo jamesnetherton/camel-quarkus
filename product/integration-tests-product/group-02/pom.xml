@@ -33,30 +33,39 @@
     <name>Camel Quarkus :: Integration Tests :: Product :: Group 02</name>
 
     <modules>
-        <module>../../../integration-tests/jira</module>
-        <module>../../../integration-tests/jms-artemis-client</module>
-        <module>../../../integration-tests/jms-artemis-ra</module>
-        <module>../../../integration-tests/jms-ibmmq-client</module>
-        <module>../../../integration-tests/jms-qpid-amqp-client</module>
-        <module>../../../integration-tests/jpa</module>
-        <module>../../../integration-tests/jq</module>
-        <module>../../../integration-tests/jslt</module>
-        <module>../../../integration-tests/jsonpath</module>
-        <module>../../../integration-tests/jt400</module>
-        <module>../../../integration-tests/jt400-mocked</module>
-        <module>../../../integration-tests/jta</module>
-        <module>../../../integration-tests/kafka</module>
-        <module>../../../integration-tests/kafka-oauth</module>
-        <module>../../../integration-tests/kafka-sasl</module>
-        <module>../../../integration-tests/kafka-sasl-ssl</module>
-        <module>../../../integration-tests/kafka-ssl</module>
-        <module>../../../integration-tests/kamelet</module>
-        <module>../../../integration-tests/kubernetes</module>
-        <module>../../../integration-tests/kudu</module>
-        <module>../../../integration-tests/ldap</module>
-        <module>../../../integration-tests/lra</module>
-        <module>../../../integration-tests/mail</module>
-        <module>../../../integration-tests/main-command-mode</module>
-        <module>../../../integration-tests/main-devmode</module>
+        <module>../../../integration-test-groups/foundation/core-thread-pools</module>
+        <module>../../../integration-test-groups/foundation/dataset</module>
+        <module>../../../integration-test-groups/foundation/direct</module>
+        <module>../../../integration-test-groups/foundation/eip</module>
+        <module>../../../integration-test-groups/foundation/language</module>
+        <module>../../../integration-test-groups/foundation/log</module>
+        <module>../../../integration-test-groups/foundation/mock</module>
+        <module>../../../integration-test-groups/foundation/ref</module>
+        <module>../../../integration-test-groups/foundation/route-configurations</module>
+        <module>../../../integration-test-groups/foundation/scheduler</module>
+        <module>../../../integration-test-groups/foundation/seda</module>
+        <module>../../../integration-test-groups/foundation/timer</module>
+        <module>../../../integration-test-groups/foundation/transformer</module>
+        <module>../../../integration-test-groups/foundation/variables</module>
+        <module>../../../integration-test-groups/http/http</module>
+        <module>../../../integration-test-groups/http/netty-http</module>
+        <module>../../../integration-test-groups/http/vertx-http</module>
+        <module>../../../integration-test-groups/jdbc/db2</module>
+        <module>../../../integration-test-groups/jdbc/h2</module>
+        <module>../../../integration-test-groups/jdbc/mariadb</module>
+        <module>../../../integration-test-groups/jdbc/mssql</module>
+        <module>../../../integration-test-groups/jdbc/mysql</module>
+        <module>../../../integration-test-groups/jdbc/oracle</module>
+        <module>../../../integration-test-groups/jdbc/postgresql</module>
+        <module>../../../integration-test-groups/mongodb/mongodb</module>
+        <module>../../../integration-test-groups/xml/jvm/xslt-aggregate</module>
+        <module>../../../integration-test-groups/xml/jvm/xslt-bean</module>
+        <module>../../../integration-test-groups/xml/jvm/xslt-file</module>
+        <module>../../../integration-test-groups/xml/jvm/xslt-http</module>
+        <module>../../../integration-test-groups/xml/jvm/xslt-ref</module>
+        <module>../../../integration-tests-jvm/cli-connector</module>
+        <module>../../../integration-tests-jvm/console</module>
+        <module>../../../integration-tests-jvm/controlbus-statistics</module>
+        <module>../../../integration-tests-jvm/flink</module>
     </modules>
 </project>

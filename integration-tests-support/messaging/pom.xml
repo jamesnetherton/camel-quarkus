@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.apache.camel.quarkus</groupId>
         <artifactId>camel-quarkus-integration-tests-support</artifactId>
-        <version>3.19.0</version>
+        <version>3.19.0.fuse-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -34,7 +34,7 @@
     <modules>
         <module>common</module>
         <module>jms</module>
-        <module>sjms</module>
+        <!-- <module>sjms</module> disabled by cq-prod-maven-plugin:prod-excludes -->
     </modules>
 
     <build>
