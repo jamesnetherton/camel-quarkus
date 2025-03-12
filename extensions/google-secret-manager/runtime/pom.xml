@@ -70,6 +70,10 @@
                     <groupId>com.google.api</groupId>
                 </exclusion>
                 <exclusion>
+                    <artifactId>gax-httpjson</artifactId>
+                    <groupId>com.google.api</groupId>
+                </exclusion>
+                <exclusion>
                     <artifactId>google-auth-library-oauth2-http</artifactId>
                     <groupId>com.google.auth</groupId>
                 </exclusion>
