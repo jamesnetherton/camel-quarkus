@@ -1,0 +1,147 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+name: Check Dependency Convergence
+
+on:
+  schedule:
+    # Run every sunday at 12PM
+    - cron: '0 12 * * 0'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+env:
+  LANG: en_US.UTF-8
+  MAVEN_OPTS: -Xmx3000m
+  CQ_MAVEN_ARGS: -V -ntp -e -Daether.connector.http.connectionMaxTtl=120
+  ISSUE_ID: 2927
+
+jobs:
+  check-dependency-convergence:
+    if: github.repository == 'jamesnetherton/camel-quarkus'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Set up JDK 17
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        if: steps.init.outputs.run-checks == 'true'
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        if: steps.init.outputs.run-checks == 'true'
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+          fetch-depth: 0
+      - name: Build Camel Quarkus
+        run: ./mvnw ${CQ_MAVEN_ARGS} clean install -Dquickly -T1C
+      - name: Set Build Info
+        run: |
+          [ ! -d ~/build-data ] && mkdir -p ~/build-data
+          echo "${{ github.run_id }}-${{ github.run_number }}-$(uuidgen)" > ~/build-data/build-id.txt
+          git rev-parse origin/main > ~/build-data/main-sha.txt
+      - name: Install Groovy
+          apt install groovy --no-install-recommends -y
+      - name: Create Superapp
+        run: |
+          groovy <<'EOF'
+          import groovy.xml.*
+
+          def rootPom = new XmlParser().parse(new File('pom.xml'))
+          def projectVersion = rootPom.version
+
+          // Get org.apache.camel.quarkus dependencies from camel-quarkus-bom
+          def cqBomPath = "${System.properties['user.home']}/.m2/repository/org/apache/camel/quarkus/camel-quarkus-bom/${projectVersion}/camel-quarkus-bom-{projectVersion}.pom"
+          def bom = new XmlParser().parse(new File(cqBomPath))
+          def dependencies = bom.dependencies?.dependency?.findAll {
+              it.groupId.text().startsWith('org.apache.camel.quarkus') && !it.artifactId.text().contains('-support')
+          }
+          
+          // Use same maven-enforcer-plugin version as the core project
+          def mavenEnforcerPlugin = pom.build?.plugins?.plugin?.find {
+            it.artifactId.text() == 'maven-enforcer-plugin'
+          }
+          def mavenEnforcerPluginVersion = mavenEnforcerPlugin?.version?.text()
+          
+
+          // Create a 'super' POM with all camel-quarkus-* dependencies
+          def writer = new StringWriter()
+          def xml = new MarkupBuilder(writer)
+
+          xml.project(xmlns: "http://maven.apache.org/POM/4.0.0",
+                      "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+                      "xsi:schemaLocation": "http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd") {
+            modelVersion('4.0.0')
+            properties {
+              'camel-quarkus.version'(projectVersion)
+            }
+            build {
+              plugins {
+                plugin {
+                  groupId('org.apache.maven.plugins')
+                  artifactId('maven-enforcer-plugin')
+                  version(mavenEnforcerPluginVersion)
+                  executions {
+                   execution {
+                      goals {
+                        goal('enforce')
+                      }
+                      configuration {
+                        rules {
+                          'dependencyConvergence'()
+                        }
+                      }
+                  }
+                }
+              }
+            }
+            dependencies {
+              dependencies.each { dep ->
+                dependency {
+                  groupId(dep.groupId.text())
+                  artifactId(dep.artifactId.text())
+                  version('${camel-quarkus.version}')
+                }
+              }
+            }
+          }
+
+          def tmp = System.getenv('RUNNER_TEMP')
+          def superAppDir = new File("${tmp}/camel-quarkus-superapp")
+          superAppDir.mkdirs()
+
+          new File("${superAppDir}/pom.xml").text = writer.toString()
+          
+          EOF
+      - name: Run checks
+        run: |
+          # Copy maven wrapper
+          cp -r .mvn ${{ runner.temp }}/camel-quarkus-superapp/
+          cp .mvnw ${{ runner.temp }}/camel-quarkus-superapp/
+          
+          # Run dependency convergence checks
+          cd ${{ runner.temp }}/camel-quarkus-superapp/
+          ./mvnw enforcer:enforce
+      - name: Report Build Failure
+        if: failure() || cancelled()
+        run: |
+          ./mvnw ${CQ_MAVEN_ARGS} verify -N -Pbuild-notification -Dstatus=${{ job.status }} -DissueId=${{ env.ISSUE_ID }} -Dtoken=${{ secrets.GITHUB_TOKEN }} -DbuildId=$(cat ~/build-data/build-id.txt) -Drepo=${GITHUB_REPOSITORY} -Dbranch=main -Dbranch-commit=$(cat ~/build-data/main-sha.txt)
