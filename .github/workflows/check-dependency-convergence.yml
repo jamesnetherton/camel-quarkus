@@ -31,7 +31,7 @@ env:
   LANG: en_US.UTF-8
   MAVEN_OPTS: -Xmx3000m
   CQ_MAVEN_ARGS: -V -ntp -e -Daether.connector.http.connectionMaxTtl=120
-  ISSUE_ID: 2927
+  ISSUE_ID: 75
 
 jobs:
   check-dependency-convergence:
