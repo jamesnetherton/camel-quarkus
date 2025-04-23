@@ -20,7 +20,6 @@ package org.apache.camel.quarkus.test;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Service;
 import org.apache.camel.test.junit5.CamelContextConfiguration;
-import org.apache.camel.test.junit5.CamelTestSupport;
 import org.apache.camel.test.junit5.LegacyCamelContextManager;
 import org.apache.camel.test.junit5.TestExecutionConfiguration;
 
