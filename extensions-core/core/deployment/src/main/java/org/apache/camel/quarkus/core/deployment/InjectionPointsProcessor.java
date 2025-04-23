@@ -297,17 +297,7 @@ public class InjectionPointsProcessor {
     }
 
     private boolean extendsCamelQuarkusTest(ClassInfo declaringClass, IndexView indexView) {
-        if (declaringClass == null) {
-            return false;
-        }
-
-        if (TEST_SUPPORT_CLASS_NAME.equals(declaringClass.name())) {
-            return true;
-        }
-
-        //iterate over parent until found CamelQuarkusTest or null
-        return (declaringClass.superName() != null &&
-                extendsCamelQuarkusTest(indexView.getClassByName(declaringClass.superName()), indexView));
+        return indexView.getAllKnownSubclasses(TEST_SUPPORT_CLASS_NAME).contains(declaringClass);
     }
 
     void produceBeans(CamelRecorder recorder, List<CapabilityBuildItem> capabilities,
