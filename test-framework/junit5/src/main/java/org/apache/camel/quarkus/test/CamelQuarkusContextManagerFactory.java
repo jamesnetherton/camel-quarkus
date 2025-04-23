@@ -23,25 +23,19 @@ import org.apache.camel.test.junit5.ContextManagerFactory;
 import org.apache.camel.test.junit5.TestExecutionConfiguration;
 
 /**
- * A factory class for creating context managers
+ * A factory class for creating context managers.
  */
-public class ContextNotStoppingManagerFactory extends ContextManagerFactory {
-    /**
-     * Callback types
-     */
-    public enum Type {
-        BEFORE_ALL,
-        BEFORE_EACH,
-    }
-
+public class CamelQuarkusContextManagerFactory extends ContextManagerFactory {
     @Override
-    public CamelContextManager createContextManager(ContextManagerFactory.Type type,
-            TestExecutionConfiguration testConfiguration, CamelContextConfiguration contextConfiguration) {
+    public CamelContextManager createContextManager(
+            ContextManagerFactory.Type type,
+            TestExecutionConfiguration testConfiguration,
+            CamelContextConfiguration contextConfiguration) {
         return switch (type) {
         case BEFORE_ALL:
-            yield new LegacyCamelContextNotStoppingManager(testConfiguration, contextConfiguration);
+            yield new CamelQuarkusLegacyCamelContextManager(testConfiguration, contextConfiguration);
         case BEFORE_EACH:
-            yield new TransientCamelContextNotStoppingManager(testConfiguration, contextConfiguration);
+            yield new CamelQuarkusTransientCamelContextManager(testConfiguration, contextConfiguration);
         };
     }
 }

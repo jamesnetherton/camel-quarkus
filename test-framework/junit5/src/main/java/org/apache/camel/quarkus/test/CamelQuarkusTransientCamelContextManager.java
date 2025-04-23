@@ -20,23 +20,23 @@ package org.apache.camel.quarkus.test;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Service;
 import org.apache.camel.test.junit5.CamelContextConfiguration;
+import org.apache.camel.test.junit5.LegacyCamelContextManager;
 import org.apache.camel.test.junit5.TestExecutionConfiguration;
 import org.apache.camel.test.junit5.TransientCamelContextManager;
 
-public class TransientCamelContextNotStoppingManager extends TransientCamelContextManager {
+/**
+ * An extension of {@link TransientCamelContextManager} that suppresses automatic stopping of the {@link CamelContext}.
+ */
+public class CamelQuarkusTransientCamelContextManager extends TransientCamelContextManager {
 
-    public TransientCamelContextNotStoppingManager(TestExecutionConfiguration testConfigurationBuilder,
+    public CamelQuarkusTransientCamelContextManager(
+            TestExecutionConfiguration testConfigurationBuilder,
             CamelContextConfiguration camelContextConfiguration) {
         super(testConfigurationBuilder, camelContextConfiguration);
     }
 
     @Override
     protected void doStopCamelContext(CamelContext context, Service camelContextService) {
-        //do not stop context
-    }
-
-    @Override
-    public void startCamelContext() throws Exception {
-        super.startCamelContext();
+        // NoOp since the CamelContext will be stopped after all tests are executed
     }
 }

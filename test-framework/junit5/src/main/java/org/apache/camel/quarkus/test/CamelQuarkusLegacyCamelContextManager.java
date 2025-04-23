@@ -25,18 +25,18 @@ import org.apache.camel.test.junit5.LegacyCamelContextManager;
 import org.apache.camel.test.junit5.TestExecutionConfiguration;
 
 /**
- * A {@link CamelContext} test lifecycle manager based on the behavior that was built in {@link CamelTestSupport} up to
- * Camel 4.7.0
+ * An extension of {@link LegacyCamelContextManager} that suppresses automatic stopping of the {@link CamelContext}.
  */
-public class LegacyCamelContextNotStoppingManager extends LegacyCamelContextManager {
+public class CamelQuarkusLegacyCamelContextManager extends LegacyCamelContextManager {
 
-    public LegacyCamelContextNotStoppingManager(TestExecutionConfiguration testConfigurationBuilder,
+    public CamelQuarkusLegacyCamelContextManager(
+            TestExecutionConfiguration testConfigurationBuilder,
             CamelContextConfiguration camelContextConfiguration) {
         super(testConfigurationBuilder, camelContextConfiguration);
     }
 
     @Override
     protected void doStopCamelContext(CamelContext context, Service camelContextService) {
-        //do not stop context
+        // NoOp since the CamelContext will be stopped after all tests are executed
     }
 }
