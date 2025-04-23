@@ -26,7 +26,9 @@ import io.quarkus.test.junit.callback.QuarkusTestContext;
 import io.quarkus.test.junit.callback.QuarkusTestMethodContext;
 import jakarta.inject.Inject;
 import org.apache.camel.CamelContext;
+import org.apache.camel.Component;
 import org.apache.camel.Exchange;
+import org.apache.camel.ExtendedCamelContext;
 import org.apache.camel.NoSuchEndpointException;
 import org.apache.camel.Processor;
 import org.apache.camel.Route;
@@ -36,7 +38,9 @@ import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.model.ModelCamelContext;
 import org.apache.camel.model.ProcessorDefinition;
 import org.apache.camel.model.RouteDefinition;
+import org.apache.camel.quarkus.core.CamelRuntime;
 import org.apache.camel.quarkus.core.FastCamelContext;
+import org.apache.camel.spi.ComponentResolver;
 import org.apache.camel.spi.Registry;
 import org.apache.camel.test.junit5.AbstractTestSupport;
 import org.apache.camel.test.junit5.CamelContextConfiguration;
@@ -47,7 +51,9 @@ import org.apache.camel.test.junit5.TestExecutionConfiguration;
 import org.apache.camel.test.junit5.TestSupport;
 import org.apache.camel.test.junit5.util.ExtensionHelper;
 import org.apache.camel.test.junit5.util.RouteCoverageDumperExtension;
+import org.apache.camel.util.ObjectHelper;
 import org.apache.camel.util.StopWatch;
+import org.apache.camel.util.StringHelper;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -107,12 +113,15 @@ public class CamelQuarkusTestSupport extends AbstractTestSupport
 
     @Inject
     protected CamelContext context;
+    @Inject
+    CamelRuntime runtime;
+
     private Set<String> createdRoutes;
 
     public CamelQuarkusTestSupport() {
         super(new CustomTestExecutionConfiguration(), new CustomCamelContextConfiguration());
 
-        this.contextManagerFactory = new ContextNotStoppingManagerFactory();
+        this.contextManagerFactory = new CamelQuarkusContextManagerFactory();
 
         testConfigurationBuilder()
                 .withCustomUseAdviceWith(isUseAdviceWith())
@@ -130,7 +139,8 @@ public class CamelQuarkusTestSupport extends AbstractTestSupport
                 .withRouteFilterExcludePattern(getRouteFilterExcludePattern())
                 .withRouteFilterIncludePattern(getRouteFilterIncludePattern())
                 .withMockEndpoints(isMockEndpoints())
-                .withMockEndpointsAndSkip(isMockEndpointsAndSkip());
+                .withMockEndpointsAndSkip(isMockEndpointsAndSkip())
+                .withStubEndpoints(isStubEndpoints());
 
         //CQ starts and stops context with the application start/stop
         testConfiguration().withAutoStartContext(false);
@@ -257,10 +267,25 @@ public class CamelQuarkusTestSupport extends AbstractTestSupport
                     "to control which routes are started.");
         }
 
+        if (ObjectHelper.isNotEmpty(contextConfiguration().stubEndpoints())) {
+            initializeStubEndpointSupport();
+        }
+
         doPostSetup();
+
+        startCamelQuarkusRuntime();
 
         // only start timing after all the setup
         watch.restart();
+    }
+
+    /**
+     * Starts the {@link CamelRuntime} and its associated {@link CamelContext}.
+     *
+     * @param args Arguments to pass to the runtime. Only relevant for command mode applications.
+     */
+    protected void startCamelQuarkusRuntime(String... args) {
+        runtime.start(args);
     }
 
     /**
@@ -368,6 +393,40 @@ public class CamelQuarkusTestSupport extends AbstractTestSupport
         currentTestName = context.getDisplayName();
         ExtensionContext.Store globalStore = context.getStore(ExtensionContext.Namespace.GLOBAL);
         contextManager.setGlobalStore(globalStore);
+    }
+
+    void initializeStubEndpointSupport() {
+        ExtendedCamelContext camelContextExtension = context.getCamelContextExtension();
+        List<String> endpointsToStub = StringHelper.splitAsStream(contextConfiguration().stubEndpoints(), ",").toList();
+        boolean isStubAllEndpoints = endpointsToStub.size() == 1 && endpointsToStub.get(0).equals("*");
+
+        // Unbind the components to stub from the registry to avoid the original impls being resolved
+        if (isStubAllEndpoints) {
+            List<String> ignoredComponents = List.of("org.apache.camel.component.mock.MockComponent",
+                    "org.apache.camel.component.stub.StubComponent");
+            context.getRegistry()
+                    .findByTypeWithName(Component.class)
+                    .entrySet()
+                    .stream()
+                    .filter(e -> !ignoredComponents.contains(e.getValue().getClass().getName()))
+                    .forEach(entry -> {
+                        context.getRegistry().unbind(entry.getKey());
+                    });
+        } else {
+            endpointsToStub.forEach(componentName -> context.getRegistry().unbind(componentName));
+        }
+
+        // Register a component resolver to return the component stub or the real impl
+        camelContextExtension.addContextPlugin(ComponentResolver.class, new ComponentResolver() {
+            @Override
+            public Component resolveComponent(String name, CamelContext context) throws Exception {
+                if (isStubAllEndpoints || endpointsToStub.contains(name)) {
+                    return context.getRegistry().lookupByNameAndType("stub", Component.class);
+                } else {
+                    return context.getRegistry().lookupByNameAndType(name, Component.class);
+                }
+            }
+        });
     }
 
     /**
