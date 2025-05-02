@@ -26,7 +26,7 @@ def mavenEnforcerPluginVersion = rootPom.properties.'maven-enforcer-plugin.versi
 def cqBomPath = "${System.properties['user.home']}/.m2/repository/org/apache/camel/quarkus/camel-quarkus-bom/${camelQuarkusVersion}/camel-quarkus-bom-${camelQuarkusVersion}.pom"
 def bom = new XmlParser().parse(new File(cqBomPath))
 def cqBomDependencies = bom.dependencyManagement.dependencies?.dependency?.findAll {
-    it.groupId.text().startsWith('org.apache.camel.quarkus') && !it.artifactId.text().contains('-support')
+    it.groupId.text().startsWith('org.apache.camel.quarkus') && !it.artifactId.text().contains("-support") && it.artifactId.text().endsWith('-deployment')
 }
 
 // Create a 'super' POM with all camel-quarkus-* dependencies
@@ -84,7 +84,7 @@ xml.project(xmlns: "http://maven.apache.org/POM/4.0.0",
         cqBomDependencies.each { dep ->
             dependency {
                 groupId(dep.groupId.text())
-                artifactId(dep.artifactId.text())
+                artifactId(dep.artifactId.text().replace("-deployment", ""))
             }
         }
     }

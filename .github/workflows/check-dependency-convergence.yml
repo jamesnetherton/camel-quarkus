@@ -32,11 +32,11 @@ env:
   MAVEN_OPTS: -Xmx3000m
   CQ_MAVEN_ARGS: -V -ntp -e -Daether.connector.http.connectionMaxTtl=120
   # TODO: Create a reporting issue
-  ISSUE_ID: ???
+  ISSUE_ID: 75
 
 jobs:
   check-dependency-convergence:
-    if: github.repository == 'apache/camel-quarkus'
+    if: github.repository == 'jamesnetherton/camel-quarkus'
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -69,7 +69,105 @@ jobs:
           
           # Run dependency convergence checks
           cd ${{ runner.temp }}/camel-quarkus-superapp/
-          ./mvnw ${CQ_MAVEN_ARGS} clean verify
+          ./mvnw ${CQ_MAVEN_ARGS} validate -Denforcer.fail=false | tee -a enforcer.log
+      - name: Analyze Results
+        run: |
+          OUTPUT_FILE=enforcer-filtered.log
+
+          # List of Maven GAVs to ignore from the dependency convergence check results. Keep sorted alphabetically
+          IGNORED_GAVS=(
+            # Mismatch between camel-quarkus-aws-xray & camel-quarkus-aws2-kinesis
+            "com.amazonaws:aws-java-sdk-core"
+            # Mismatch between camel-quarkus-aws-xray & camel-quarkus-aws2-kinesis
+            "com.amazonaws:jmespath-java"
+            # Mismatch between camel-quarkus-grpc & camel-quarkus-twilio
+            "com.auth0:java-jwt"
+            # Mismatch between camel-quarkus-cassandraql & camel-quarkus-web3j
+            "com.github.jnr:jnr-posix"
+            # Mismatch between camel-quarkus-google-bigquery, camel-quarkus-google-functions, camel-quarkus-google-pubsub & camel-quarkus-google-storage
+            "com.google.api-client:google-api-client"
+            # Mismatch between camel-quarkus-google-bigquery, camel-quarkus-google-functions, camel-quarkus-google-pubsub & camel-quarkus-google-storage
+            "com.google.api:api-common"
+            # Mismatch between camel-quarkus-google-bigquery, camel-quarkus-google-functions, camel-quarkus-google-pubsub & camel-quarkus-google-storage
+            "com.google.api:gax"
+            # Mismatch between camel-quarkus-google-bigquery, camel-quarkus-google-functions, camel-quarkus-google-pubsub & camel-quarkus-google-storage
+            "com.google.api:gax-grpc"
+            # Mismatch between camel-quarkus-google-bigquery, camel-quarkus-google-functions, camel-quarkus-google-pubsub & camel-quarkus-google-storage
+            "com.google.api.grpc:proto-google-iam-v1"
+            # Mismatch between camel-quarkus-couchdb & camel-quarkus-ibm-secrets-manager
+            "com.ibm.cloud:sdk-core"
+            # Mismatch between camel-quarkus-cassandraql & camel-quarkus-dfdl
+            "com.typesafe:config"
+            # Mismatch between camel-quarkus-aws-datasonnet, camel-quarkus-djl & camel-quarkus-aws2-kinesis
+            "io.github.classgraph:classgraph"
+            # Mismatch between camel-quarkus-csv, camel-quarkus-djl & camel-quarkus-tika
+            "org.apache.commons:commons-csv"
+            # Mismatch between camel-quarkus-ldif, camel-quarkus-milvus, camel-quarkus-netty & camel-quarkus-spring-redis
+            "org.apache.commons:commons-pool2"
+            # Mismatch between camel-quarkus-jsch, camel-quarkus-ldif & camel-quarkus-quickfix
+            "org.apache.mina:mina-core"
+            # Mismatch between camel-quarkus-as2, camel-quarkus-avro-deployment & camel-quarkus-cxf-soap-deployment
+            "org.apache.velocity:velocity-engine-core"
+            # Mismatch between camel-quarkus-jcr & camel-quarkus-tika
+            "org.apache.tika:tika-core"
+            # Mismatch between camel-quarkus-rest-openapi-deployment & camel-quarkus-smallrye-reactive-messaging-deployment
+            "org.commonmark:commonmark"
+            # Mismatch between camel-quarkus-activemq & camel-quarkus-stomp
+            "org.fusesource.hawtbuf:hawtbuf"
+            # Mismatch between camel-quarkus-aws2-kinesis & camel-quarkus-pubnub
+            "org.jetbrains.kotlinx:kotlinx-datetime-jvm"
+            # Mismatch between camel-quarkus-aws2-jgroups & camel-quarkus-jgroups-raft
+            "org.jgroups:jgroups"
+            # Mismatch between camel-quarkus-box, camel-quarkus-oaipmh & camel-quarkus-shiro
+            "org.jsoup:jsoup"
+            # Mismatch between camel-quarkus-jcr & camel-quarkus-lucene
+            "org.apache.lucene:lucene-core"
+            # Mismatch between camel-quarkus-flink, camel-quarkus-junit5, camel-quarkus-nitrite & camel-quarkus-redis
+            "org.objenesis:objenesis"
+          )
+
+          BLOCK=""
+          IN_BLOCK=false
+          KEEP_BLOCK=true
+
+          # Filter out errors for ignored GAVs
+          while IFS= read -r line || [[ -n "$line" ]]; do
+            if [[ "$line" =~ ^Error:\ \ Dependency\ convergence\ error\ for\ ([^:]+:[^:]+): ]]; then
+              if [[ ${IN_BLOCK} && ${KEEP_BLOCK} ]]; then
+                echo "${BLOCK}"
+              fi
+
+              BLOCK="$line"
+              IN_BLOCK=true
+              KEEP_BLOCK=true
+              GAV="${BASH_REMATCH[1]}"
+
+              for IGNORED in "${IGNORED_COORDINATES[@]}"; do
+                if [[ "${GAV}" == "${IGNORED}" ]]; then
+                  KEEP_BLOCK=false
+                  break
+                fi
+              done
+            elif $IN_BLOCK; then
+              BLOCK+=$'\n'"$line"
+            else
+              echo "$line" >> ${OUTPUT_FILE}
+            fi
+          done < enforcer.log
+
+          if ${IN_BLOCK} && ${KEEP_BLOCK}; then
+            echo "${BLOCK}" >> ${OUTPUT_FILE}
+          fi
+
+          // If after excluding ignored GAVs there are still convergence check errors, fail the build
+          if grep "Dependency convergence error" ${OUTPUT_FILE}; then
+            echo "There are dependency convergence errors!"
+            echo
+            cat ${OUTPUT_FILE}
+            echo
+            echo "Either fix the problem dependencies or add GAVs to the IGNORED_GAVS list in check-dependency-convergence.yml"
+            exit 1
+          fi
       - name: Report Build Failure
         if: failure() || cancelled()
         run: |
