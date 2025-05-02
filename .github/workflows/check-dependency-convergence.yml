@@ -143,7 +143,7 @@ jobs:
               KEEP_BLOCK=true
               GAV="${BASH_REMATCH[1]}"
 
-              for IGNORED in "${IGNORED_COORDINATES[@]}"; do
+              for IGNORED in "${IGNORED_GAVS[@]}"; do
                 if [[ "${GAV}" == "${IGNORED}" ]]; then
                   KEEP_BLOCK=false
                   break
