@@ -72,7 +72,8 @@ jobs:
           ./mvnw ${CQ_MAVEN_ARGS} validate -Denforcer.fail=false | tee -a enforcer.log
       - name: Analyze Results
         run: |
-          OUTPUT_FILE=enforcer-filtered.log
+          INPUT_FILE="${{ runner.temp }}/camel-quarkus-superapp/enforcer.log"
+          OUTPUT_FILE="${{ runner.temp }}/camel-quarkus-superapp/enforcer-filtered.log"
 
           # List of Maven GAVs to ignore from the dependency convergence check results. Keep sorted alphabetically
           IGNORED_GAVS=(
@@ -153,7 +154,7 @@ jobs:
             else
               echo "$line" >> ${OUTPUT_FILE}
             fi
-          done < enforcer.log
+          done < ${INPUT_FILE}
 
           if ${IN_BLOCK} && ${KEEP_BLOCK}; then
             echo "${BLOCK}" >> ${OUTPUT_FILE}
