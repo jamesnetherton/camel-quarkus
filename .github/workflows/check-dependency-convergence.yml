@@ -32,11 +32,11 @@ env:
   MAVEN_OPTS: -Xmx3000m
   CQ_MAVEN_ARGS: -V -ntp -e -Daether.connector.http.connectionMaxTtl=120
   # TODO: Create a reporting issue
-  ISSUE_ID: 75
+  ISSUE_ID: ""
 
 jobs:
   check-dependency-convergence:
-    if: github.repository == 'jamesnetherton/camel-quarkus'
+    if: github.repository == 'apache/camel-quarkus'
     runs-on: ubuntu-latest
     permissions:
       issues: write
