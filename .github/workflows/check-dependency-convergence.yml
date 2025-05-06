@@ -164,7 +164,7 @@ jobs:
           fi
 
           # If after excluding ignored GAVs there are still convergence check errors, fail the build
-          if grep "Dependency convergence error" ${OUTPUT_FILE}; then
+          if grep "Dependency convergence error" ${OUTPUT_FILE} > /dev/null; then
             echo "There are dependency convergence errors!"
             echo
             cat ${OUTPUT_FILE}
