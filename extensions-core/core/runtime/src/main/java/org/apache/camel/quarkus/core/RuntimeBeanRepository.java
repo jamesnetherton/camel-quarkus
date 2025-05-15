@@ -171,39 +171,50 @@ public final class RuntimeBeanRepository implements BeanRepository {
     public <T> T findSingleByType(Class<T> type) {
         ArcContainer container = Arc.container();
         Optional<Annotation[]> qualifiers = resolveQualifiersForType(type);
-        if (container != null) {
-            List<InstanceHandle<T>> handles;
-            if (qualifiers.isPresent()) {
-                handles = container.listAll(type, qualifiers.get());
-            } else {
-                handles = container.listAll(type);
-            }
+        List<InstanceHandle<T>> handles;
+        if (qualifiers.isPresent()) {
+            handles = container.listAll(type, qualifiers.get());
+        } else {
+            handles = container.listAll(type);
+        }
 
+        if (handles.isEmpty()) {
+            // No matches for the given bean type
+            return null;
+        } else if (handles.size() == 1) {
+            // Only 1 bean exists for the given type so just return it
+            return handles.get(0).get();
+        }
+
+        // For multiple bean matches determine if any has the @Default qualifier
+        boolean defaultBeanExists = handles.stream()
+                .map(InstanceHandle::getBean)
+                .anyMatch(this::isDefaultBean);
+
+        // Try to resolve the target bean by @Priority and @Default qualifiers
+        if (defaultBeanExists) {
             List<InstanceHandle<T>> sortedHandles = new ArrayList<>(handles.size());
             sortedHandles.addAll(handles);
+            sortedHandles.sort((bean1, bean2) -> {
+                Integer priority2 = bean2.getBean().getPriority();
+                Integer priority1 = bean1.getBean().getPriority();
 
-            if (sortedHandles.size() > 1) {
-                sortedHandles.sort((bean1, bean2) -> {
-                    Integer priority2 = bean2.getBean().getPriority();
-                    Integer priority1 = bean1.getBean().getPriority();
-
-                    int result = priority2.compareTo(priority1);
-                    // If the priority is same, the default bean wins
-                    if (result == 0) {
-                        if (isDefaultBean(bean1.getBean())) {
-                            result = -1;
-                        } else if (isDefaultBean(bean2.getBean())) {
-                            result = 1;
-                        }
+                int result = priority2.compareTo(priority1);
+                // If the priority is same, the default bean wins
+                if (result == 0) {
+                    if (isDefaultBean(bean1.getBean())) {
+                        result = -1;
+                    } else if (isDefaultBean(bean2.getBean())) {
+                        result = 1;
                     }
-                    return result;
-                });
-            }
-
-            if (sortedHandles.size() > 0) {
-                return sortedHandles.get(0).get();
-            }
+                }
+                return result;
+            });
+            return sortedHandles.get(0).get();
         }
+
+        // Multiple beans exist for the given type, and we could not determine which one to use
+        // Users must resolve the conflict by explicitly referencing the bean via endpoint URI options etc
         return null;
     }
 
