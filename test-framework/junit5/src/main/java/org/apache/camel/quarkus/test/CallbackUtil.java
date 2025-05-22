@@ -19,6 +19,8 @@ package org.apache.camel.quarkus.test;
 import java.util.Optional;
 import java.util.Set;
 
+import io.quarkus.arc.Arc;
+import org.apache.camel.CamelContext;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -43,23 +45,41 @@ public class CallbackUtil {
     }
 
     static void resetContext(CamelQuarkusTestSupport testInstance) {
+        CamelContext context = testInstance.context();
+
         //if routeBuilder (from the test) was used, all routes from that builder has to be stopped and removed
         //because routes will be created again (in case of TestInstance.Lifecycle.PER_CLASS, this method is not executed)
         Set<String> createdRoutes = testInstance.getCreatedRoutes();
-        if (testInstance.isUseRouteBuilder() && createdRoutes != null) {
-
+        if (testInstance.testConfigurationBuilder().useRouteBuilder() && createdRoutes != null) {
             try {
-                for (String r : createdRoutes) {
-                    testInstance.context().getRouteController().stopRoute(r);
-                    testInstance.context().removeRoute(r);
+                for (String routeId : createdRoutes) {
+                    context.getRouteController().stopRoute(routeId);
+                    context.removeRoute(routeId);
                 }
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
 
-        testInstance.context().getComponentNames().forEach(cn -> testInstance.context().removeComponent(cn));
-        MockEndpoint.resetMocks(testInstance.context());
+        // Recreate all non-test routes since they may have been modified in ways that can break following tests
+        try {
+            MockEndpoint.resetMocks(context);
+            context.getComponentNames().forEach(context::removeComponent);
+
+            if (CamelTestSupportHelper.isReloadRoutes()) {
+                System.out.println("========> Restoring original application route state");
+
+                // Retrieve the original route state captured on startup in CamelQuarkusDumpTestRoutesStrategy
+                CamelQuarkusDumpTestRoutesStrategy strategy = Arc.container()
+                        .select(CamelQuarkusDumpTestRoutesStrategy.class, CamelQuarkusTestSupportRouteDumper.Literal.INSTANCE)
+                        .get();
+
+                // Remove existing routes and restore original
+                CamelTestSupportHelper.reloadCamelRoutes(strategy);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     static class MockExtensionContext {
