@@ -19,7 +19,6 @@ package org.apache.camel.quarkus.test;
 import java.util.Optional;
 import java.util.Set;
 
-import io.quarkus.arc.Arc;
 import org.apache.camel.CamelContext;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.junit.jupiter.api.TestInstance;
@@ -61,21 +60,13 @@ public class CallbackUtil {
             }
         }
 
-        // Recreate all non-test routes since they may have been modified in ways that can break following tests
         try {
             MockEndpoint.resetMocks(context);
             context.getComponentNames().forEach(context::removeComponent);
 
             if (CamelTestSupportHelper.isReloadRoutes()) {
-                System.out.println("========> Restoring original application route state");
-
-                // Retrieve the original route state captured on startup in CamelQuarkusDumpTestRoutesStrategy
-                CamelQuarkusDumpTestRoutesStrategy strategy = Arc.container()
-                        .select(CamelQuarkusDumpTestRoutesStrategy.class, CamelQuarkusTestSupportRouteDumper.Literal.INSTANCE)
-                        .get();
-
                 // Remove existing routes and restore original
-                CamelTestSupportHelper.reloadCamelRoutes(strategy);
+                CamelTestSupportHelper.reloadCamelRoutes();
             }
         } catch (Exception e) {
             throw new RuntimeException(e);

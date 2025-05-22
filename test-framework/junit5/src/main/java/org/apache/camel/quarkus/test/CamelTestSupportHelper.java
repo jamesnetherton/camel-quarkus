@@ -19,6 +19,8 @@ package org.apache.camel.quarkus.test;
 import java.lang.reflect.Field;
 import java.util.Set;
 
+import io.quarkus.arc.Arc;
+import io.quarkus.arc.InjectableInstance;
 import org.apache.camel.CamelContext;
 import org.apache.camel.impl.engine.AbstractCamelContext;
 import org.apache.camel.spi.EndpointStrategy;
@@ -28,7 +30,7 @@ import org.eclipse.microprofile.config.ConfigProvider;
 
 final class CamelTestSupportHelper {
     private CamelTestSupportHelper() {
-
+        // Utility class
     }
 
     static boolean isReloadRoutes() {
@@ -37,10 +39,18 @@ final class CamelTestSupportHelper {
                 .orElse(false);
     }
 
-    static void reloadCamelRoutes(CamelQuarkusDumpTestRoutesStrategy dumpRoutesStrategy) throws Exception {
+    static void reloadCamelRoutes() throws Exception {
+        // Retrieve the original route state captured on startup in CamelQuarkusDumpTestRoutesStrategy
+        InjectableInstance<CamelQuarkusDumpTestRoutesStrategy> instance = Arc.container()
+                .select(CamelQuarkusDumpTestRoutesStrategy.class, CamelQuarkusTestSupportRouteDumper.Literal.INSTANCE);
+        if (instance.isUnsatisfied()) {
+            return;
+        }
+
+        CamelQuarkusDumpTestRoutesStrategy strategy = instance.get();
+
         // Remove routes
-        CamelContext context = dumpRoutesStrategy.getCamelContext();
-        context.getRouteController().removeAllRoutes();
+        CamelContext context = strategy.getCamelContext();
         context.getEndpointRegistry().clear();
 
         // endpointStrategies is package-private so use reflection to manipulate it
@@ -51,6 +61,6 @@ final class CamelTestSupportHelper {
 
         // Reload original routes
         RoutesLoader routesLoader = PluginHelper.getRoutesLoader(context);
-        routesLoader.loadRoutes(dumpRoutesStrategy.getResources());
+        routesLoader.loadRoutes(strategy.getResources());
     }
 }
