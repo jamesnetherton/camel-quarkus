@@ -97,9 +97,6 @@ public class CamelQuarkusTestSupport extends AbstractTestSupport
 
     private static final Logger LOG = LoggerFactory.getLogger(CamelQuarkusTestSupport.class);
 
-    //    @RegisterExtension
-    //    protected CamelTestSupport camelTestSupportExtension = this;
-
     private final StopWatch watch = new StopWatch();
     private String currentTestName;
 
@@ -427,12 +424,13 @@ public class CamelQuarkusTestSupport extends AbstractTestSupport
     }
 
     /**
-     * Override when using <a href="http://camel.apache.org/advicewith.html">advice with</a> and return <code>true</code>.
-     * <p/>
-     * <b>Important:</b> You must execute method {@link #startRouteDefinitions()}} manually from the unit test
+     * This method or overriding this method has no effect on Camel Quarkus as the CamelContext is always stated automatically.
+     * <p>
+     * <b>Important:</b> You must execute method {@link #startRouteDefinitions()} manually from the unit test
      * after you are done doing all the advice with.
      *
      * @return <code>true</code> to apply advice to existing route(s). <code>false</code> to disable advice.
+     * @deprecated Override {@link #configureTest(TestExecutionConfiguration)} and configure the {@link TestExecutionConfiguration}.
      */
     @Override
     @Deprecated(since = "3.15.0")
@@ -441,13 +439,14 @@ public class CamelQuarkusTestSupport extends AbstractTestSupport
     }
 
     /**
-     * Helper method to start routeDefinitions (to be used with `adviceWith`).
+     * Helper method when using AdviceWith to start routes that are NOT being advised.
+     * If all routes are advised, then invoking this method is not necessary.
      */
     protected void startRouteDefinitions() throws Exception {
         ModelCamelContext modelCamelContext = (ModelCamelContext) context;
         List<RouteDefinition> definitions = new ArrayList<>(modelCamelContext.getRouteDefinitions());
         for (Route r : context.getRoutes()) {
-            //existing route does not need to be started
+            // Routes being advised do not need to be started
             definitions.remove(r.getRoute());
         }
         modelCamelContext.startRouteDefinitions(definitions);

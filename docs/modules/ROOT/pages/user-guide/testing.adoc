@@ -272,7 +272,7 @@ Any classes that extend `RouteBuilder` in your application will have their route
 Similarly, any XML or YAML routes configured from `camel.main.routes-include-pattern` will also be loaded.
 
 This may not always be desirable for your tests.
-You control which routes get loaded at test time with configuration properties:
+You can control which routes get loaded at test time with configuration properties:
 
 * `quarkus.camel.routes-discovery.include-patterns`
 * `quarkus.camel.routes-discovery.exclude-patterns`,
@@ -316,8 +316,14 @@ One of the main differences in `CamelQuarkusTestSupport` compared to `CamelTestS
 On Camel Quarkus, a single `CamelContext` is created for you automatically by the runtime.
 By default, this `CamelContext` is shared among all tests and remains started for the duration of the entire test suite execution.
 
-This can potentially have some unintended side effects for your tests.
-If you need to have the `CamelContext` restarted between tests, then you can create a custom https://quarkus.io/guides/getting-started-testing#testing_different_profiles[test profile], which will force the application under test to be restarted.
+This can potentially have some unintended side effects for your tests. Specifically for 'application routes' (i.e. those not created by your test classes).
+Modifications made to routes in one test will persist for following tests. For example when routes are modified with `AdviceWith` the advice will remain applied indefinitely.
+
+Some ways to mitigating such issues are described below.
+
+==== Forcing application restarts
+
+You can force the `CamelContext` to restart between tests, by creating a custom https://quarkus.io/guides/getting-started-testing#testing_different_profiles[test profile].
 
 For example, to define a test profile:
 
@@ -341,7 +347,20 @@ class SimpleTest extends CamelQuarkusTestSupport {
 }
 ----
 
+TIP: In order to avoid needing to add an exponential number of `QuarkusTestProfile` classes, you can simply add `implements QuarkusTestProfile` to your test class.
+
 NOTE: You cannot manually restart the `CamelContext` by invoking its `stop()` and `start()` methods. This will result in an exception.
+
+==== Automatic route reloading
+
+Instead of forcing application restarts and to save time, there is an _experimental_ configuration option that can be added to `application.properties`.
+
+[source]
+----
+quarkus.camel.test.reload-routes=true
+----
+
+This will cause all routes to be reset to their original state (i.e. as they were upon application startup) after each test is completed.
 
 === Examples
 
@@ -416,10 +435,7 @@ class SimpleTest extends CamelQuarkusTestSupport {
 }
 ----
 
-==== Explicitly enabling advice
-
-When explicitly xref:manual::advice-with.adoc#_enabling_advice_during_testing[enabling advice] you must invoke `startRouteDefinitions` when completing your `AdviceWith` setup.
-Note that this is only required if you have routes configured that are NOT being advised.
+IMPORTANT: If you have routes configured that are NOT being advised, then you must invoke the `startRouteDefinitions` method after completing your `AdviceWith` setup.
 
 === Limitations
 
