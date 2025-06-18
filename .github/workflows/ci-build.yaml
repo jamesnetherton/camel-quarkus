@@ -23,6 +23,7 @@ on:
       - main
       - camel-main
       - quarkus-main
+      - ci-rebalance-test
       - "[0-9]+.[0-9]+.x"
     paths-ignore:
       - '**.adoc'
