@@ -42,4 +42,7 @@ metadata:
 [/#if]
   status:
   - "[=status]"
+[#if configPrefix?? ]  config:
+  - "[=configPrefix]"
+[/#if]
 [#if deprecated ]  - "deprecated"[/#if]
