@@ -16,12 +16,20 @@
  */
 package org.apache.camel.quarkus.component.opentelemetry2.deployment;
 
+import java.util.function.BooleanSupplier;
+
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.arc.deployment.UnremovableBeanBuildItem;
 import io.quarkus.deployment.annotations.BuildStep;
+import io.quarkus.deployment.annotations.ExecutionTime;
+import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
+import io.quarkus.vertx.http.deployment.VertxWebRouterBuildItem;
+import org.apache.camel.quarkus.component.opentelemetry2.OpenTelemetry2Recorder;
 import org.apache.camel.quarkus.component.opentelemetry2.OpenTelemetry2TracerProducer;
 import org.apache.camel.telemetry.Tracer;
+
+import static io.quarkus.bootstrap.classloading.QuarkusClassLoader.isClassPresentAtRuntime;
 
 class Opentelemetry2Processor {
 
@@ -43,5 +51,23 @@ class Opentelemetry2Processor {
     @BuildStep
     UnremovableBeanBuildItem camelTracerUnremovableBean() {
         return UnremovableBeanBuildItem.beanTypes(Tracer.class);
+    }
+
+    @Record(ExecutionTime.RUNTIME_INIT)
+    @BuildStep(onlyIf = PlatformHttpExtensionIsPresent.class)
+    void configureVertxWebTracePropagation(
+            VertxWebRouterBuildItem routerBuildItem,
+            OpenTelemetry2Recorder recorder) {
+        recorder.configureVertxWebTracePropagation(routerBuildItem.getHttpRouter());
+    }
+
+    static final class PlatformHttpExtensionIsPresent implements BooleanSupplier {
+        private static final boolean IS_PLATFORM_HTTP_EXTENSION_PRESENT = isClassPresentAtRuntime(
+                "org.apache.camel.component.platform.http.PlatformHttpComponent");
+
+        @Override
+        public boolean getAsBoolean() {
+            return IS_PLATFORM_HTTP_EXTENSION_PRESENT;
+        }
     }
 }
