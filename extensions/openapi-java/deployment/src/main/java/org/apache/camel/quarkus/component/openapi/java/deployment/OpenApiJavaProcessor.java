@@ -137,13 +137,13 @@ class OpenApiJavaProcessor {
         }
     }
 
-    @BuildStep
+    @BuildStep(onlyIfNot = ExposeOpenApiEnabled.class)
     void registerSwaggerUICamelUrl(BuildProducer<SwaggerUiUrlBuildItem> swaggerUiUrl) {
         Config config = ConfigProvider.getConfig();
         config.getOptionalValue("camel.rest.apiContextPath", String.class)
                 .or(() -> config.getOptionalValue("camel.rest.api-context-path", String.class))
                 .ifPresent(apiContextPath -> {
-                    swaggerUiUrl.produce(new SwaggerUiUrlBuildItem("camel", apiContextPath));
+                    swaggerUiUrl.produce(new SwaggerUiUrlBuildItem("Camel", apiContextPath));
                 });
     }
 
