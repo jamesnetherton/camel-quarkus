@@ -105,9 +105,11 @@ public class CamelRecorder {
             RuntimeValue<Registry> runtime,
             String name,
             Class<?> type,
-            RuntimeValue<?> instance) {
+            RuntimeValue<?> runtimeValue) {
 
-        runtime.getValue().bind(name, type, instance.getValue());
+        if (runtimeValue != null) {
+            runtime.getValue().bind(name, type, runtimeValue.getValue());
+        }
     }
 
     public void bind(

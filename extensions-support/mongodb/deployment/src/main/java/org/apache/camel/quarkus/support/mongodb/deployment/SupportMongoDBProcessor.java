@@ -18,32 +18,44 @@ package org.apache.camel.quarkus.support.mongodb.deployment;
 
 import java.util.List;
 
+import com.mongodb.client.MongoClient;
+import io.quarkus.arc.deployment.UnremovableBeanBuildItem;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
-import io.quarkus.mongodb.deployment.MongoClientBuildItem;
-import io.quarkus.mongodb.runtime.MongoConfig;
+import io.quarkus.deployment.annotations.ExecutionTime;
+import io.quarkus.deployment.annotations.Record;
+import io.quarkus.mongodb.deployment.MongoClientNameBuildItem;
+import org.apache.camel.quarkus.core.deployment.spi.CamelBeanQualifierResolverBuildItem;
 import org.apache.camel.quarkus.core.deployment.spi.CamelRuntimeBeanBuildItem;
+import org.apache.camel.quarkus.support.mongodb.CamelMongoDBSupportRecorder;
 
 class SupportMongoDBProcessor {
-
+    @Record(ExecutionTime.STATIC_INIT)
     @BuildStep
     void registerCamelMongoClientProducers(
-            List<MongoClientBuildItem> mongoClients,
-            BuildProducer<CamelRuntimeBeanBuildItem> runtimeBeans) {
+            List<MongoClientNameBuildItem> mongoClientNames,
+            BuildProducer<CamelBeanQualifierResolverBuildItem> camelBeanQualifierResolver,
+            CamelMongoDBSupportRecorder recorder) {
 
-        for (MongoClientBuildItem mongoClient : mongoClients) {
-            String clientName = getMongoClientName(mongoClient.getName());
-            runtimeBeans.produce(
-                    new CamelRuntimeBeanBuildItem(
-                            clientName,
-                            "com.mongodb.client.MongoClient",
-                            mongoClient.getClient()));
+        for (MongoClientNameBuildItem mongoClientNameBuildItem : mongoClientNames) {
+            if (mongoClientNameBuildItem.isAddQualifier()) {
+                camelBeanQualifierResolver.produce(
+                        new CamelBeanQualifierResolverBuildItem(
+                                MongoClient.class,
+                                recorder.createMongoClientNameQualifierResolver(mongoClientNameBuildItem.getName())));
+            }
         }
     }
 
-    private String getMongoClientName(String clientName) {
-        // Use the default mongo client instance name if it is the default connection
-        return MongoConfig.isDefaultClient(clientName) ? "camelMongoClient" : clientName;
-    }
+    @Record(ExecutionTime.RUNTIME_INIT)
+    @BuildStep
+    void bindDefaultMongoClientToRegistry(
+            BuildProducer<CamelRuntimeBeanBuildItem> camelRuntimeBean,
+            CamelMongoDBSupportRecorder recorder) {
 
+        camelRuntimeBean.produce(
+                new CamelRuntimeBeanBuildItem("camelMongoClient",
+                        MongoClient.class.getTypeName(),
+                        recorder.getDefaultMongoClient()));
+    }
 }
