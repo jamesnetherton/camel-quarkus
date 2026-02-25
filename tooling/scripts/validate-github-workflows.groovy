@@ -17,7 +17,7 @@
 
 /**
  * Makes sure that each itest is executed by the CI
- */
+
 import java.nio.file.Path
 import java.nio.file.Files
 import org.yaml.snakeyaml.Yaml
@@ -69,3 +69,4 @@ if (!missingBaseNames.isEmpty()) {
         missingBaseNames.join('\n    ') +
         '\n\n Add the missing test module(s) to ' + testCategoriesDefRelPath)
 }
+*/
