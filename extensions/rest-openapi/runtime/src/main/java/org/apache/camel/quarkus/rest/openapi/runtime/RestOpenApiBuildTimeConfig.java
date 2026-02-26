@@ -19,11 +19,14 @@ package org.apache.camel.quarkus.rest.openapi.runtime;
 import java.util.Map;
 import java.util.Optional;
 
+import io.quarkus.runtime.annotations.ConfigDocMapKey;
 import io.quarkus.runtime.annotations.ConfigGroup;
 import io.quarkus.runtime.annotations.ConfigPhase;
 import io.quarkus.runtime.annotations.ConfigRoot;
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
+import io.smallrye.config.WithDefaults;
+import io.smallrye.config.WithName;
 
 @ConfigRoot(phase = ConfigPhase.BUILD_TIME)
 @ConfigMapping(prefix = "quarkus.camel.openapi")
@@ -34,6 +37,17 @@ public interface RestOpenApiBuildTimeConfig {
      * @asciidoclet
      */
     CodeGenConfig codegen();
+
+    /**
+     * Named build time configuration options for Camel Quarkus REST OpenAPI code generator. Allows individual spec files to
+     * have their own configuration.
+     *
+     * @asciidoclet
+     */
+    @WithName("codegen")
+    @WithDefaults
+    @ConfigDocMapKey("openapi-spec-name")
+    Map<String, CodeGenConfig> codegens();
 
     @ConfigGroup
     interface CodeGenConfig {
@@ -96,9 +110,24 @@ public interface RestOpenApiBuildTimeConfig {
         /**
          * A comma separated list of OpenAPI spec locations.
          *
+         * Deprecated - If configuring a single OpenAPI spec for codegen use:
+         * `quarkus.camel.openapi.codegen.location`.
+         *
+         * For multiple spec files, use 'named' configuration like:
+         * `quarkus.camel.openapi.codegen."spec-1".location`,
+         * `quarkus.camel.openapi.codegen."spec-2".location`.
+         *
          * @asciidoclet
          */
+        @Deprecated(since = "3.35.0", forRemoval = true)
         Optional<String> locations();
+
+        /**
+         * The location of the OpenAPI spec.
+         *
+         * @asciidoclet
+         */
+        Optional<String> location();
 
         /**
          * Mappings between swagger spec types and generated code types.

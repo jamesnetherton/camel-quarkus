@@ -19,11 +19,15 @@ package org.apache.camel.quarkus.component.rest.openapi.deployment;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import io.quarkus.bootstrap.prebuild.CodeGenException;
 import io.quarkus.deployment.CodeGenContext;
@@ -43,6 +47,8 @@ import static io.swagger.codegen.v3.generators.features.BeanValidationFeatures.U
 import static io.swagger.codegen.v3.generators.features.NotNullAnnotationFeatures.NOT_NULL_JACKSON_ANNOTATION;
 
 public class CamelQuarkusSwaggerCodegenProvider implements CodeGenProvider {
+    private static final Pattern OPENAPI_CONFIG_PATTERN = Pattern
+            .compile("^quarkus\\.camel\\.openapi\\.codegen.*\\.locations?$");
     private static final Logger LOG = Logger.getLogger(CamelQuarkusSwaggerCodegenProvider.class);
 
     @Override
@@ -62,100 +68,127 @@ public class CamelQuarkusSwaggerCodegenProvider implements CodeGenProvider {
 
     @Override
     public boolean shouldRun(Path sourceDir, Config config) {
-        return Files.isDirectory(sourceDir)
-                || config.getOptionalValue("quarkus.camel.openapi.codegen.locations", String.class).isPresent();
+        boolean isLocationConfigSpecified = StreamSupport.stream(config.getPropertyNames().spliterator(), false)
+                .anyMatch(propertyName -> OPENAPI_CONFIG_PATTERN.matcher(propertyName).matches());
+        return Files.isDirectory(sourceDir) || isLocationConfigSpecified;
     }
 
     @Override
     public boolean trigger(CodeGenContext context) throws CodeGenException {
-        final CodeGenConfig config = context.config()
+        RestOpenApiBuildTimeConfig buildTimeConfig = context.config()
                 .unwrap(SmallRyeConfig.class)
-                .getConfigMapping(RestOpenApiBuildTimeConfig.class)
-                .codegen();
-
-        if (!config.enabled()) {
-            LOG.info("Skipping " + this.getClass() + " invocation on user's request");
-            return false;
-        }
+                .getConfigMapping(RestOpenApiBuildTimeConfig.class);
 
         try {
-            Set<String> specFiles = new HashSet<>();
-            if (Files.isDirectory(context.inputDir())) {
-                try (Stream<Path> protoFilesPaths = Files.walk(context.inputDir())) {
-                    protoFilesPaths
-                            .filter(Files::isRegularFile)
-                            .filter(s -> s.toString().endsWith("json") || s.toString().endsWith("yaml"))
-                            .map(Path::normalize)
-                            .map(Path::toAbsolutePath)
-                            .map(Path::toString)
-                            .forEach(specFiles::add);
+            boolean isCodeGenerated = false;
+
+            // Generate code for the default codegen config
+            if (buildTimeConfig.codegen().enabled()) {
+                generate(context, buildTimeConfig.codegen());
+                isCodeGenerated = true;
+            } else {
+                LOG.info("Skipping " + this.getClass() + " invocation on user's request");
+            }
+
+            // Generate code for 'named' configs
+            for (Map.Entry<String, CodeGenConfig> entry : buildTimeConfig.codegens().entrySet()) {
+                String configName = entry.getKey();
+                CodeGenConfig config = entry.getValue();
+                if (config.enabled()) {
+                    generate(context, config);
+                    isCodeGenerated = true;
+                } else {
+                    LOG.infof("Skipping code generation for named config '%s'", configName);
                 }
             }
 
-            config.locations().ifPresent(locations -> {
-                for (String location : locations.split(",")) {
-                    try {
-                        URI uri;
-                        if (location.indexOf("://") == -1) {
-                            uri = Thread.currentThread().getContextClassLoader().getResource(location).toURI();
-                        } else {
-                            uri = new URI(location);
-                        }
-                        Path path = Path.of(uri);
-                        specFiles.add(path.toAbsolutePath().toString());
-                    } catch (Exception e) {
-                        LOG.warnf(e, "Can not find location %s", location);
-                    }
-                }
-            });
-
-            for (String specFile : specFiles) {
-                LOG.infof("Generating models for %s", specFile);
-                CodegenConfigurator configurator = new CodegenConfigurator();
-                configurator.setLang("quarkus");
-                configurator.setLibrary("quarkus3");
-                configurator.setModelPackage(config.modelPackage());
-                configurator.setInputSpecURL(specFile);
-                configurator.setOutputDir(context.outDir().toAbsolutePath().toString());
-                System.setProperty(CodegenConstants.MODELS, config.models().orElse(""));
-                configurator.getCodegenArguments()
-                        .add(new CodegenArgument().option(CodegenConstants.API_DOCS_OPTION).type("boolean").value("false"));
-                configurator.getCodegenArguments()
-                        .add(new CodegenArgument().option(CodegenConstants.MODEL_DOCS_OPTION).type("boolean").value("false"));
-
-                if (config.useBeanValidation()) {
-                    configurator.getAdditionalProperties().put(USE_BEANVALIDATION, true);
-                }
-
-                if (config.notNullJackson()) {
-                    configurator.getAdditionalProperties().put(NOT_NULL_JACKSON_ANNOTATION, true);
-                }
-
-                if (config.ignoreUnknownProperties()) {
-                    configurator.getAdditionalProperties().put("ignoreUnknownProperties", true);
-                }
-
-                config.additionalProperties().forEach((key, value) -> {
-                    if (configurator.getAdditionalProperties().containsKey(key)) {
-                        LOG.warn("Overriding existing property: " + key + " with value: " + value);
-                    }
-
-                    if (value.equals("true") || value.equals("false")) {
-                        configurator.getAdditionalProperties().put(key, Boolean.parseBoolean(value));
-                    } else {
-                        configurator.getAdditionalProperties().put(key, value);
-                    }
-                });
-
-                configurator.setTypeMappings(config.typeMappings());
-
-                final ClientOptInput input = configurator.toClientOptInput();
-                new DefaultGenerator().opts(input).generate();
-            }
-            return true;
+            return isCodeGenerated;
         } catch (IOException e) {
             throw new CodeGenException(
                     "Failed to generate java files from json file in " + context.inputDir().toAbsolutePath(), e);
+        }
+    }
+
+    protected void generate(CodeGenContext context, CodeGenConfig config) throws IOException {
+        if (!config.enabled()) {
+            return;
+        }
+
+        Set<String> specFiles = new HashSet<>();
+        if (Files.isDirectory(context.inputDir())) {
+            try (Stream<Path> specFilePaths = Files.walk(context.inputDir())) {
+                specFilePaths.filter(Files::isRegularFile)
+                        .filter(path -> path.toString().endsWith("json") || path.toString().endsWith("yaml"))
+                        .map(Path::normalize)
+                        .map(Path::toAbsolutePath)
+                        .map(Path::toString)
+                        .forEach(specFiles::add);
+            }
+        }
+
+        config.locations().or(config::location).ifPresent(locations -> {
+            for (String location : locations.split(",")) {
+                try {
+                    URI uri;
+                    if (!location.contains("://")) {
+                        URL resource = Thread.currentThread().getContextClassLoader().getResource(location);
+                        if (resource == null) {
+                            throw new IllegalStateException("Classpath resource " + location + " not found");
+                        }
+                        uri = resource.toURI();
+                    } else {
+                        uri = new URI(location);
+                    }
+                    Path path = Path.of(uri);
+                    specFiles.add(path.toAbsolutePath().toString());
+                } catch (Exception e) {
+                    LOG.warnf(e, "Can not find location %s", location);
+                }
+            }
+        });
+
+        for (String specFile : specFiles) {
+            LOG.infof("Generating models for %s", specFile);
+            CodegenConfigurator configurator = new CodegenConfigurator();
+            configurator.setLang("quarkus");
+            configurator.setLibrary("quarkus3");
+            configurator.setModelPackage(config.modelPackage());
+            configurator.setInputSpecURL(specFile);
+            configurator.setOutputDir(context.outDir().toAbsolutePath().toString());
+            System.setProperty(CodegenConstants.MODELS, config.models().orElse(""));
+            configurator.getCodegenArguments()
+                    .add(new CodegenArgument().option(CodegenConstants.API_DOCS_OPTION).type("boolean").value("false"));
+            configurator.getCodegenArguments()
+                    .add(new CodegenArgument().option(CodegenConstants.MODEL_DOCS_OPTION).type("boolean").value("false"));
+
+            if (config.useBeanValidation()) {
+                configurator.getAdditionalProperties().put(USE_BEANVALIDATION, true);
+            }
+
+            if (config.notNullJackson()) {
+                configurator.getAdditionalProperties().put(NOT_NULL_JACKSON_ANNOTATION, true);
+            }
+
+            if (config.ignoreUnknownProperties()) {
+                configurator.getAdditionalProperties().put("ignoreUnknownProperties", true);
+            }
+
+            config.additionalProperties().forEach((key, value) -> {
+                if (configurator.getAdditionalProperties().containsKey(key)) {
+                    LOG.warn("Overriding existing property: " + key + " with value: " + value);
+                }
+
+                if (value.equals("true") || value.equals("false")) {
+                    configurator.getAdditionalProperties().put(key, Boolean.parseBoolean(value));
+                } else {
+                    configurator.getAdditionalProperties().put(key, value);
+                }
+            });
+
+            configurator.setTypeMappings(config.typeMappings());
+
+            final ClientOptInput input = configurator.toClientOptInput();
+            new DefaultGenerator().opts(input).generate();
         }
     }
 }
