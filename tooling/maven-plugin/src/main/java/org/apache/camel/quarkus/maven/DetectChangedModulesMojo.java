@@ -419,18 +419,50 @@ public class DetectChangedModulesMojo extends AbstractMojo {
         return basePath.relativize(projectPath).toString().replace('\\', '/');
     }
 
+    private Set<String> getAllModulesInDirectory(String directoryPrefix) {
+        Set<String> modules = new LinkedHashSet<>();
+
+        // Remove trailing slash if present
+        String dirPath = directoryPrefix.endsWith("/") ? directoryPrefix.substring(0, directoryPrefix.length() - 1)
+                : directoryPrefix;
+        Path directory = project.getBasedir().toPath().resolve(dirPath);
+
+        if (Files.exists(directory) && Files.isDirectory(directory)) {
+            try {
+                Files.list(directory)
+                        .filter(Files::isDirectory)
+                        .filter(path -> !path.getFileName().toString().startsWith("."))
+                        .filter(path -> !path.getFileName().toString().equals("target"))
+                        .filter(path -> Files.exists(path.resolve("pom.xml")))
+                        .map(path -> path.getFileName().toString())
+                        .forEach(modules::add);
+            } catch (IOException e) {
+                getLog().warn("Could not list modules in directory: " + directory, e);
+            }
+        } else {
+            getLog().warn("Directory does not exist: " + directory);
+        }
+
+        return modules;
+    }
+
     private void generateOutput(Set<String> affectedModules) throws IOException {
+        generateOutput(affectedModules, false);
+    }
+
+    private void generateOutput(Set<String> affectedModules, boolean isFullBuild) throws IOException {
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("full-build", false);
+        result.put("full-build", isFullBuild);
         result.put("changed-modules", new ArrayList<>(affectedModules));
 
         // Categorize modules
         Map<String, Set<String>> categorizedModules = categorizeModules(affectedModules);
-        result.put("native-tests", generateNativeTestsMatrix(categorizedModules.get("integration-tests")));
-        result.put("functional-extension-tests", generateFunctionalTestsConfig(categorizedModules));
-        result.put("extensions-jvm-tests", generateJvmTestsConfig(categorizedModules.get("integration-tests-jvm")));
+        result.put("native-tests", generateNativeTestsMatrix(categorizedModules.get("integration-tests"), isFullBuild));
+        result.put("functional-extension-tests", generateFunctionalTestsConfig(categorizedModules, isFullBuild));
+        result.put("extensions-jvm-tests",
+                generateJvmTestsConfig(categorizedModules.get("integration-tests-jvm"), isFullBuild));
         result.put("integration-tests-alternative-jdk",
-                generateAlternativeJdkConfig(categorizedModules.get("integration-tests")));
+                generateAlternativeJdkConfig(categorizedModules.get("integration-tests"), isFullBuild));
 
         writeJsonResult(result);
     }
@@ -472,16 +504,33 @@ public class DetectChangedModulesMojo extends AbstractMojo {
         return categorized;
     }
 
-    private Map<String, Object> generateNativeTestsMatrix(Set<String> integrationTestModules) throws IOException {
+    private Map<String, Object> generateNativeTestsMatrix(Set<String> integrationTestModules, boolean isFullBuild)
+            throws IOException {
         Map<String, Object> matrix = new LinkedHashMap<>();
 
+        // Load test categories
+        Map<String, List<String>> categories = loadTestCategories();
+
+        if (isFullBuild) {
+            // Full build - include ALL categories with ALL their modules
+            List<Map<String, Object>> include = new ArrayList<>();
+            for (Map.Entry<String, List<String>> entry : categories.entrySet()) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("category", entry.getKey());
+                item.put("modules", new ArrayList<>(entry.getValue()));
+                include.add(item);
+            }
+            matrix.put("include", include);
+            return matrix;
+        }
+
+        // Incremental build
         if (integrationTestModules.isEmpty()) {
             matrix.put("include", Collections.emptyList());
             return matrix;
         }
 
-        // Load test categories and find which categories contain affected modules
-        Map<String, List<String>> categories = loadTestCategories();
+        // Find which categories contain affected modules
         Map<String, Set<String>> affectedModulesByCategory = new LinkedHashMap<>();
 
         // Group affected modules by their category
@@ -508,25 +557,35 @@ public class DetectChangedModulesMojo extends AbstractMojo {
         return matrix;
     }
 
-    private Map<String, Object> generateFunctionalTestsConfig(Map<String, Set<String>> categorizedModules) {
+    private Map<String, Object> generateFunctionalTestsConfig(Map<String, Set<String>> categorizedModules,
+            boolean isFullBuild) {
         Map<String, Object> config = new LinkedHashMap<>();
         Set<String> topLevelModules = new LinkedHashSet<>();
 
-        // Map to top-level directory names
-        if (!categorizedModules.get("extensions-core").isEmpty()) {
+        if (isFullBuild) {
+            // Full build - include ALL functional test directories
             topLevelModules.add("extensions-core");
-        }
-        if (!categorizedModules.get("extensions").isEmpty()) {
             topLevelModules.add("extensions");
-        }
-        if (!categorizedModules.get("test-framework").isEmpty()) {
             topLevelModules.add("test-framework");
-        }
-        if (!categorizedModules.get("tooling").isEmpty()) {
             topLevelModules.add("tooling");
-        }
-        if (!categorizedModules.get("catalog").isEmpty()) {
             topLevelModules.add("catalog");
+        } else {
+            // Incremental build - only include affected directories
+            if (!categorizedModules.get("extensions-core").isEmpty()) {
+                topLevelModules.add("extensions-core");
+            }
+            if (!categorizedModules.get("extensions").isEmpty()) {
+                topLevelModules.add("extensions");
+            }
+            if (!categorizedModules.get("test-framework").isEmpty()) {
+                topLevelModules.add("test-framework");
+            }
+            if (!categorizedModules.get("tooling").isEmpty()) {
+                topLevelModules.add("tooling");
+            }
+            if (!categorizedModules.get("catalog").isEmpty()) {
+                topLevelModules.add("catalog");
+            }
         }
 
         List<Map<String, Object>> include = new ArrayList<>();
@@ -541,14 +600,20 @@ public class DetectChangedModulesMojo extends AbstractMojo {
         return config;
     }
 
-    private Map<String, Object> generateJvmTestsConfig(Set<String> jvmTestModules) {
+    private Map<String, Object> generateJvmTestsConfig(Set<String> jvmTestModules, boolean isFullBuild) {
         Map<String, Object> config = new LinkedHashMap<>();
         List<Map<String, Object>> include = new ArrayList<>();
 
-        if (!jvmTestModules.isEmpty()) {
+        Set<String> modulesToTest = jvmTestModules;
+        if (isFullBuild) {
+            // Full build - get ALL modules from integration-tests-jvm
+            modulesToTest = getAllModulesInDirectory("integration-tests-jvm/");
+        }
+
+        if (!modulesToTest.isEmpty()) {
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("category", "");
-            item.put("modules", new ArrayList<>(jvmTestModules));
+            item.put("modules", new ArrayList<>(modulesToTest));
             include.add(item);
         }
 
@@ -556,17 +621,23 @@ public class DetectChangedModulesMojo extends AbstractMojo {
         return config;
     }
 
-    private Map<String, Object> generateAlternativeJdkConfig(Set<String> integrationTestModules) {
+    private Map<String, Object> generateAlternativeJdkConfig(Set<String> integrationTestModules, boolean isFullBuild) {
         Map<String, Object> config = new LinkedHashMap<>();
         List<Map<String, Object>> include = new ArrayList<>();
 
-        if (integrationTestModules.isEmpty()) {
+        Set<String> modulesToTest = integrationTestModules;
+        if (isFullBuild) {
+            // Full build - get ALL modules from integration-tests
+            modulesToTest = getAllModulesInDirectory("integration-tests/");
+        }
+
+        if (modulesToTest.isEmpty()) {
             config.put("include", include);
             return config;
         }
 
         // Split modules into two groups for parallel execution
-        List<String> moduleList = new ArrayList<>(integrationTestModules);
+        List<String> moduleList = new ArrayList<>(modulesToTest);
         int midpoint = moduleList.size() / 2;
 
         List<String> group1Modules = moduleList.subList(0, midpoint);
@@ -623,10 +694,8 @@ public class DetectChangedModulesMojo extends AbstractMojo {
     }
 
     private void writeFullBuildResult() throws IOException {
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("full-build", true);
-        result.put("changed-modules", Collections.emptyList());
-        writeJsonResult(result);
+        // For full build, generate output with ALL modules
+        generateOutput(Collections.emptySet(), true);
     }
 
     private void writeEmptyBuildResult() throws IOException {
