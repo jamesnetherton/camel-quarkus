@@ -158,6 +158,8 @@ jobs:
       matrix: ${{ steps.set-native-matrix.outputs.matrix }}
       examples-matrix: ${{ steps.set-examples-matrix.outputs.examples-matrix }}
       alternate-jvm-matrix: ${{ steps.set-alternate-jvm-matrix.outputs.alternate-jvm-matrix }}
+      changed-modules: ${{ steps.detect-changes.outputs.changed-modules }}
+      full-build: ${{ steps.detect-changes.outputs.full-build }}
     env:
       MAVEN_OPTS: -Xmx4600m
     steps:
@@ -215,11 +217,43 @@ jobs:
           name: maven-repo
           path: ${{ runner.temp }}/maven-repo.tgz
           retention-days: 1
+      - name: Detect Changed Modules
+        id: detect-changes
+        run: |
+          ./mvnw ${CQ_MAVEN_ARGS} -N camel-quarkus:detect-changed-modules \
+            -DbaseBranch=${{ github.base_ref || 'origin/main' }} \
+            -DoutputFile=${{ runner.temp }}/changed-modules.json
+          
+          if [ -f "${{ runner.temp }}/changed-modules.json" ]; then
+            CHANGED_MODULES=$(cat ${{ runner.temp }}/changed-modules.json)
+            echo "changed-modules=${CHANGED_MODULES}" >> $GITHUB_OUTPUT
+            
+            FULL_BUILD=$(echo "${CHANGED_MODULES}" | jq -r '.["full-build"]')
+            echo "full-build=${FULL_BUILD}" >> $GITHUB_OUTPUT
+            
+            echo "Incremental build analysis complete:"
+            echo "Full build required: ${FULL_BUILD}"
+            echo "${CHANGED_MODULES}" | jq .
+          else
+            echo "Detection failed, falling back to full build"
+            echo "full-build=true" >> $GITHUB_OUTPUT
+            echo "changed-modules={\"full-build\":true}" >> $GITHUB_OUTPUT
+          fi
       - name: Setup Native Test Matrix
         id: set-native-matrix
         run: |
-          CATEGORIES=$(yq -M -N -I 0 -o=json e 'keys' tooling/scripts/test-categories.yaml | tr '"' "'")
-          echo "matrix={'category': ${CATEGORIES}}" >> $GITHUB_OUTPUT
+          FULL_BUILD="${{ steps.detect-changes.outputs.full-build }}"
+          
+          if [ "${FULL_BUILD}" = "true" ]; then
+            # Full build - use all categories
+            CATEGORIES=$(yq -M -N -I 0 -o=json e 'keys' tooling/scripts/test-categories.yaml | tr '"' "'")
+            echo "matrix={'category': ${CATEGORIES}}" >> $GITHUB_OUTPUT
+          else
+            # Incremental build - use only affected categories
+            CHANGED_MODULES='${{ steps.detect-changes.outputs.changed-modules }}'
+            NATIVE_TESTS=$(echo "${CHANGED_MODULES}" | jq -c '.["native-tests"]')
+            echo "matrix=${NATIVE_TESTS}" >> $GITHUB_OUTPUT
+          fi
       - name: Setup Alternate JVM Matrix
         id: set-alternate-jvm-matrix
         shell: bash
@@ -250,7 +284,10 @@ jobs:
     name: Native Tests - ${{matrix.category}}
     needs: initial-mvn-install
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
+    if: |
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')) &&
+      (needs.initial-mvn-install.outputs.full-build == 'true' ||
+       (fromJson(needs.initial-mvn-install.outputs.changed-modules).native-tests.include[0] != null))
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.initial-mvn-install.outputs.matrix) }}
@@ -280,9 +317,31 @@ jobs:
           rm -f ../maven-repo.tgz
           df -h /
       - name: Integration Tests
+        env:
+          AFFECTED_MODULES: ${{ toJson(matrix.modules) }}
         run: |
-          for MODULE in $(yq -M -N e ".${{ matrix.category }}" tooling/scripts/test-categories.yaml | grep -vE '^\s*#' | cut -f2 -d' '); do
-            if [[ "${MODULE}" == "null" ]]; then
+          FULL_BUILD="${{ needs.initial-mvn-install.outputs.full-build }}"
+          
+          # Determine which modules to test
+          if [ "${FULL_BUILD}" = "true" ]; then
+            # Full build - test all modules in this category
+            MODULES_TO_TEST=$(yq -M -N e ".${{ matrix.category }}" tooling/scripts/test-categories.yaml | grep -vE '^\s*#' | cut -f2 -d' ')
+          else
+            # Incremental build - test only affected modules
+            MODULES_TO_TEST=$(echo "${AFFECTED_MODULES}" | jq -r '.[]' 2>/dev/null || echo "")
+          fi
+          
+          if [ -z "${MODULES_TO_TEST}" ]; then
+            echo "No modules to test for category ${{ matrix.category }}"
+            exit 0
+          fi
+          
+          # Process modules
+          JVM_MODULES=()
+          NATIVE_MODULES=()
+          
+          for MODULE in ${MODULES_TO_TEST}; do
+            if [[ "${MODULE}" == "null" ]] || [[ -z "${MODULE}" ]]; then
               continue
             fi
 
@@ -297,7 +356,7 @@ jobs:
 
           if [[ ${#JVM_MODULES[@]} -eq 0 ]] && [[ ${#NATIVE_MODULES[@]} -eq 0 ]]; then
             echo "No test modules were found for category ${{ matrix.category }}"
-            exit 1
+            exit 0
           fi
 
           IFS=,
@@ -329,7 +388,10 @@ jobs:
   functional-extension-tests:
     runs-on: ubuntu-latest
     needs: initial-mvn-install
-    if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
+    if: |
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')) &&
+      (needs.initial-mvn-install.outputs.full-build == 'true' ||
+       (fromJson(needs.initial-mvn-install.outputs.changed-modules).functional-extension-tests.modules[0] != null))
     env:
       MAVEN_OPTS: -Xmx3000m
     steps:
@@ -355,7 +417,29 @@ jobs:
           tar -xzf ../maven-repo.tgz -C ~
           rm -f ../maven-repo.tgz
           df -h /
+      - name: Determine modules to test
+        id: determine-modules
+        run: |
+          FULL_BUILD="${{ needs.initial-mvn-install.outputs.full-build }}"
+          
+          if [ "${FULL_BUILD}" = "true" ]; then
+            echo "test-extensions-core=true" >> $GITHUB_OUTPUT
+            echo "test-extensions=true" >> $GITHUB_OUTPUT
+            echo "test-framework=true" >> $GITHUB_OUTPUT
+            echo "test-tooling=true" >> $GITHUB_OUTPUT
+            echo "test-catalog=true" >> $GITHUB_OUTPUT
+          else
+            CHANGED_MODULES='${{ needs.initial-mvn-install.outputs.changed-modules }}'
+            FUNCTIONAL_MODULES=$(echo "${CHANGED_MODULES}" | jq -r '.["functional-extension-tests"].modules | join(",")')
+            
+            echo "test-extensions-core=$(echo ${FUNCTIONAL_MODULES} | grep -q 'extensions-core' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+            echo "test-extensions=$(echo ${FUNCTIONAL_MODULES} | grep -q 'extensions/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+            echo "test-framework=$(echo ${FUNCTIONAL_MODULES} | grep -q 'test-framework' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+            echo "test-tooling=$(echo ${FUNCTIONAL_MODULES} | grep -q 'tooling' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+            echo "test-catalog=$(echo ${FUNCTIONAL_MODULES} | grep -q 'catalog' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          fi
       - name: cd extensions-core && mvn test
+        if: steps.determine-modules.outputs.test-extensions-core == 'true'
         run: |
           cd extensions-core
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
@@ -368,6 +452,7 @@ jobs:
         with:
           test-report-xml-base-dir: extensions-core
       - name: cd extensions && mvn test
+        if: steps.determine-modules.outputs.test-extensions == 'true'
         run: |
           cd extensions
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
@@ -380,6 +465,7 @@ jobs:
         with:
           test-report-xml-base-dir: extensions
       - name: cd test-framework && mvn test
+        if: steps.determine-modules.outputs.test-framework == 'true'
         run: |
           cd test-framework
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
@@ -392,6 +478,7 @@ jobs:
         with:
           test-report-xml-base-dir: test-framework
       - name: cd tooling && mvn verify
+        if: steps.determine-modules.outputs.test-tooling == 'true'
         run: |
           cd tooling
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
@@ -404,6 +491,7 @@ jobs:
         with:
           test-report-xml-base-dir: tooling
       - name: cd catalog && mvn test
+        if: steps.determine-modules.outputs.test-catalog == 'true'
         run: |
           cd catalog
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
@@ -418,6 +506,9 @@ jobs:
   integration-tests-jvm:
     runs-on: ubuntu-latest
     needs: initial-mvn-install
+    if: |
+      needs.initial-mvn-install.outputs.full-build == 'true' ||
+      (fromJson(needs.initial-mvn-install.outputs.changed-modules).extensions-jvm-tests.modules[0] != null)
     strategy:
       fail-fast: false
       matrix:
@@ -449,11 +540,30 @@ jobs:
           df -h /
       - name: cd integration-tests-jvm && mvn clean test
         run: |
+          FULL_BUILD="${{ needs.initial-mvn-install.outputs.full-build }}"
           cd integration-tests-jvm
-          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-            --fail-at-end \
-            clean test
+          
+          if [ "${FULL_BUILD}" = "true" ]; then
+            # Full build - test all modules
+            ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+              -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+              --fail-at-end \
+              clean test
+          else
+            # Incremental build - test only affected modules
+            CHANGED_MODULES='${{ needs.initial-mvn-install.outputs.changed-modules }}'
+            JVM_MODULES=$(echo "${CHANGED_MODULES}" | jq -r '.["extensions-jvm-tests"].modules | join(",")')
+            
+            if [ -n "${JVM_MODULES}" ]; then
+              ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+                -pl "${JVM_MODULES}" \
+                -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+                --fail-at-end \
+                clean test
+            else
+              echo "No JVM test modules to build"
+            fi
+          fi
       - name: Report test failures
         uses: ./.github/actions/test-summary-report
         if: ${{ failure() }}
@@ -464,7 +574,10 @@ jobs:
     name: Integration Tests Alternative JDK 21 ${{matrix.name}}
     runs-on: ubuntu-latest
     needs: initial-mvn-install
-    if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
+    if: |
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')) &&
+      (needs.initial-mvn-install.outputs.full-build == 'true' ||
+       (fromJson(needs.initial-mvn-install.outputs.changed-modules).integration-tests-alternative-jdk.modules[0] != null))
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.initial-mvn-install.outputs.alternate-jvm-matrix) }}
@@ -500,12 +613,49 @@ jobs:
         env:
           TEST_MODULES: ${{matrix.modules}}
         run: |
+          FULL_BUILD="${{ needs.initial-mvn-install.outputs.full-build }}"
           cd integration-tests
-          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            -pl "${TEST_MODULES// /,}" \
-            -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-            --fail-at-end \
-            clean verify
+          
+          if [ "${FULL_BUILD}" = "true" ]; then
+            # Full build - test all modules in this group
+            ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+              -pl "${TEST_MODULES// /,}" \
+              -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+              --fail-at-end \
+              clean verify
+          else
+            # Incremental build - filter to only affected modules
+            CHANGED_MODULES='${{ needs.initial-mvn-install.outputs.changed-modules }}'
+            AFFECTED_MODULES=$(echo "${CHANGED_MODULES}" | jq -r '.["integration-tests-alternative-jdk"].modules | join(",")')
+            
+            # Intersect affected modules with this group's modules
+            MODULES_TO_TEST=""
+            IFS=',' read -ra GROUP_MODULES <<< "${TEST_MODULES// /,}"
+            IFS=',' read -ra AFFECTED_ARRAY <<< "${AFFECTED_MODULES}"
+            
+            for module in "${GROUP_MODULES[@]}"; do
+              for affected in "${AFFECTED_ARRAY[@]}"; do
+                if [ "${module}" = "${affected}" ]; then
+                  if [ -z "${MODULES_TO_TEST}" ]; then
+                    MODULES_TO_TEST="${module}"
+                  else
+                    MODULES_TO_TEST="${MODULES_TO_TEST},${module}"
+                  fi
+                  break
+                fi
+              done
+            done
+            
+            if [ -n "${MODULES_TO_TEST}" ]; then
+              ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+                -pl "${MODULES_TO_TEST}" \
+                -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+                --fail-at-end \
+                clean verify
+            else
+              echo "No modules to test in this group"
+            fi
+          fi
       - name: Report test failures
         uses: ./.github/actions/test-summary-report
         if: ${{ failure() }}
