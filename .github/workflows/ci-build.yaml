@@ -421,22 +421,33 @@ jobs:
         id: determine-modules
         run: |
           FULL_BUILD="${{ needs.initial-mvn-install.outputs.full-build }}"
-          
+
+          # Define all functional test categories in one place
+          CATEGORIES=(
+            "extensions-core"
+            "extensions"
+            "test-framework"
+            "tooling"
+            "catalog"
+          )
+
           if [ "${FULL_BUILD}" = "true" ]; then
-            echo "test-extensions-core=true" >> $GITHUB_OUTPUT
-            echo "test-extensions=true" >> $GITHUB_OUTPUT
-            echo "test-framework=true" >> $GITHUB_OUTPUT
-            echo "test-tooling=true" >> $GITHUB_OUTPUT
-            echo "test-catalog=true" >> $GITHUB_OUTPUT
+            # Full build - enable all categories
+            for category in "${CATEGORIES[@]}"; do
+              echo "test-${category}=true" >> $GITHUB_OUTPUT
+            done
           else
+            # Incremental build - check which categories are affected
             CHANGED_MODULES='${{ needs.initial-mvn-install.outputs.changed-modules }}'
             FUNCTIONAL_MODULES=$(echo "${CHANGED_MODULES}" | jq -r '.["functional-extension-tests"].modules | join(",")')
-            
-            echo "test-extensions-core=$(echo ${FUNCTIONAL_MODULES} | grep -q 'extensions-core' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
-            echo "test-extensions=$(echo ${FUNCTIONAL_MODULES} | grep -q 'extensions/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
-            echo "test-framework=$(echo ${FUNCTIONAL_MODULES} | grep -q 'test-framework' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
-            echo "test-tooling=$(echo ${FUNCTIONAL_MODULES} | grep -q 'tooling' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
-            echo "test-catalog=$(echo ${FUNCTIONAL_MODULES} | grep -q 'catalog' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+
+            for category in "${CATEGORIES[@]}"; do
+              if echo "${FUNCTIONAL_MODULES}" | grep -q "${category}"; then
+                echo "test-${category}=true" >> $GITHUB_OUTPUT
+              else
+                echo "test-${category}=false" >> $GITHUB_OUTPUT
+              fi
+            done
           fi
       - name: cd extensions-core && mvn test
         if: steps.determine-modules.outputs.test-extensions-core == 'true'
