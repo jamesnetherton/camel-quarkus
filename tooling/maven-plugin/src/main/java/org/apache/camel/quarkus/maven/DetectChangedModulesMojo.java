@@ -444,6 +444,7 @@ public class DetectChangedModulesMojo extends AbstractMojo {
         categorized.put("integration-tests-jvm", new LinkedHashSet<>());
         categorized.put("test-framework", new LinkedHashSet<>());
         categorized.put("tooling", new LinkedHashSet<>());
+        categorized.put("catalog", new LinkedHashSet<>());
         categorized.put("other", new LinkedHashSet<>());
 
         for (String module : modules) {
@@ -461,6 +462,8 @@ public class DetectChangedModulesMojo extends AbstractMojo {
                 categorized.get("test-framework").add(module);
             } else if (module.startsWith("tooling/")) {
                 categorized.get("tooling").add(module);
+            } else if (module.startsWith("catalog/")) {
+                categorized.get("catalog").add(module);
             } else {
                 categorized.get("other").add(module);
             }
@@ -507,24 +510,83 @@ public class DetectChangedModulesMojo extends AbstractMojo {
 
     private Map<String, Object> generateFunctionalTestsConfig(Map<String, Set<String>> categorizedModules) {
         Map<String, Object> config = new LinkedHashMap<>();
-        Set<String> modules = new LinkedHashSet<>();
-        modules.addAll(categorizedModules.get("extensions"));
-        modules.addAll(categorizedModules.get("extensions-core"));
-        modules.addAll(categorizedModules.get("test-framework"));
-        modules.addAll(categorizedModules.get("tooling"));
-        config.put("modules", new ArrayList<>(modules));
+        Set<String> topLevelModules = new LinkedHashSet<>();
+
+        // Map to top-level directory names
+        if (!categorizedModules.get("extensions-core").isEmpty()) {
+            topLevelModules.add("extensions-core");
+        }
+        if (!categorizedModules.get("extensions").isEmpty()) {
+            topLevelModules.add("extensions");
+        }
+        if (!categorizedModules.get("test-framework").isEmpty()) {
+            topLevelModules.add("test-framework");
+        }
+        if (!categorizedModules.get("tooling").isEmpty()) {
+            topLevelModules.add("tooling");
+        }
+        if (!categorizedModules.get("catalog").isEmpty()) {
+            topLevelModules.add("catalog");
+        }
+
+        List<Map<String, Object>> include = new ArrayList<>();
+        if (!topLevelModules.isEmpty()) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("category", "");
+            item.put("modules", new ArrayList<>(topLevelModules));
+            include.add(item);
+        }
+
+        config.put("include", include);
         return config;
     }
 
     private Map<String, Object> generateJvmTestsConfig(Set<String> jvmTestModules) {
         Map<String, Object> config = new LinkedHashMap<>();
-        config.put("modules", new ArrayList<>(jvmTestModules));
+        List<Map<String, Object>> include = new ArrayList<>();
+
+        if (!jvmTestModules.isEmpty()) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("category", "");
+            item.put("modules", new ArrayList<>(jvmTestModules));
+            include.add(item);
+        }
+
+        config.put("include", include);
         return config;
     }
 
     private Map<String, Object> generateAlternativeJdkConfig(Set<String> integrationTestModules) {
         Map<String, Object> config = new LinkedHashMap<>();
-        config.put("modules", new ArrayList<>(integrationTestModules));
+        List<Map<String, Object>> include = new ArrayList<>();
+
+        if (integrationTestModules.isEmpty()) {
+            config.put("include", include);
+            return config;
+        }
+
+        // Split modules into two groups for parallel execution
+        List<String> moduleList = new ArrayList<>(integrationTestModules);
+        int midpoint = moduleList.size() / 2;
+
+        List<String> group1Modules = moduleList.subList(0, midpoint);
+        List<String> group2Modules = moduleList.subList(midpoint, moduleList.size());
+
+        if (!group1Modules.isEmpty()) {
+            Map<String, Object> group1 = new LinkedHashMap<>();
+            group1.put("category", "group-01");
+            group1.put("modules", new ArrayList<>(group1Modules));
+            include.add(group1);
+        }
+
+        if (!group2Modules.isEmpty()) {
+            Map<String, Object> group2 = new LinkedHashMap<>();
+            group2.put("category", "group-02");
+            group2.put("modules", new ArrayList<>(group2Modules));
+            include.add(group2);
+        }
+
+        config.put("include", include);
         return config;
     }
 
@@ -572,9 +634,9 @@ public class DetectChangedModulesMojo extends AbstractMojo {
         result.put("full-build", false);
         result.put("changed-modules", Collections.emptyList());
         result.put("native-tests", Collections.singletonMap("include", Collections.emptyList()));
-        result.put("functional-extension-tests", Collections.singletonMap("modules", Collections.emptyList()));
-        result.put("extensions-jvm-tests", Collections.singletonMap("modules", Collections.emptyList()));
-        result.put("integration-tests-alternative-jdk", Collections.singletonMap("modules", Collections.emptyList()));
+        result.put("functional-extension-tests", Collections.singletonMap("include", Collections.emptyList()));
+        result.put("extensions-jvm-tests", Collections.singletonMap("include", Collections.emptyList()));
+        result.put("integration-tests-alternative-jdk", Collections.singletonMap("include", Collections.emptyList()));
         writeJsonResult(result);
     }
 
