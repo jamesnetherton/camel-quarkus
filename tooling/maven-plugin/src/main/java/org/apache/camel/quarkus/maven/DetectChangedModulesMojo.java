@@ -66,7 +66,14 @@ import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 public class DetectChangedModulesMojo extends AbstractMojo {
 
     /**
+     * The base commit SHA to compare against. If not provided, will try to resolve from baseBranch.
+     */
+    @Parameter(property = "cq.baseCommit")
+    private String baseCommit;
+
+    /**
      * The base branch to compare against (e.g., 'main', 'origin/main').
+     * Only used if baseCommit is not provided.
      */
     @Parameter(property = "cq.baseBranch", defaultValue = "${env.GITHUB_BASE_REF}")
     private String baseBranch;
@@ -128,12 +135,8 @@ public class DetectChangedModulesMojo extends AbstractMojo {
                 return;
             }
 
-            // Determine base branch
-            String effectiveBaseBranch = determineBaseBranch();
-            getLog().info("Comparing changes against branch: " + effectiveBaseBranch);
-
             // Detect changed files using JGit
-            Set<String> changedFiles = detectChangedFilesWithJGit(effectiveBaseBranch);
+            Set<String> changedFiles = detectChangedFilesWithJGit();
             getLog().info("Detected " + changedFiles.size() + " changed files");
 
             if (changedFiles.isEmpty()) {
@@ -180,7 +183,7 @@ public class DetectChangedModulesMojo extends AbstractMojo {
         return "origin/main";
     }
 
-    private Set<String> detectChangedFilesWithJGit(String baseBranch) throws IOException, GitAPIException {
+    private Set<String> detectChangedFilesWithJGit() throws IOException, GitAPIException {
         Set<String> changedFiles = new HashSet<>();
         File gitDir = findGitDirectory(project.getBasedir());
 
@@ -196,25 +199,26 @@ public class DetectChangedModulesMojo extends AbstractMojo {
                 .build();
                 Git git = new Git(repository)) {
 
-            // Fetch the base branch if it's a remote reference
-            if (baseBranch.startsWith("origin/")) {
-                try {
-                    String remoteBranch = baseBranch.substring("origin/".length());
-                    getLog().info("Fetching remote branch: " + remoteBranch);
-                    git.fetch()
-                            .setRemote("origin")
-                            .setRefSpecs("+" + "refs/heads/" + remoteBranch + ":refs/remotes/origin/" + remoteBranch)
-                            .call();
-                } catch (Exception e) {
-                    getLog().warn("Could not fetch remote branch, continuing with local refs: " + e.getMessage());
-                }
-            }
-
             // Resolve the base commit
-            ObjectId baseCommit = resolveCommit(repository, baseBranch);
-            if (baseCommit == null) {
-                getLog().warn("Could not resolve base branch: " + baseBranch);
-                throw new IOException("Could not resolve base branch: " + baseBranch);
+            ObjectId baseCommitId;
+            if (baseCommit != null && !baseCommit.trim().isEmpty()) {
+                // Use provided commit SHA directly
+                getLog().info("Using base commit SHA: " + baseCommit);
+                baseCommitId = repository.resolve(baseCommit.trim());
+                if (baseCommitId == null) {
+                    getLog().warn("Could not resolve base commit: " + baseCommit);
+                    throw new IOException("Could not resolve base commit: " + baseCommit);
+                }
+            } else {
+                // Fall back to branch resolution
+                String effectiveBaseBranch = determineBaseBranch();
+                getLog().info("Comparing changes against branch: " + effectiveBaseBranch);
+
+                baseCommitId = resolveCommit(repository, effectiveBaseBranch);
+                if (baseCommitId == null) {
+                    getLog().warn("Could not resolve base branch: " + effectiveBaseBranch);
+                    throw new IOException("Could not resolve base branch: " + effectiveBaseBranch);
+                }
             }
 
             // Get HEAD commit
@@ -225,10 +229,10 @@ public class DetectChangedModulesMojo extends AbstractMojo {
             }
 
             // Find merge base
-            ObjectId mergeBase = findMergeBase(repository, baseCommit, headCommit);
+            ObjectId mergeBase = findMergeBase(repository, baseCommitId, headCommit);
             if (mergeBase == null) {
                 getLog().warn("Could not find merge base, using base commit directly");
-                mergeBase = baseCommit;
+                mergeBase = baseCommitId;
             }
 
             getLog().info("Comparing " + mergeBase.getName() + " (merge-base) with " + headCommit.getName() + " (HEAD)");

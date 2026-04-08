@@ -210,6 +210,24 @@ jobs:
         run: |
           CQ_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout -N)
           echo "version=${CQ_VERSION}" >> $GITHUB_OUTPUT
+      - name: Determine base commit
+        id: base-commit
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            # For PRs, use the merge base with the target branch
+            BASE_SHA=$(git merge-base HEAD ${{ github.event.pull_request.base.sha }})
+            echo "base-commit=${BASE_SHA}" >> $GITHUB_OUTPUT
+            echo "Using PR merge-base: ${BASE_SHA}"
+          else
+            # For pushes, use the previous commit
+            BASE_SHA="${{ github.event.before }}"
+            if [ -z "${BASE_SHA}" ] || [ "${BASE_SHA}" == "0000000000000000000000000000000000000000" ]; then
+              # First push or no previous commit, use HEAD~1
+              BASE_SHA=$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)
+            fi
+            echo "base-commit=${BASE_SHA}" >> $GITHUB_OUTPUT
+            echo "Using commit: ${BASE_SHA}"
+          fi
       - name: Tar Maven Repo
         shell: bash
         run: |
@@ -226,7 +244,7 @@ jobs:
         id: detect-changes
         run: |
           ./mvnw ${CQ_MAVEN_ARGS} -N org.apache.camel.quarkus:camel-quarkus-maven-plugin:${{ steps.get-version.outputs.version }}:detect-changed-modules \
-            -DbaseBranch=${{ github.base_ref || 'origin/main' }} \
+            -DbaseCommit=${{ steps.base-commit.outputs.base-commit }} \
             -DoutputFile=${{ runner.temp }}/changed-modules.json
           
           if [ -f "${{ runner.temp }}/changed-modules.json" ]; then
