@@ -205,6 +205,11 @@ jobs:
         shell: bash
         run: |
           [[ -z $(git status --porcelain | grep -v antora.yml) ]] || { echo 'There are uncommitted changes'; git status; git diff; exit 1; }
+      - name: Get project version
+        id: get-version
+        run: |
+          CQ_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout -N)
+          echo "version=${CQ_VERSION}" >> $GITHUB_OUTPUT
       - name: Tar Maven Repo
         shell: bash
         run: |
@@ -220,7 +225,7 @@ jobs:
       - name: Detect Changed Modules
         id: detect-changes
         run: |
-          ./mvnw ${CQ_MAVEN_ARGS} -N camel-quarkus:detect-changed-modules \
+          ./mvnw ${CQ_MAVEN_ARGS} -N org.apache.camel.quarkus:camel-quarkus-maven-plugin:${{ steps.get-version.outputs.version }}:detect-changed-modules \
             -DbaseBranch=${{ github.base_ref || 'origin/main' }} \
             -DoutputFile=${{ runner.temp }}/changed-modules.json
           
