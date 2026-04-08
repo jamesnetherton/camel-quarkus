@@ -157,7 +157,8 @@ jobs:
       matrix: ${{ steps.set-native-matrix.outputs.matrix }}
       examples-matrix: ${{ steps.set-examples-matrix.outputs.examples-matrix }}
       alternate-jvm-matrix: ${{ steps.set-alternate-jvm-matrix.outputs.alternate-jvm-matrix }}
-      changed-modules: ${{ steps.detect-changes.outputs.changed-modules }}
+      functional-extension-tests-modules: ${{ steps.set-functional-tests.outputs.modules }}
+      extensions-jvm-tests-matrix: ${{ steps.set-jvm-tests.outputs.matrix }}
       full-build: ${{ steps.detect-changes.outputs.full-build }}
     env:
       MAVEN_OPTS: -Xmx4600m
@@ -250,6 +251,18 @@ jobs:
           CHANGED_MODULES='${{ steps.detect-changes.outputs.changed-modules }}'
           ALT_JDK_MATRIX=$(echo "${CHANGED_MODULES}" | jq -c '.["integration-tests-alternative-jdk"]')
           echo "alternate-jvm-matrix=${ALT_JDK_MATRIX}" >> $GITHUB_OUTPUT
+      - name: Setup Functional Extension Tests
+        id: set-functional-tests
+        run: |
+          CHANGED_MODULES='${{ steps.detect-changes.outputs.changed-modules }}'
+          MODULES=$(echo "${CHANGED_MODULES}" | jq -c '.["functional-extension-tests"].include[0].modules // []')
+          echo "modules=${MODULES}" >> $GITHUB_OUTPUT
+      - name: Setup JVM Extension Tests Matrix
+        id: set-jvm-tests
+        run: |
+          CHANGED_MODULES='${{ steps.detect-changes.outputs.changed-modules }}'
+          JVM_TESTS=$(echo "${CHANGED_MODULES}" | jq -c '.["extensions-jvm-tests"]')
+          echo "matrix=${JVM_TESTS}" >> $GITHUB_OUTPUT
       - name: Setup Examples Matrix
         id: set-examples-matrix
         run: |
@@ -270,7 +283,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')) &&
-      fromJson(needs.initial-mvn-install.outputs.changed-modules).native-tests.include[0] != null
+      fromJson(needs.initial-mvn-install.outputs.matrix).include[0] != null
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.initial-mvn-install.outputs.matrix) }}
@@ -365,7 +378,7 @@ jobs:
     needs: initial-mvn-install
     if: |
       (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')) &&
-      fromJson(needs.initial-mvn-install.outputs.changed-modules).functional-extension-tests.include[0] != null
+      needs.initial-mvn-install.outputs.functional-extension-tests-modules != '[]'
     env:
       MAVEN_OPTS: -Xmx3000m
     steps:
@@ -392,7 +405,7 @@ jobs:
           rm -f ../maven-repo.tgz
           df -h /
       - name: cd extensions-core && mvn test
-        if: contains(fromJson(needs.initial-mvn-install.outputs.changed-modules).functional-extension-tests.include[0].modules, 'extensions-core')
+        if: contains(fromJson(needs.initial-mvn-install.outputs.functional-extension-tests-modules), 'extensions-core')
         run: |
           cd extensions-core
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
@@ -405,7 +418,7 @@ jobs:
         with:
           test-report-xml-base-dir: extensions-core
       - name: cd extensions && mvn test
-        if: contains(fromJson(needs.initial-mvn-install.outputs.changed-modules).functional-extension-tests.include[0].modules, 'extensions')
+        if: contains(fromJson(needs.initial-mvn-install.outputs.functional-extension-tests-modules), 'extensions')
         run: |
           cd extensions
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
@@ -418,7 +431,7 @@ jobs:
         with:
           test-report-xml-base-dir: extensions
       - name: cd test-framework && mvn test
-        if: contains(fromJson(needs.initial-mvn-install.outputs.changed-modules).functional-extension-tests.include[0].modules, 'test-framework')
+        if: contains(fromJson(needs.initial-mvn-install.outputs.functional-extension-tests-modules), 'test-framework')
         run: |
           cd test-framework
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
@@ -431,7 +444,7 @@ jobs:
         with:
           test-report-xml-base-dir: test-framework
       - name: cd tooling && mvn verify
-        if: contains(fromJson(needs.initial-mvn-install.outputs.changed-modules).functional-extension-tests.include[0].modules, 'tooling')
+        if: contains(fromJson(needs.initial-mvn-install.outputs.functional-extension-tests-modules), 'tooling')
         run: |
           cd tooling
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
@@ -444,7 +457,7 @@ jobs:
         with:
           test-report-xml-base-dir: tooling
       - name: cd catalog && mvn test
-        if: contains(fromJson(needs.initial-mvn-install.outputs.changed-modules).functional-extension-tests.include[0].modules, 'catalog')
+        if: contains(fromJson(needs.initial-mvn-install.outputs.functional-extension-tests-modules), 'catalog')
         run: |
           cd catalog
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
@@ -459,7 +472,7 @@ jobs:
   integration-tests-jvm:
     runs-on: ubuntu-latest
     needs: initial-mvn-install
-    if: fromJson(needs.initial-mvn-install.outputs.changed-modules).extensions-jvm-tests.include[0] != null
+    if: fromJson(needs.initial-mvn-install.outputs.extensions-jvm-tests-matrix).include[0] != null
     strategy:
       fail-fast: false
       matrix:
@@ -518,7 +531,7 @@ jobs:
     needs: initial-mvn-install
     if: |
       (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')) &&
-      fromJson(needs.initial-mvn-install.outputs.changed-modules).integration-tests-alternative-jdk.include[0] != null
+      fromJson(needs.initial-mvn-install.outputs.alternate-jvm-matrix).include[0] != null
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.initial-mvn-install.outputs.alternate-jvm-matrix) }}
