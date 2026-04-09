@@ -22,10 +22,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -244,11 +242,9 @@ public class DetectChangedModulesMojo extends AbstractMojo {
             throws IOException {
         Map<String, Object> matrix = new LinkedHashMap<>();
 
-        // Load test categories
-        Map<String, List<String>> categories = loadTestCategories();
-
         if (isFullBuild) {
-            // Full build - include ALL categories with ALL their modules
+            // Full build - use test-categories.yaml for balanced groups
+            Map<String, List<String>> categories = loadTestCategories();
             List<Map<String, Object>> include = new ArrayList<>();
             for (Map.Entry<String, List<String>> entry : categories.entrySet()) {
                 Map<String, Object> item = new LinkedHashMap<>();
@@ -266,27 +262,26 @@ public class DetectChangedModulesMojo extends AbstractMojo {
             return matrix;
         }
 
-        // Find which categories contain affected modules
-        Map<String, Set<String>> affectedModulesByCategory = new LinkedHashMap<>();
+        // Incremental build - dynamically distribute modules across groups for maximum parallelism
+        // Ignore test-categories.yaml and spread modules evenly across up to 13 groups
+        final int MAX_GROUPS = 13;
+        List<String> moduleList = new ArrayList<>(integrationTestModules);
+        int numGroups = Math.min(moduleList.size(), MAX_GROUPS);
 
-        // Group affected modules by their category
-        for (String module : integrationTestModules) {
-            for (Map.Entry<String, List<String>> entry : categories.entrySet()) {
-                if (entry.getValue().contains(module)) {
-                    affectedModulesByCategory
-                            .computeIfAbsent(entry.getKey(), k -> new LinkedHashSet<>())
-                            .add(module);
-                }
-            }
-        }
-
-        // Generate matrix with category and specific modules
         List<Map<String, Object>> include = new ArrayList<>();
-        for (Map.Entry<String, Set<String>> entry : affectedModulesByCategory.entrySet()) {
-            Map<String, Object> item = new LinkedHashMap<>();
-            item.put("category", entry.getKey());
-            item.put("modules", new ArrayList<>(entry.getValue()));
-            include.add(item);
+        for (int i = 0; i < numGroups; i++) {
+            List<String> groupModules = new ArrayList<>();
+            // Distribute modules round-robin across groups
+            for (int j = i; j < moduleList.size(); j += numGroups) {
+                groupModules.add(moduleList.get(j));
+            }
+
+            if (!groupModules.isEmpty()) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("category", String.format("group-%02d", i + 1));
+                item.put("modules", groupModules);
+                include.add(item);
+            }
         }
 
         matrix.put("include", include);
