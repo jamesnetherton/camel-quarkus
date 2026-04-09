@@ -249,18 +249,26 @@ jobs:
           
           if [ -f "${{ runner.temp }}/changed-modules.json" ]; then
             CHANGED_MODULES=$(cat ${{ runner.temp }}/changed-modules.json)
-            echo "changed-modules=${CHANGED_MODULES}" >> $GITHUB_OUTPUT
-            
+            {
+              echo "changed-modules<<EOF"
+              echo "${CHANGED_MODULES}"
+              echo "EOF"
+            } >> $GITHUB_OUTPUT
+
             FULL_BUILD=$(echo "${CHANGED_MODULES}" | jq -r '.["full-build"]')
             echo "full-build=${FULL_BUILD}" >> $GITHUB_OUTPUT
-            
+
             echo "Incremental build analysis complete:"
             echo "Full build required: ${FULL_BUILD}"
             echo "${CHANGED_MODULES}" | jq .
           else
             echo "Detection failed, falling back to full build"
             echo "full-build=true" >> $GITHUB_OUTPUT
-            echo "changed-modules={\"full-build\":true}" >> $GITHUB_OUTPUT
+            {
+              echo "changed-modules<<EOF"
+              echo "{\"full-build\":true}"
+              echo "EOF"
+            } >> $GITHUB_OUTPUT
           fi
       - name: Setup Native Test Matrix
         id: set-native-matrix
