@@ -46,6 +46,10 @@
             <groupId>org.apache.camel</groupId>
             <artifactId>camel-langchain4j-agent</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.quarkus.gizmo</groupId>
+            <artifactId>gizmo</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

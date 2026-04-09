@@ -24,18 +24,28 @@ import java.util.stream.Collectors;
 import dev.langchain4j.guardrail.Guardrail;
 import dev.langchain4j.guardrail.InputGuardrail;
 import dev.langchain4j.guardrail.OutputGuardrail;
+import dev.langchain4j.service.tool.ToolProvider;
 import io.quarkus.arc.deployment.SyntheticBeanBuildItem;
 import io.quarkus.arc.deployment.UnremovableBeanBuildItem;
+import io.quarkus.deployment.GeneratedClassGizmoAdaptor;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.BuildSteps;
 import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
+import io.quarkus.deployment.builditem.GeneratedClassBuildItem;
 import io.quarkus.deployment.builditem.SystemPropertyBuildItem;
+import io.quarkus.gizmo.ClassCreator;
+import io.quarkus.gizmo.ClassOutput;
+import io.quarkus.gizmo.FieldDescriptor;
+import io.quarkus.gizmo.MethodCreator;
+import io.quarkus.gizmo.MethodDescriptor;
+import io.quarkus.gizmo.ResultHandle;
 import io.quarkus.runtime.RuntimeValue;
 import jakarta.inject.Singleton;
 import org.apache.camel.component.langchain4j.agent.api.Agent;
+import org.apache.camel.component.langchain4j.agent.api.AiAgentBody;
 import org.apache.camel.quarkus.component.support.langchain4j.QuarkusLangchain4jRecorder;
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.AnnotationTarget;
@@ -167,31 +177,37 @@ class SupportQuarkusLangchain4jProcessor {
     }
 
     /**
-     * Create synthetic CDI beans for AiService Agent adapters.
-     * Combines RuntimeValue creation and synthetic bean registration in a single RUNTIME_INIT step.
+     * Generate Agent adapter classes using Gizmo and create synthetic CDI beans.
+     * This is completely reflection-free - the generated classes directly invoke AiService methods.
      */
     @BuildStep
     @Record(ExecutionTime.RUNTIME_INIT)
-    void createAiServiceAgentBeans(
+    void generateAndRegisterAiServiceAdapterBeans(
             List<AiServiceBeanBuildItem> aiServiceBeans,
+            BuildProducer<GeneratedClassBuildItem> generatedClasses,
             QuarkusLangchain4jRecorder recorder,
             BuildProducer<SyntheticBeanBuildItem> syntheticBeans) {
 
-        LOG.debugf("Creating and registering %d AiService Agent adapters", aiServiceBeans.size());
+        LOG.debugf("Generating and registering %d AiService Agent adapter beans", aiServiceBeans.size());
 
         for (AiServiceBeanBuildItem buildItem : aiServiceBeans) {
             AiServiceBeanInfo beanInfo = buildItem.getBeanInfo();
 
-            LOG.debugf("Creating synthetic Agent bean '%s' for AiService '%s'",
-                    beanInfo.getAdapterBeanName(), beanInfo.getBeanName());
+            LOG.debugf("Generating adapter class for AiService '%s'", beanInfo.getBeanName());
 
-            // Create the RuntimeValue for the adapter
-            RuntimeValue<Object> runtimeValue = recorder.createAiServiceAdapter(
-                    beanInfo.getBeanName(),
-                    beanInfo.getChatMethodName(),
-                    beanInfo.getParameterTypeName());
+            // Generate the adapter class
+            String generatedClassName = generateAdapterClass(beanInfo, generatedClasses);
 
-            // Register as a synthetic CDI bean immediately
+            LOG.debugf("Creating synthetic Agent bean '%s' for AiService '%s' using generated class '%s'",
+                    beanInfo.getAdapterBeanName(), beanInfo.getBeanName(), generatedClassName);
+
+            // Create RuntimeValue for the generated adapter class
+            // The recorder will instantiate the generated class and pass the AiService bean
+            RuntimeValue<Object> runtimeValue = recorder.createGeneratedAdapter(
+                    generatedClassName,
+                    beanInfo.getBeanName());
+
+            // Register as a synthetic CDI bean
             syntheticBeans.produce(SyntheticBeanBuildItem
                     .configure(Agent.class)
                     .scope(Singleton.class)
@@ -200,6 +216,113 @@ class SupportQuarkusLangchain4jProcessor {
                     .setRuntimeInit()
                     .done());
         }
+    }
+
+    /**
+     * Generate an Agent adapter class using Gizmo.
+     * The generated class directly calls the AiService method without any reflection.
+     *
+     * @return the generated class name
+     */
+    private String generateAdapterClass(
+            AiServiceBeanInfo beanInfo,
+            BuildProducer<GeneratedClassBuildItem> generatedClasses) {
+
+        // Generate class name based on the AiService interface name
+        String generatedClassName = beanInfo.getInterfaceName() + "_AgentAdapter";
+
+        ClassOutput classOutput = new GeneratedClassGizmoAdaptor(generatedClasses, true);
+
+        try (ClassCreator classCreator = ClassCreator.builder()
+                .classOutput(classOutput)
+                .className(generatedClassName)
+                .interfaces(Agent.class)
+                .superClass(Object.class.getName())
+                .build()) {
+
+            // Add field to hold the AiService bean instance
+            classCreator.getFieldCreator("aiServiceBean", Object.class)
+                    .setModifiers(java.lang.reflect.Modifier.PRIVATE | java.lang.reflect.Modifier.FINAL);
+            classCreator.getFieldCreator("aiServiceBeanName", String.class)
+                    .setModifiers(java.lang.reflect.Modifier.PRIVATE | java.lang.reflect.Modifier.FINAL);
+
+            // Generate constructor
+            generateConstructor(classCreator);
+
+            // Generate chat() method that implements Agent interface
+            generateChatMethod(classCreator, beanInfo);
+        }
+
+        LOG.debugf("Generated adapter class: %s", generatedClassName);
+        return generatedClassName;
+    }
+
+    /**
+     * Generate the constructor for the adapter class.
+     */
+    private void generateConstructor(ClassCreator classCreator) {
+        MethodCreator constructor = classCreator.getMethodCreator("<init>", void.class, Object.class, String.class);
+
+        // Call super()
+        constructor.invokeSpecialMethod(
+                MethodDescriptor.ofConstructor(Object.class),
+                constructor.getThis());
+
+        // Set aiServiceBean field
+        constructor.writeInstanceField(
+                FieldDescriptor.of(classCreator.getClassName(), "aiServiceBean", Object.class),
+                constructor.getThis(),
+                constructor.getMethodParam(0));
+
+        // Set aiServiceBeanName field
+        constructor.writeInstanceField(
+                FieldDescriptor.of(classCreator.getClassName(), "aiServiceBeanName", String.class),
+                constructor.getThis(),
+                constructor.getMethodParam(1));
+
+        constructor.returnVoid();
+    }
+
+    /**
+     * Generate the chat() method that directly invokes the AiService method.
+     */
+    private void generateChatMethod(ClassCreator classCreator, AiServiceBeanInfo beanInfo) {
+        // Create the chat method with the exact Agent interface signature
+        // The signature must match: String chat(AiAgentBody<?>, ToolProvider)
+        MethodCreator chatMethod = classCreator.getMethodCreator(
+                "chat",
+                String.class,
+                AiAgentBody.class, // Must match Agent interface
+                ToolProvider.class); // Must match Agent interface
+
+        // Get the user message from AiAgentBody (use invokeVirtualMethod because AiAgentBody is a class, not an interface)
+        ResultHandle userMessage = chatMethod.invokeVirtualMethod(
+                MethodDescriptor.ofMethod(
+                        "org.apache.camel.component.langchain4j.agent.api.AiAgentBody",
+                        "getUserMessage",
+                        String.class),
+                chatMethod.getMethodParam(0));
+
+        // Get the AiService bean from the field
+        ResultHandle aiServiceBean = chatMethod.readInstanceField(
+                FieldDescriptor.of(classCreator.getClassName(), "aiServiceBean", Object.class),
+                chatMethod.getThis());
+
+        // Cast to the AiService interface type
+        ResultHandle typedBean = chatMethod.checkCast(aiServiceBean, beanInfo.getInterfaceName());
+
+        // Invoke the AiService method directly (no reflection!)
+        ResultHandle result = chatMethod.invokeInterfaceMethod(
+                MethodDescriptor.ofMethod(
+                        beanInfo.getInterfaceName(),
+                        beanInfo.getChatMethodName(),
+                        String.class,
+                        beanInfo.getParameterTypeName()),
+                typedBean,
+                userMessage);
+
+        // Return the result
+        chatMethod.returnValue(result);
     }
 
     /**

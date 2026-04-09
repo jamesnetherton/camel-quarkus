@@ -50,6 +50,10 @@
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-embeddings</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.camel</groupId>
+            <artifactId>camel-langchain4j-agent</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

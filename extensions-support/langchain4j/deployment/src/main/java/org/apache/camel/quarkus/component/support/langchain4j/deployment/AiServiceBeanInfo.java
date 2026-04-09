@@ -28,6 +28,7 @@ public class AiServiceBeanInfo {
     private final String beanName;
     private final String chatMethodName;
     private final String parameterTypeName;
+    private String generatedAdapterClassName;
 
     public AiServiceBeanInfo(String interfaceName, String beanName, String chatMethodName, String parameterTypeName) {
         this.interfaceName = interfaceName;
@@ -71,6 +72,20 @@ public class AiServiceBeanInfo {
         return beanName + "$Agent";
     }
 
+    /**
+     * @return the fully qualified name of the generated adapter class
+     */
+    public String getGeneratedAdapterClassName() {
+        return generatedAdapterClassName;
+    }
+
+    /**
+     * Set the generated adapter class name (populated during bytecode generation).
+     */
+    public void setGeneratedAdapterClassName(String generatedAdapterClassName) {
+        this.generatedAdapterClassName = generatedAdapterClassName;
+    }
+
     @Override
     public String toString() {
         return "AiServiceBeanInfo{" +
@@ -79,6 +94,7 @@ public class AiServiceBeanInfo {
                 ", adapterName=" + getAdapterBeanName() +
                 ", method=" + chatMethodName +
                 ", paramType=" + parameterTypeName +
+                ", generatedClass=" + generatedAdapterClassName +
                 '}';
     }
 }

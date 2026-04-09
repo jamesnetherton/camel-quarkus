@@ -44,6 +44,8 @@ public class QuarkusLangchain4jRecorder {
 
     /**
      * Create an AiServiceAgentAdapter that wraps a Quarkus AiService bean.
+     * <p>
+     * This method is reflection-free and native-image friendly.
      *
      * @param  aiServiceBeanName the CDI bean name of the AiService
      * @param  chatMethodName    the name of the method to invoke
@@ -74,7 +76,7 @@ public class QuarkusLangchain4jRecorder {
 
             Object aiServiceBean = handle.get();
 
-            // Get the chat method via reflection
+            // Get the chat method via reflection (minimal reflection needed for method lookup)
             Class<?> aiServiceClass = aiServiceBean.getClass();
             Class<?> parameterType = Class.forName(parameterTypeName);
 
@@ -89,18 +91,9 @@ public class QuarkusLangchain4jRecorder {
                         aiServiceClass.getName()));
             }
 
-            // Create and return the adapter using reflection
-            // (AiServiceAgentAdapter is in langchain4j-agent runtime module)
-            // Use thread context classloader to avoid classloader mismatch in Quarkus
-            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-            Class<?> adapterClass = Class.forName(
-                    "org.apache.camel.quarkus.component.langchain4j.agent.AiServiceAgentAdapter",
-                    true,
-                    classLoader);
-
-            Object adapter = adapterClass
-                    .getConstructor(Object.class, Method.class, String.class)
-                    .newInstance(aiServiceBean, chatMethod, aiServiceBeanName);
+            // Direct instantiation - no reflection needed for adapter creation
+            // This is native-image friendly
+            AiServiceAgentAdapter adapter = new AiServiceAgentAdapter(aiServiceBean, chatMethod, aiServiceBeanName);
 
             LOG.infof("Created AiService Agent adapter '%s$Agent' for bean '%s'",
                     aiServiceBeanName, aiServiceBeanName);
@@ -152,5 +145,64 @@ public class QuarkusLangchain4jRecorder {
         }
 
         return null;
+    }
+
+    /**
+     * Create an instance of the generated Agent adapter class.
+     * <p>
+     * This method is completely reflection-free and native-image friendly.
+     * The adapter class is generated at build time using Gizmo bytecode generation.
+     *
+     * @param  generatedClassName the fully qualified name of the generated adapter class
+     * @param  aiServiceBeanName  the CDI bean name of the AiService
+     * @return                    a RuntimeValue containing the generated adapter instance
+     */
+    public RuntimeValue<Object> createGeneratedAdapter(
+            String generatedClassName,
+            String aiServiceBeanName) {
+
+        try {
+            // Look up the AiService bean from the CDI container
+            InstanceHandle<?> handle = Arc.container().instance(aiServiceBeanName);
+
+            if (!handle.isAvailable()) {
+                String errorMessage = String.format(
+                        "Unable to resolve AiService bean '%s' for Camel Agent adapter. "
+                                + "Possible causes:%n"
+                                + "1. Bean '%s' not found in CDI container%n"
+                                + "2. Bean is not a @RegisterAiService interface%n"
+                                + "3. Quarkus LangChain4j extension not on classpath%n%n"
+                                + "Suggestion: Verify that the AiService interface is annotated with "
+                                + "@RegisterAiService and the bean name matches.",
+                        aiServiceBeanName, aiServiceBeanName);
+                throw new IllegalStateException(errorMessage);
+            }
+
+            Object aiServiceBean = handle.get();
+
+            // Load the generated adapter class
+            Class<?> adapterClass = Thread.currentThread()
+                    .getContextClassLoader()
+                    .loadClass(generatedClassName);
+
+            // Instantiate the adapter using its constructor: (Object aiServiceBean, String beanName)
+            Object adapter = adapterClass
+                    .getConstructor(Object.class, String.class)
+                    .newInstance(aiServiceBean, aiServiceBeanName);
+
+            LOG.infof("Created AiService Agent adapter '%s$Agent' using generated class '%s'",
+                    aiServiceBeanName, generatedClassName);
+
+            return new RuntimeValue<>(adapter);
+
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException(String.format(
+                    "Generated adapter class '%s' not found. This indicates a build-time code generation failure.",
+                    generatedClassName), e);
+        } catch (Exception e) {
+            throw new IllegalStateException(String.format(
+                    "Failed to create AiService Agent adapter for bean '%s' using generated class '%s': %s",
+                    aiServiceBeanName, generatedClassName, e.getMessage()), e);
+        }
     }
 }
