@@ -194,9 +194,9 @@ Additional properties to be used in the mustache templates.
 | `Map<String,String>`
 | 
 
-a|icon:lock[title=Fixed at build time] [[quarkus-camel-openapi-codegen-locations]]`link:#quarkus-camel-openapi-codegen-locations[quarkus.camel.openapi.codegen.locations]`
+a|icon:lock[title=Fixed at build time] [[quarkus-camel-openapi-codegen-location]]`link:#quarkus-camel-openapi-codegen-location[quarkus.camel.openapi.codegen.location]`
 
-A comma separated list of OpenAPI spec locations.
+The location of the OpenAPI spec.
 | `string`
 | 
 
@@ -212,6 +212,96 @@ quarkus.camel.openapi.codegen.type-mappings.Double=java.math.BigDecimal
 quarkus.camel.openapi.codegen.type-mappings.Date=java.time.LocalDate
 ----
 | `Map<String,String>`
+| 
+
+a|icon:lock[title=Fixed at build time] [[quarkus-camel-openapi-codegen-openapi-spec-name-enabled]]`link:#quarkus-camel-openapi-codegen-openapi-spec-name-enabled[quarkus.camel.openapi.codegen."openapi-spec-name".enabled]`
+
+If `true`, Camel Quarkus OpenAPI code generation is run for .json and .yaml files discovered from the `openapi`
+directory. When
+`false`, code generation for .json and .yaml files is disabled.
+| `boolean`
+| `true`
+
+a|icon:lock[title=Fixed at build time] [[quarkus-camel-openapi-codegen-openapi-spec-name-model-package]]`link:#quarkus-camel-openapi-codegen-openapi-spec-name-model-package[quarkus.camel.openapi.codegen."openapi-spec-name".model-package]`
+
+The package to use for generated model classes.
+| `string`
+| `org.apache.camel.quarkus`
+
+a|icon:lock[title=Fixed at build time] [[quarkus-camel-openapi-codegen-openapi-spec-name-models]]`link:#quarkus-camel-openapi-codegen-openapi-spec-name-models[quarkus.camel.openapi.codegen."openapi-spec-name".models]`
+
+A comma separated list of models to generate. The default is empty list for all models.
+| `string`
+| 
+
+a|icon:lock[title=Fixed at build time] [[quarkus-camel-openapi-codegen-openapi-spec-name-use-bean-validation]]`link:#quarkus-camel-openapi-codegen-openapi-spec-name-use-bean-validation[quarkus.camel.openapi.codegen."openapi-spec-name".use-bean-validation]`
+
+If `true`, use bean validation annotations in the generated model classes.
+| `boolean`
+| `false`
+
+a|icon:lock[title=Fixed at build time] [[quarkus-camel-openapi-codegen-openapi-spec-name-not-null-jackson]]`link:#quarkus-camel-openapi-codegen-openapi-spec-name-not-null-jackson[quarkus.camel.openapi.codegen."openapi-spec-name".not-null-jackson]`
+
+If `true`, use NON_NULL Jackson annotation in the generated model classes.
+| `boolean`
+| `false`
+
+a|icon:lock[title=Fixed at build time] [[quarkus-camel-openapi-codegen-openapi-spec-name-ignore-unknown-properties]]`link:#quarkus-camel-openapi-codegen-openapi-spec-name-ignore-unknown-properties[quarkus.camel.openapi.codegen."openapi-spec-name".ignore-unknown-properties]`
+
+If `true`, use JsonIgnoreProperties(ignoreUnknown = true) annotation in the generated model classes.
+| `boolean`
+| `false`
+
+a|icon:lock[title=Fixed at build time] [[quarkus-camel-openapi-codegen-openapi-spec-name-additional-properties-additional-properties]]`link:#quarkus-camel-openapi-codegen-openapi-spec-name-additional-properties-additional-properties[quarkus.camel.openapi.codegen."openapi-spec-name".additional-properties."additional-properties"]`
+
+Additional properties to be used in the mustache templates.
+| `Map<String,String>`
+| 
+
+a|icon:lock[title=Fixed at build time] [[quarkus-camel-openapi-codegen-openapi-spec-name-location]]`link:#quarkus-camel-openapi-codegen-openapi-spec-name-location[quarkus.camel.openapi.codegen."openapi-spec-name".location]`
+
+The location of the OpenAPI spec.
+| `string`
+| 
+
+a|icon:lock[title=Fixed at build time] [[quarkus-camel-openapi-codegen-openapi-spec-name-type-mappings-type-mappings]]`link:#quarkus-camel-openapi-codegen-openapi-spec-name-type-mappings-type-mappings[quarkus.camel.openapi.codegen."openapi-spec-name".type-mappings."type-mappings"]`
+
+Mappings between swagger spec types and generated code types.
+
+Multiple type mappings can be specified like the following.
+
+[source,properties]
+----
+quarkus.camel.openapi.codegen.type-mappings.Double=java.math.BigDecimal
+quarkus.camel.openapi.codegen.type-mappings.Date=java.time.LocalDate
+----
+| `Map<String,String>`
+| 
+
+a|icon:lock[title=Fixed at build time] [[quarkus-camel-openapi-codegen-locations]]`link:#quarkus-camel-openapi-codegen-locations[quarkus.camel.openapi.codegen.locations]`
+
+A comma separated list of OpenAPI spec locations.
+
+Deprecated - If configuring a single OpenAPI spec for codegen use:
+`quarkus.camel.openapi.codegen.location`.
+
+For multiple spec files, use 'named' configuration like:
+`quarkus.camel.openapi.codegen."spec-1".location`,
+`quarkus.camel.openapi.codegen."spec-2".location`.
+| `string`
+| 
+
+a|icon:lock[title=Fixed at build time] [[quarkus-camel-openapi-codegen-openapi-spec-name-locations]]`link:#quarkus-camel-openapi-codegen-openapi-spec-name-locations[quarkus.camel.openapi.codegen."openapi-spec-name".locations]`
+
+A comma separated list of OpenAPI spec locations.
+
+Deprecated - If configuring a single OpenAPI spec for codegen use:
+`quarkus.camel.openapi.codegen.location`.
+
+For multiple spec files, use 'named' configuration like:
+`quarkus.camel.openapi.codegen."spec-1".location`,
+`quarkus.camel.openapi.codegen."spec-2".location`.
+| `string`
 | 
 |===
 
