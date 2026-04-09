@@ -66,12 +66,6 @@ public class DetectChangedModulesMojo extends AbstractMojo {
     private File testCategoriesFile;
 
     /**
-     * Patterns for core modules that trigger a full build when changed.
-     */
-    @Parameter(property = "cq.coreModulePatterns")
-    private List<String> coreModulePatterns;
-
-    /**
      * Force a full build regardless of changes detected.
      */
     @Parameter(property = "cq.forceFullBuild", defaultValue = "${env.FORCE_FULL_BUILD}")
@@ -85,14 +79,6 @@ public class DetectChangedModulesMojo extends AbstractMojo {
 
     @Component
     private ProjectBuilder projectBuilder;
-
-    private static final List<String> DEFAULT_CORE_PATTERNS = Arrays.asList(
-            "poms/",
-            "tooling/",
-            "extensions-core/",
-            "test-framework/",
-            ".github/workflows/",
-            "pom.xml");
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -134,15 +120,6 @@ public class DetectChangedModulesMojo extends AbstractMojo {
                 return;
             }
 
-            // Check if core modules are affected (triggers full build)
-            for (String module : affectedModules) {
-                if (isCoreModule(module)) {
-                    getLog().info("Core module affected: " + module + " - triggering full build");
-                    writeFullBuildResult();
-                    return;
-                }
-            }
-
             getLog().info("Affected modules: " + affectedModules);
 
             // Generate output (Scalpel already handles transitive dependencies)
@@ -176,18 +153,6 @@ public class DetectChangedModulesMojo extends AbstractMojo {
         getLog().info("Changed files: " + (report.getChangedFiles() != null ? report.getChangedFiles().size() : 0));
 
         return report;
-    }
-
-    private boolean isCoreModule(String modulePath) {
-        List<String> patterns = coreModulePatterns != null ? coreModulePatterns : DEFAULT_CORE_PATTERNS;
-
-        for (String pattern : patterns) {
-            if (modulePath.startsWith(pattern)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private Set<String> getAllModulesInDirectory(String directoryPrefix) {
