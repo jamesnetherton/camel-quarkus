@@ -299,7 +299,7 @@ jobs:
         id: set-windows-tests
         run: |
           CHANGED_MODULES='${{ steps.detect-changes.outputs.changed-modules }}'
-          MODULES=$(echo "${CHANGED_MODULES}" | jq -c '.["integration-tests-alternative-jdk"].include[].modules // [] | add // []')
+          MODULES=$(echo "${CHANGED_MODULES}" | jq -c '[.["integration-tests-alternative-jdk"].include[].modules // []] | add // []')
           echo "modules=${MODULES}" >> $GITHUB_OUTPUT
       - name: Setup Examples Matrix
         id: set-examples-matrix
@@ -450,7 +450,9 @@ jobs:
         shell: bash
         run: |
           MODULES='${{ toJson(matrix.modules) }}'
-          MODULE_LIST=$(echo "${MODULES}" | jq -r '.[]' | paste -sd ',' -)
+          # Remove the directory prefix from module paths
+          DIR_PREFIX="${{ matrix.directory }}/"
+          MODULE_LIST=$(echo "${MODULES}" | jq -r --arg prefix "$DIR_PREFIX" '.[] | sub($prefix; "")' | paste -sd ',' -)
 
           cd ${{ matrix.directory }}
           if [ "${{ matrix.directory }}" == "tooling" ]; then
