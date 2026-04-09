@@ -75,7 +75,7 @@ public class DetectChangedModulesMojo extends AbstractMojo {
      * The base branch to compare against (e.g., 'main', 'origin/main').
      * Only used if baseCommit is not provided.
      */
-    @Parameter(property = "cq.baseBranch", defaultValue = "${env.GITHUB_BASE_REF}")
+    @Parameter(property = "cq.baseBranch")
     private String baseBranch;
 
     /**
@@ -209,15 +209,29 @@ public class DetectChangedModulesMojo extends AbstractMojo {
                     getLog().warn("Could not resolve base commit: " + baseCommit);
                     throw new IOException("Could not resolve base commit: " + baseCommit);
                 }
-            } else {
-                // Fall back to branch resolution
-                String effectiveBaseBranch = determineBaseBranch();
+            } else if (baseBranch != null && !baseBranch.trim().isEmpty() && !baseBranch.startsWith("${")) {
+                // Fall back to branch resolution (skip if it's an unresolved property placeholder)
+                String effectiveBaseBranch = baseBranch.trim();
                 getLog().info("Comparing changes against branch: " + effectiveBaseBranch);
 
                 baseCommitId = resolveCommit(repository, effectiveBaseBranch);
                 if (baseCommitId == null) {
-                    getLog().warn("Could not resolve base branch: " + effectiveBaseBranch);
-                    throw new IOException("Could not resolve base branch: " + effectiveBaseBranch);
+                    // Try default branch as final fallback
+                    getLog().warn("Could not resolve base branch: " + effectiveBaseBranch + ", trying HEAD~1");
+                    baseCommitId = repository.resolve("HEAD~1");
+                    if (baseCommitId == null) {
+                        throw new IOException("Could not resolve base commit from branch or HEAD~1");
+                    }
+                    getLog().info("Using HEAD~1 as base commit");
+                }
+            } else {
+                // No base specified, use HEAD~1
+                getLog().info("No base commit or branch specified, using HEAD~1");
+                baseCommitId = repository.resolve("HEAD~1");
+                if (baseCommitId == null) {
+                    // Single commit repo, use HEAD
+                    getLog().info("HEAD~1 not available, using HEAD (likely first commit)");
+                    baseCommitId = repository.resolve("HEAD");
                 }
             }
 
