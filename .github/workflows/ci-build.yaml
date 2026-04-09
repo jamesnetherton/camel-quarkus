@@ -244,8 +244,12 @@ jobs:
       - name: Detect Changed Modules
         id: detect-changes
         run: |
+          # Run Scalpel to generate change detection report
+          ./mvnw ${CQ_MAVEN_ARGS} validate \
+            -Dscalpel.baseBranch=${{ steps.base-commit.outputs.base-commit }}
+
+          # Transform Scalpel report to workflow matrices
           ./mvnw ${CQ_MAVEN_ARGS} -N org.apache.camel.quarkus:camel-quarkus-maven-plugin:${{ steps.get-version.outputs.version }}:detect-changed-modules \
-            -Dcq.baseCommit=${{ steps.base-commit.outputs.base-commit }} \
             -Dcq.outputFile=${{ runner.temp }}/changed-modules.json
           
           if [ -f "${{ runner.temp }}/changed-modules.json" ]; then
