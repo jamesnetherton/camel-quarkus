@@ -578,40 +578,43 @@ public class DetectChangedModulesMojo extends AbstractMojo {
     private Map<String, Object> generateFunctionalTestsConfig(Map<String, Set<String>> categorizedModules,
             boolean isFullBuild) {
         Map<String, Object> config = new LinkedHashMap<>();
-        Set<String> topLevelModules = new LinkedHashSet<>();
+        Map<String, Set<String>> modulesByDirectory = new LinkedHashMap<>();
 
         if (isFullBuild) {
-            // Full build - include ALL functional test directories
-            topLevelModules.add("extensions-core");
-            topLevelModules.add("extensions");
-            topLevelModules.add("test-framework");
-            topLevelModules.add("tooling");
-            topLevelModules.add("catalog");
+            // Full build - include ALL modules from each directory
+            modulesByDirectory.put("extensions-core", getAllModulesInDirectory("extensions-core"));
+            modulesByDirectory.put("extensions", getAllModulesInDirectory("extensions"));
+            modulesByDirectory.put("test-framework", getAllModulesInDirectory("test-framework"));
+            modulesByDirectory.put("tooling", getAllModulesInDirectory("tooling"));
+            modulesByDirectory.put("catalog", getAllModulesInDirectory("catalog"));
         } else {
-            // Incremental build - only include affected directories
+            // Incremental build - only include affected modules
             if (!categorizedModules.get("extensions-core").isEmpty()) {
-                topLevelModules.add("extensions-core");
+                modulesByDirectory.put("extensions-core", categorizedModules.get("extensions-core"));
             }
             if (!categorizedModules.get("extensions").isEmpty()) {
-                topLevelModules.add("extensions");
+                modulesByDirectory.put("extensions", categorizedModules.get("extensions"));
             }
             if (!categorizedModules.get("test-framework").isEmpty()) {
-                topLevelModules.add("test-framework");
+                modulesByDirectory.put("test-framework", categorizedModules.get("test-framework"));
             }
             if (!categorizedModules.get("tooling").isEmpty()) {
-                topLevelModules.add("tooling");
+                modulesByDirectory.put("tooling", categorizedModules.get("tooling"));
             }
             if (!categorizedModules.get("catalog").isEmpty()) {
-                topLevelModules.add("catalog");
+                modulesByDirectory.put("catalog", categorizedModules.get("catalog"));
             }
         }
 
+        // Create one entry per directory with its specific modules
         List<Map<String, Object>> include = new ArrayList<>();
-        if (!topLevelModules.isEmpty()) {
-            Map<String, Object> item = new LinkedHashMap<>();
-            item.put("category", "");
-            item.put("modules", new ArrayList<>(topLevelModules));
-            include.add(item);
+        for (Map.Entry<String, Set<String>> entry : modulesByDirectory.entrySet()) {
+            if (!entry.getValue().isEmpty()) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("directory", entry.getKey());
+                item.put("modules", new ArrayList<>(entry.getValue()));
+                include.add(item);
+            }
         }
 
         config.put("include", include);

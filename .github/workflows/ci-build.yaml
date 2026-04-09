@@ -157,8 +157,9 @@ jobs:
       matrix: ${{ steps.set-native-matrix.outputs.matrix }}
       examples-matrix: ${{ steps.set-examples-matrix.outputs.examples-matrix }}
       alternate-jvm-matrix: ${{ steps.set-alternate-jvm-matrix.outputs.alternate-jvm-matrix }}
-      functional-extension-tests-modules: ${{ steps.set-functional-tests.outputs.modules }}
+      functional-extension-tests-matrix: ${{ steps.set-functional-tests.outputs.matrix }}
       extensions-jvm-tests-matrix: ${{ steps.set-jvm-tests.outputs.matrix }}
+      windows-tests-modules: ${{ steps.set-windows-tests.outputs.modules }}
       full-build: ${{ steps.detect-changes.outputs.full-build }}
     env:
       MAVEN_OPTS: -Xmx4600m
@@ -286,14 +287,20 @@ jobs:
         id: set-functional-tests
         run: |
           CHANGED_MODULES='${{ steps.detect-changes.outputs.changed-modules }}'
-          MODULES=$(echo "${CHANGED_MODULES}" | jq -c '.["functional-extension-tests"].include[0].modules // []')
-          echo "modules=${MODULES}" >> $GITHUB_OUTPUT
+          FUNCTIONAL_TESTS=$(echo "${CHANGED_MODULES}" | jq -c '.["functional-extension-tests"]')
+          echo "matrix=${FUNCTIONAL_TESTS}" >> $GITHUB_OUTPUT
       - name: Setup JVM Extension Tests Matrix
         id: set-jvm-tests
         run: |
           CHANGED_MODULES='${{ steps.detect-changes.outputs.changed-modules }}'
           JVM_TESTS=$(echo "${CHANGED_MODULES}" | jq -c '.["extensions-jvm-tests"]')
           echo "matrix=${JVM_TESTS}" >> $GITHUB_OUTPUT
+      - name: Setup Windows Platform Tests
+        id: set-windows-tests
+        run: |
+          CHANGED_MODULES='${{ steps.detect-changes.outputs.changed-modules }}'
+          MODULES=$(echo "${CHANGED_MODULES}" | jq -c '.["integration-tests-alternative-jdk"].include[].modules // [] | add // []')
+          echo "modules=${MODULES}" >> $GITHUB_OUTPUT
       - name: Setup Examples Matrix
         id: set-examples-matrix
         run: |
@@ -407,9 +414,13 @@ jobs:
   functional-extension-tests:
     runs-on: ubuntu-latest
     needs: initial-mvn-install
+    name: Functional Tests - ${{matrix.directory}}
     if: |
       (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')) &&
-      needs.initial-mvn-install.outputs.functional-extension-tests-modules != '[]'
+      fromJson(needs.initial-mvn-install.outputs.functional-extension-tests-matrix).include[0] != null
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.initial-mvn-install.outputs.functional-extension-tests-matrix) }}
     env:
       MAVEN_OPTS: -Xmx3000m
     steps:
@@ -435,70 +446,31 @@ jobs:
           tar -xzf ../maven-repo.tgz -C ~
           rm -f ../maven-repo.tgz
           df -h /
-      - name: cd extensions-core && mvn test
-        if: contains(fromJson(needs.initial-mvn-install.outputs.functional-extension-tests-modules), 'extensions-core')
+      - name: Run tests for affected modules
+        shell: bash
         run: |
-          cd extensions-core
-          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
-            --fail-at-end \
-            test
+          MODULES='${{ toJson(matrix.modules) }}'
+          MODULE_LIST=$(echo "${MODULES}" | jq -r '.[]' | paste -sd ',' -)
+
+          cd ${{ matrix.directory }}
+          if [ "${{ matrix.directory }}" == "tooling" ]; then
+            ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+              -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+              --fail-at-end \
+              -pl "${MODULE_LIST}" \
+              verify
+          else
+            ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+              -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
+              --fail-at-end \
+              -pl "${MODULE_LIST}" \
+              test
+          fi
       - name: Report test failures
         uses: ./.github/actions/test-summary-report
         if: ${{ failure() }}
         with:
-          test-report-xml-base-dir: extensions-core
-      - name: cd extensions && mvn test
-        if: contains(fromJson(needs.initial-mvn-install.outputs.functional-extension-tests-modules), 'extensions')
-        run: |
-          cd extensions
-          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
-            --fail-at-end \
-            test
-      - name: Report test failures
-        uses: ./.github/actions/test-summary-report
-        if: ${{ failure() }}
-        with:
-          test-report-xml-base-dir: extensions
-      - name: cd test-framework && mvn test
-        if: contains(fromJson(needs.initial-mvn-install.outputs.functional-extension-tests-modules), 'test-framework')
-        run: |
-          cd test-framework
-          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
-            --fail-at-end \
-            test
-      - name: Report test failures
-        uses: ./.github/actions/test-summary-report
-        if: ${{ failure() }}
-        with:
-          test-report-xml-base-dir: test-framework
-      - name: cd tooling && mvn verify
-        if: contains(fromJson(needs.initial-mvn-install.outputs.functional-extension-tests-modules), 'tooling')
-        run: |
-          cd tooling
-          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-            --fail-at-end \
-            verify
-      - name: Report test failures
-        uses: ./.github/actions/test-summary-report
-        if: ${{ failure() }}
-        with:
-          test-report-xml-base-dir: tooling
-      - name: cd catalog && mvn test
-        if: contains(fromJson(needs.initial-mvn-install.outputs.functional-extension-tests-modules), 'catalog')
-        run: |
-          cd catalog
-          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-            test
-      - name: Report test failures
-        uses: ./.github/actions/test-summary-report
-        if: ${{ failure() }}
-        with:
-          test-report-xml-base-dir: catalog
+          test-report-xml-base-dir: ${{ matrix.directory }}
 
   integration-tests-jvm:
     runs-on: ubuntu-latest
@@ -625,7 +597,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [ 'windows-latest' ]
-    if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
+    if: |
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')) &&
+      needs.initial-mvn-install.outputs.windows-tests-modules != '[]'
     env:
       MAVEN_OPTS: -Xmx3000m -Xms3000m
     steps:
@@ -651,17 +625,21 @@ jobs:
           mkdir "D:\\maven-repo"
           tar -xzf ../maven-repo.tgz -C "D:\\maven-repo"
           rm -f ../maven-repo.tgz
-      - name: cd integration-tests && mvn clean verify
+      - name: Run integration tests for affected modules
         shell: bash
         env:
           TEMP: D:\\temp
           TMP: D:\\temp
           MAVEN_REPO_LOCAL: D:\\maven-repo\.m2\repository
         run: |
+          MODULES='${{ needs.initial-mvn-install.outputs.windows-tests-modules }}'
+          MODULE_LIST=$(echo "${MODULES}" | jq -r '.[]' | paste -sd ',' -)
+
           cd integration-tests
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} -Dmaven.repo.local='${{ env.MAVEN_REPO_LOCAL }}' \
             -Dskip-testcontainers-tests -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
             --fail-at-end \
+            -pl "${MODULE_LIST}" \
             clean verify
       - name: Report test failures
         uses: ./.github/actions/test-summary-report
