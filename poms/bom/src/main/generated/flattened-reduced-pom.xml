@@ -7839,8 +7839,23 @@
       </dependency>
       <dependency>
         <groupId>org.apache.kafka</groupId>
+        <artifactId>connect-api</artifactId>
+        <version>4.2.0</version>
+        <exclusions>
+          <exclusion>
+            <groupId>javax.ws.rs</groupId>
+            <artifactId>javax.ws.rs-api</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.lz4</groupId>
+            <artifactId>lz4-java</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.kafka</groupId>
         <artifactId>connect-json</artifactId>
-        <version>4.1.1</version>
+        <version>4.2.0</version>
         <exclusions>
           <exclusion>
             <groupId>org.lz4</groupId>
@@ -7851,7 +7866,7 @@
       <dependency>
         <groupId>org.apache.kafka</groupId>
         <artifactId>connect-runtime</artifactId>
-        <version>4.1.1</version>
+        <version>4.2.0</version>
         <exclusions>
           <exclusion>
             <groupId>io.swagger.core.v3</groupId>
@@ -9378,21 +9393,6 @@
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-mcp</artifactId>
         <version>1.12.2-beta22</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.kafka</groupId>
-        <artifactId>connect-api</artifactId>
-        <version>4.1.1</version>
-        <exclusions>
-          <exclusion>
-            <groupId>javax.ws.rs</groupId>
-            <artifactId>javax.ws.rs-api</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.lz4</groupId>
-            <artifactId>lz4-java</artifactId>
-          </exclusion>
-        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.apache.kafka</groupId>
