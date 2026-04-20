@@ -18,15 +18,20 @@
 package org.apache.camel.quarkus.dsl.yaml.deployment;
 
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.NativeImageResourceBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
 import io.quarkus.deployment.pkg.steps.NativeOrNativeSourcesBuild;
+import org.apache.camel.quarkus.core.deployment.spi.CamelDslDiscoveryContext;
+import org.apache.camel.quarkus.core.deployment.spi.CamelDslMethodHandlerBuildItem;
 import org.apache.camel.quarkus.core.deployment.spi.CamelRouteResourceBuildItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,8 +41,6 @@ import org.snakeyaml.engine.v2.api.LoadSettings;
 public class YamlDslProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(YamlDslProcessor.class);
     private static final String FEATURE = "camel-yaml-dsl";
-    private static final Set<String> EXCEPTION_CONTAINER_KEYS = Set.of("onException", "on-exception", "doCatch", "do-catch");
-    private static final Set<String> THROW_EXCEPTION_KEYS = Set.of("throwException", "throw-exception");
 
     @BuildStep
     FeatureBuildItem feature() {
@@ -45,17 +48,45 @@ public class YamlDslProcessor {
     }
 
     /**
-     * Parses YAML DSL route files to detect exception classes used in onException/doCatch definitions,
-     * and registers them for reflection in native builds.
+     * Registers a DSL method handler for exception-related DSL elements in YAML (onException, doCatch,
+     * throwException). When these elements are discovered in YAML routes, the handler registers the exception
+     * types for reflection.
      *
      * @see <a href="https://github.com/apache/camel-quarkus/issues/7841">camel-quarkus#7841</a>
      */
     @BuildStep(onlyIf = NativeOrNativeSourcesBuild.class)
-    void registerOnExceptionClassesForReflection(
-            List<CamelRouteResourceBuildItem> camelRouteResources,
-            BuildProducer<ReflectiveClassBuildItem> reflectiveClass) {
+    CamelDslMethodHandlerBuildItem registerExceptionHandlerDslMethods() {
+        return new CamelDslMethodHandlerBuildItem(
+                ctx -> ctx.produce(ReflectiveClassBuildItem.builder(ctx.getTypeName()).build()),
+                "onException", "doCatch", "throwException");
+    }
 
-        final Set<String> exceptionClasses = new HashSet<>();
+    /**
+     * Parses YAML DSL route files to detect type references in DSL elements registered by extensions
+     * via CamelDslMethodHandlerBuildItem. Discovered types are passed to the registered handlers which can
+     * produce BuildItems for native image configuration.
+     *
+     * @see <a href="https://github.com/apache/camel-quarkus/issues/7841">camel-quarkus#7841</a>
+     */
+    @BuildStep(onlyIf = NativeOrNativeSourcesBuild.class)
+    void scanYamlDslMethods(
+            List<CamelDslMethodHandlerBuildItem> handlers,
+            List<CamelRouteResourceBuildItem> camelRouteResources,
+            BuildProducer<ReflectiveClassBuildItem> reflectiveClass,
+            BuildProducer<NativeImageResourceBuildItem> nativeResource) {
+
+        if (handlers.isEmpty()) {
+            return;
+        }
+
+        // Collect all method names that handlers are interested in
+        Set<String> interestedMethods = new HashSet<>();
+        for (CamelDslMethodHandlerBuildItem handler : handlers) {
+            interestedMethods.addAll(handler.getMethodNames());
+        }
+
+        // Scan YAML files for all interested methods
+        Map<String, Map<String, Set<String>>> discoveries = new HashMap<>();
 
         for (CamelRouteResourceBuildItem routeResource : camelRouteResources) {
             String sourcePath = routeResource.getSourcePath();
@@ -72,57 +103,92 @@ public class YamlDslProcessor {
                 LoadSettings settings = LoadSettings.builder().build();
                 Load load = new Load(settings);
                 for (Object document : load.loadAllFromInputStream(is)) {
-                    collectExceptionClasses(document, exceptionClasses);
+                    collectDslMethodClasses(document, interestedMethods, discoveries, sourcePath);
                 }
             } catch (Exception e) {
-                LOGGER.debug("Failed to parse YAML route resource for exception detection: {}", sourcePath, e);
+                LOGGER.debug("Failed to parse YAML route resource for DSL method detection: {}", sourcePath, e);
             }
         }
 
-        if (!exceptionClasses.isEmpty()) {
-            LOGGER.debug("Auto-detected onException/doCatch classes from YAML routes for reflection: {}", exceptionClasses);
-            for (String cls : exceptionClasses) {
-                reflectiveClass.produce(ReflectiveClassBuildItem.builder(cls).build());
+        // Invoke handlers for each discovery
+        for (CamelDslMethodHandlerBuildItem handler : handlers) {
+            for (String methodName : handler.getMethodNames()) {
+                Map<String, Set<String>> methodDiscoveries = discoveries.get(methodName);
+                if (methodDiscoveries != null) {
+                    for (Map.Entry<String, Set<String>> entry : methodDiscoveries.entrySet()) {
+                        String sourceLocation = entry.getKey();
+                        for (String typeName : entry.getValue()) {
+                            CamelDslDiscoveryContext ctx = new CamelDslDiscoveryContext(
+                                    methodName, typeName, sourceLocation, CamelDslDiscoveryContext.Source.YAML_DSL);
+                            handler.getHandler().accept(ctx);
+
+                            // Forward produced BuildItems to actual producers
+                            ctx.getProducedItems(ReflectiveClassBuildItem.class).forEach(reflectiveClass::produce);
+                            ctx.getProducedItems(NativeImageResourceBuildItem.class).forEach(nativeResource::produce);
+                        }
+                    }
+                }
             }
         }
     }
 
     /**
-     * Recursively walks a parsed YAML structure looking for onException/doCatch mappings
-     * and extracts exception class names from their "exception" fields.
+     * Recursively walks a parsed YAML structure looking for DSL method mappings and extracts
+     * type references from their fields.
      */
     @SuppressWarnings("unchecked")
-    private static void collectExceptionClasses(Object node, Set<String> exceptionClasses) {
+    private static void collectDslMethodClasses(Object node, Set<String> interestedMethods,
+            Map<String, Map<String, Set<String>>> discoveries, String sourcePath) {
         if (node instanceof java.util.Map<?, ?> map) {
             for (java.util.Map.Entry<?, ?> entry : map.entrySet()) {
                 String key = String.valueOf(entry.getKey());
-                if (EXCEPTION_CONTAINER_KEYS.contains(key) && entry.getValue() instanceof java.util.Map<?, ?> inner) {
-                    // Extract "exception" list from onException/doCatch mapping
-                    Object exceptions = inner.get("exception");
-                    if (exceptions instanceof List<?> list) {
-                        for (Object item : list) {
-                            if (item instanceof String className) {
-                                exceptionClasses.add(className);
-                            }
-                        }
-                    } else if (exceptions instanceof String className) {
-                        exceptionClasses.add(className);
-                    }
-                } else if (THROW_EXCEPTION_KEYS.contains(key)
+
+                // Check for onException or doCatch (using both camelCase and kebab-case)
+                if ((key.equals("onException") || key.equals("on-exception")) && interestedMethods.contains("onException")
+                        && entry.getValue() instanceof java.util.Map<?, ?> inner) {
+                    extractExceptionField(inner, "onException", discoveries, sourcePath);
+                } else if ((key.equals("doCatch") || key.equals("do-catch")) && interestedMethods.contains("doCatch")
+                        && entry.getValue() instanceof java.util.Map<?, ?> inner) {
+                    extractExceptionField(inner, "doCatch", discoveries, sourcePath);
+                } else if ((key.equals("throwException") || key.equals("throw-exception"))
+                        && interestedMethods.contains("throwException")
                         && entry.getValue() instanceof java.util.Map<?, ?> inner) {
                     // Extract "exceptionType" from throwException mapping
                     Object exType = inner.get("exceptionType");
                     if (exType instanceof String className) {
-                        exceptionClasses.add(className);
+                        discoveries.computeIfAbsent("throwException", k -> new HashMap<>())
+                                .computeIfAbsent(sourcePath, k -> new HashSet<>())
+                                .add(className);
                     }
                 }
                 // Continue walking the tree
-                collectExceptionClasses(entry.getValue(), exceptionClasses);
+                collectDslMethodClasses(entry.getValue(), interestedMethods, discoveries, sourcePath);
             }
         } else if (node instanceof List<?> list) {
             for (Object item : list) {
-                collectExceptionClasses(item, exceptionClasses);
+                collectDslMethodClasses(item, interestedMethods, discoveries, sourcePath);
             }
+        }
+    }
+
+    /**
+     * Extracts exception class names from the "exception" field of a YAML mapping.
+     */
+    private static void extractExceptionField(java.util.Map<?, ?> mapping, String methodName,
+            Map<String, Map<String, Set<String>>> discoveries, String sourcePath) {
+        Object exceptions = mapping.get("exception");
+        if (exceptions instanceof List<?> list) {
+            for (Object item : list) {
+                if (item instanceof String className) {
+                    discoveries.computeIfAbsent(methodName, k -> new HashMap<>())
+                            .computeIfAbsent(sourcePath, k -> new HashSet<>())
+                            .add(className);
+                }
+            }
+        } else if (exceptions instanceof String className) {
+            discoveries.computeIfAbsent(methodName, k -> new HashMap<>())
+                    .computeIfAbsent(sourcePath, k -> new HashSet<>())
+                    .add(className);
         }
     }
 }

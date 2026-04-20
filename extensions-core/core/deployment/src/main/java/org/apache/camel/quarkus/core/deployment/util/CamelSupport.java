@@ -39,6 +39,8 @@ import org.apache.camel.quarkus.core.CamelCapabilities;
 import org.apache.camel.quarkus.core.deployment.spi.CamelServiceBuildItem;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.jandex.ClassInfo;
+import org.jboss.jandex.DotName;
+import org.jboss.jandex.IndexView;
 
 public final class CamelSupport {
     public static final String CAMEL_SERVICE_BASE_PATH = "META-INF/services/org/apache/camel";
@@ -175,5 +177,63 @@ public final class CamelSupport {
         }
 
         return extensions;
+    }
+
+    /**
+     * Checks whether the given class name is assignable to (i.e., is a subclass of or implements)
+     * the specified superclass or interface. First checks the Jandex index (covers application
+     * and indexed dependency classes), then falls back to Class.forName() for JDK/unindexed classes.
+     *
+     * @param  className  the fully-qualified class name to check
+     * @param  superClass the superclass or interface to check against
+     * @param  index      the Jandex index
+     * @return            true if className is assignable to superClass
+     */
+    public static boolean isAssignableTo(String className, Class<?> superClass, IndexView index) {
+        ClassInfo classInfo = index.getClassByName(DotName.createSimple(className));
+        if (classInfo != null) {
+            return isAssignableToInIndex(classInfo, superClass, index);
+        }
+
+        // Fall back to Class.forName() for JDK and unindexed library classes
+        try {
+            Class<?> clazz = Thread.currentThread().getContextClassLoader().loadClass(className);
+            return superClass.isAssignableFrom(clazz);
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Checks whether the given ClassInfo represents a class that is assignable to the specified
+     * superclass or interface. Walks the class hierarchy using the Jandex index, falling back
+     * to Class.forName() when exiting the index.
+     *
+     * @param  classInfo  the ClassInfo to check
+     * @param  superClass the superclass or interface to check against
+     * @param  index      the Jandex index
+     * @return            true if the class is assignable to superClass
+     */
+    public static boolean isAssignableToInIndex(ClassInfo classInfo, Class<?> superClass, IndexView index) {
+        DotName targetType = DotName.createSimple(superClass.getName());
+        DotName current = classInfo.name();
+
+        while (current != null) {
+            if (targetType.equals(current)) {
+                return true;
+            }
+            ClassInfo info = index.getClassByName(current);
+            if (info == null) {
+                // Class not in index, use Class.forName() for the remaining hierarchy
+                try {
+                    Class<?> clazz = Thread.currentThread().getContextClassLoader().loadClass(current.toString());
+                    return superClass.isAssignableFrom(clazz);
+                } catch (ClassNotFoundException e) {
+                    return false;
+                }
+            }
+            current = info.superName();
+        }
+        return false;
     }
 }

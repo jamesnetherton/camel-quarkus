@@ -18,8 +18,10 @@
 package org.apache.camel.quarkus.dsl.xml.io.deployment;
 
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -28,6 +30,7 @@ import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
+import io.quarkus.deployment.builditem.nativeimage.NativeImageResourceBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
 import io.quarkus.deployment.pkg.steps.NativeOrNativeSourcesBuild;
 import org.apache.camel.model.CatchDefinition;
@@ -39,6 +42,8 @@ import org.apache.camel.model.RouteDefinition;
 import org.apache.camel.model.RoutesDefinition;
 import org.apache.camel.model.ThrowExceptionDefinition;
 import org.apache.camel.model.app.ApplicationDefinition;
+import org.apache.camel.quarkus.core.deployment.spi.CamelDslDiscoveryContext;
+import org.apache.camel.quarkus.core.deployment.spi.CamelDslMethodHandlerBuildItem;
 import org.apache.camel.quarkus.core.deployment.spi.CamelModelToXMLDumperBuildItem;
 import org.apache.camel.quarkus.core.deployment.spi.CamelRouteResourceBuildItem;
 import org.apache.camel.quarkus.dsl.xml.XmlIoDslRecorder;
@@ -62,17 +67,45 @@ public class XmlIoDslProcessor {
     }
 
     /**
-     * Parses XML DSL route files to detect exception classes used in onException/doCatch definitions,
-     * and registers them for reflection in native builds.
+     * Registers a DSL method handler for exception-related DSL elements in XML (onException, doCatch,
+     * throwException). When these elements are discovered in XML routes, the handler registers the exception
+     * types for reflection.
      *
      * @see <a href="https://github.com/apache/camel-quarkus/issues/7841">camel-quarkus#7841</a>
      */
     @BuildStep(onlyIf = NativeOrNativeSourcesBuild.class)
-    void registerOnExceptionClassesForReflection(
-            List<CamelRouteResourceBuildItem> camelRouteResources,
-            BuildProducer<ReflectiveClassBuildItem> reflectiveClass) {
+    CamelDslMethodHandlerBuildItem registerExceptionHandlerDslMethods() {
+        return new CamelDslMethodHandlerBuildItem(
+                ctx -> ctx.produce(ReflectiveClassBuildItem.builder(ctx.getTypeName()).build()),
+                "onException", "doCatch", "throwException");
+    }
 
-        final Set<String> exceptionClasses = new HashSet<>();
+    /**
+     * Parses XML DSL route files to detect type references in DSL elements registered by extensions
+     * via CamelDslMethodHandlerBuildItem. Discovered types are passed to the registered handlers which can
+     * produce BuildItems for native image configuration.
+     *
+     * @see <a href="https://github.com/apache/camel-quarkus/issues/7841">camel-quarkus#7841</a>
+     */
+    @BuildStep(onlyIf = NativeOrNativeSourcesBuild.class)
+    void scanXmlDslMethods(
+            List<CamelDslMethodHandlerBuildItem> handlers,
+            List<CamelRouteResourceBuildItem> camelRouteResources,
+            BuildProducer<ReflectiveClassBuildItem> reflectiveClass,
+            BuildProducer<NativeImageResourceBuildItem> nativeResource) {
+
+        if (handlers.isEmpty()) {
+            return;
+        }
+
+        // Collect all method names that handlers are interested in
+        Set<String> interestedMethods = new HashSet<>();
+        for (CamelDslMethodHandlerBuildItem handler : handlers) {
+            interestedMethods.addAll(handler.getMethodNames());
+        }
+
+        // Scan XML files for all interested methods
+        Map<String, Map<String, Set<String>>> discoveries = new HashMap<>();
 
         for (CamelRouteResourceBuildItem routeResource : camelRouteResources) {
             String sourcePath = routeResource.getSourcePath();
@@ -81,24 +114,39 @@ public class XmlIoDslProcessor {
             }
 
             // Try each XML format: <routes>, <routeConfiguration(s)>, <beans>/<camel>
-            if (tryParseRoutes(sourcePath, exceptionClasses)) {
+            if (tryParseRoutes(sourcePath, interestedMethods, discoveries)) {
                 continue;
             }
-            if (tryParseRouteConfigurations(sourcePath, exceptionClasses)) {
+            if (tryParseRouteConfigurations(sourcePath, interestedMethods, discoveries)) {
                 continue;
             }
-            tryParseApplication(sourcePath, exceptionClasses);
+            tryParseApplication(sourcePath, interestedMethods, discoveries);
         }
 
-        if (!exceptionClasses.isEmpty()) {
-            LOGGER.debug("Auto-detected onException/doCatch classes from XML routes for reflection: {}", exceptionClasses);
-            for (String cls : exceptionClasses) {
-                reflectiveClass.produce(ReflectiveClassBuildItem.builder(cls).build());
+        // Invoke handlers for each discovery
+        for (CamelDslMethodHandlerBuildItem handler : handlers) {
+            for (String methodName : handler.getMethodNames()) {
+                Map<String, Set<String>> methodDiscoveries = discoveries.get(methodName);
+                if (methodDiscoveries != null) {
+                    for (Map.Entry<String, Set<String>> entry : methodDiscoveries.entrySet()) {
+                        String sourceLocation = entry.getKey();
+                        for (String typeName : entry.getValue()) {
+                            CamelDslDiscoveryContext ctx = new CamelDslDiscoveryContext(
+                                    methodName, typeName, sourceLocation, CamelDslDiscoveryContext.Source.XML_DSL);
+                            handler.getHandler().accept(ctx);
+
+                            // Forward produced BuildItems to actual producers
+                            ctx.getProducedItems(ReflectiveClassBuildItem.class).forEach(reflectiveClass::produce);
+                            ctx.getProducedItems(NativeImageResourceBuildItem.class).forEach(nativeResource::produce);
+                        }
+                    }
+                }
             }
         }
     }
 
-    private boolean tryParseRoutes(String sourcePath, Set<String> exceptionClasses) {
+    private boolean tryParseRoutes(String sourcePath, Set<String> interestedMethods,
+            Map<String, Map<String, Set<String>>> discoveries) {
         try (InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(sourcePath)) {
             if (is == null) {
                 return false;
@@ -107,10 +155,10 @@ public class XmlIoDslProcessor {
             Optional<RoutesDefinition> routesOpt = parser.parseRoutesDefinition();
             if (routesOpt.isPresent()) {
                 RoutesDefinition routes = routesOpt.get();
-                collectOnExceptionClasses(routes.getOnExceptions(), exceptionClasses);
+                collectOnExceptionClasses(routes.getOnExceptions(), interestedMethods, discoveries, sourcePath);
                 if (routes.getRoutes() != null) {
                     for (RouteDefinition route : routes.getRoutes()) {
-                        collectExceptionClassesFromOutputs(route.getOutputs(), exceptionClasses);
+                        collectExceptionClassesFromOutputs(route.getOutputs(), interestedMethods, discoveries, sourcePath);
                     }
                 }
                 return true;
@@ -121,7 +169,8 @@ public class XmlIoDslProcessor {
         return false;
     }
 
-    private boolean tryParseRouteConfigurations(String sourcePath, Set<String> exceptionClasses) {
+    private boolean tryParseRouteConfigurations(String sourcePath, Set<String> interestedMethods,
+            Map<String, Map<String, Set<String>>> discoveries) {
         try (InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(sourcePath)) {
             if (is == null) {
                 return false;
@@ -130,7 +179,7 @@ public class XmlIoDslProcessor {
             Optional<RouteConfigurationsDefinition> rcOpt = parser.parseRouteConfigurationsDefinition();
             if (rcOpt.isPresent()) {
                 for (RouteConfigurationDefinition rc : rcOpt.get().getRouteConfigurations()) {
-                    collectOnExceptionClasses(rc.getOnExceptions(), exceptionClasses);
+                    collectOnExceptionClasses(rc.getOnExceptions(), interestedMethods, discoveries, sourcePath);
                 }
                 return true;
             }
@@ -140,7 +189,8 @@ public class XmlIoDslProcessor {
         return false;
     }
 
-    private boolean tryParseApplication(String sourcePath, Set<String> exceptionClasses) {
+    private boolean tryParseApplication(String sourcePath, Set<String> interestedMethods,
+            Map<String, Map<String, Set<String>>> discoveries) {
         try (InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(sourcePath)) {
             if (is == null) {
                 return false;
@@ -151,12 +201,12 @@ public class XmlIoDslProcessor {
                 ApplicationDefinition app = appOpt.get();
                 if (app.getRoutes() != null) {
                     for (RouteDefinition route : app.getRoutes()) {
-                        collectExceptionClassesFromOutputs(route.getOutputs(), exceptionClasses);
+                        collectExceptionClassesFromOutputs(route.getOutputs(), interestedMethods, discoveries, sourcePath);
                     }
                 }
                 if (app.getRouteConfigurations() != null) {
                     for (RouteConfigurationDefinition rc : app.getRouteConfigurations()) {
-                        collectOnExceptionClasses(rc.getOnExceptions(), exceptionClasses);
+                        collectOnExceptionClasses(rc.getOnExceptions(), interestedMethods, discoveries, sourcePath);
                     }
                 }
                 return true;
@@ -167,30 +217,45 @@ public class XmlIoDslProcessor {
         return false;
     }
 
-    private static void collectOnExceptionClasses(List<OnExceptionDefinition> onExceptions, Set<String> exceptionClasses) {
-        if (onExceptions != null) {
+    private static void collectOnExceptionClasses(List<OnExceptionDefinition> onExceptions, Set<String> interestedMethods,
+            Map<String, Map<String, Set<String>>> discoveries, String sourcePath) {
+        if (onExceptions != null && interestedMethods.contains("onException")) {
             for (OnExceptionDefinition onEx : onExceptions) {
-                exceptionClasses.addAll(onEx.getExceptions());
+                for (String exceptionClass : onEx.getExceptions()) {
+                    discoveries.computeIfAbsent("onException", k -> new HashMap<>())
+                            .computeIfAbsent(sourcePath, k -> new HashSet<>())
+                            .add(exceptionClass);
+                }
             }
         }
     }
 
     private static void collectExceptionClassesFromOutputs(List<ProcessorDefinition<?>> outputs,
-            Set<String> exceptionClasses) {
+            Set<String> interestedMethods, Map<String, Map<String, Set<String>>> discoveries, String sourcePath) {
         if (outputs == null) {
             return;
         }
         for (ProcessorDefinition<?> output : outputs) {
-            if (output instanceof OnExceptionDefinition onEx) {
-                exceptionClasses.addAll(onEx.getExceptions());
-            } else if (output instanceof CatchDefinition catchDef) {
-                exceptionClasses.addAll(catchDef.getExceptions());
-            } else if (output instanceof ThrowExceptionDefinition throwEx) {
+            if (output instanceof OnExceptionDefinition onEx && interestedMethods.contains("onException")) {
+                for (String exceptionClass : onEx.getExceptions()) {
+                    discoveries.computeIfAbsent("onException", k -> new HashMap<>())
+                            .computeIfAbsent(sourcePath, k -> new HashSet<>())
+                            .add(exceptionClass);
+                }
+            } else if (output instanceof CatchDefinition catchDef && interestedMethods.contains("doCatch")) {
+                for (String exceptionClass : catchDef.getExceptions()) {
+                    discoveries.computeIfAbsent("doCatch", k -> new HashMap<>())
+                            .computeIfAbsent(sourcePath, k -> new HashSet<>())
+                            .add(exceptionClass);
+                }
+            } else if (output instanceof ThrowExceptionDefinition throwEx && interestedMethods.contains("throwException")) {
                 if (throwEx.getExceptionType() != null) {
-                    exceptionClasses.add(throwEx.getExceptionType());
+                    discoveries.computeIfAbsent("throwException", k -> new HashMap<>())
+                            .computeIfAbsent(sourcePath, k -> new HashSet<>())
+                            .add(throwEx.getExceptionType());
                 }
             }
-            collectExceptionClassesFromOutputs(output.getOutputs(), exceptionClasses);
+            collectExceptionClassesFromOutputs(output.getOutputs(), interestedMethods, discoveries, sourcePath);
         }
     }
 }
