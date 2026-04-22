@@ -216,17 +216,47 @@ jobs:
           ./mvnw -N cq:update-quarkus-metadata ${CQ_MAVEN_ARGS}
       - name: mvn clean install -DskipTests
         run: |
+          echo "Building with Scalpel base branch: ${{ steps.base-commit.outputs.base-commit }}"
           eval ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} clean install -DskipTests -Dquarkus.build.skip -Pformat \
             -Dscalpel.baseBranch=${{ steps.base-commit.outputs.base-commit }}
+
+          # Verify Scalpel report was generated
+          if [ -f "target/scalpel-report.json" ]; then
+            echo "✓ Scalpel report generated successfully"
+            echo "Report summary:"
+            cat target/scalpel-report.json | jq '{baseBranch, fullBuildTriggered, affectedModules: (.affectedModules | length)}'
+          else
+            echo "⨯ WARNING: Scalpel report not found at target/scalpel-report.json after build"
+            echo "Searching for Scalpel reports..."
+            find . -name "scalpel-report.json" -type f 2>/dev/null || echo "No scalpel-report.json found anywhere"
+          fi
       - name: Preserve Scalpel report
         run: |
           # Copy Scalpel report to safe location before subsequent Maven commands can overwrite it
           if [ -f "target/scalpel-report.json" ]; then
             cp target/scalpel-report.json ${{ runner.temp }}/scalpel-report.json
-            echo "Preserved Scalpel report:"
-            cat ${{ runner.temp }}/scalpel-report.json | jq '.baseBranch, .fullBuildTriggered, (.affectedModules | length)'
+            echo "✓ Scalpel report preserved to ${{ runner.temp }}/scalpel-report.json"
           else
-            echo "Warning: Scalpel report not found at target/scalpel-report.json"
+            echo "⚠ Scalpel report not found at target/scalpel-report.json"
+            echo "This can happen on initial commits or when Scalpel doesn't activate."
+            echo "Creating a fallback full-build report..."
+
+            # Create a minimal Scalpel report that triggers a full build
+            cat > ${{ runner.temp }}/scalpel-report.json <<'EOF'
+          {
+            "version": "1",
+            "scalpelVersion": "0.3.0",
+            "baseBranch": "unknown",
+            "fullBuildTriggered": true,
+            "triggerFile": "no-scalpel-report-generated",
+            "changedFiles": [],
+            "changedProperties": [],
+            "changedManagedDependencies": [],
+            "changedManagedPlugins": [],
+            "affectedModules": []
+          }
+          EOF
+            echo "✓ Created fallback full-build report"
           fi
       - name: Sync Maven properties
         run: |
