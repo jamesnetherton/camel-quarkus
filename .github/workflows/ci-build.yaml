@@ -193,24 +193,6 @@ jobs:
         with:
           ref: ${{ env.CHECKOUT_REF }}
           fetch-depth: 0
-      - name: Update extension metadata
-        run: |
-          ./mvnw -N cq:update-quarkus-metadata ${CQ_MAVEN_ARGS}
-      - name: mvn clean install -DskipTests
-        run: |
-          eval ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} clean install -DskipTests -Dquarkus.build.skip -Pformat
-      - name: Sync Maven properties
-        run: |
-          ./mvnw cq:sync-versions ${CQ_MAVEN_ARGS} -N
-      - name: Fail if there are uncommitted changes
-        shell: bash
-        run: |
-          [[ -z $(git status --porcelain | grep -v antora.yml) ]] || { echo 'There are uncommitted changes'; git status; git diff; exit 1; }
-      - name: Get project version
-        id: get-version
-        run: |
-          CQ_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout -N)
-          echo "version=${CQ_VERSION}" >> $GITHUB_OUTPUT
       - name: Determine base commit
         id: base-commit
         run: |
@@ -229,6 +211,35 @@ jobs:
             echo "base-commit=${BASE_SHA}" >> $GITHUB_OUTPUT
             echo "Using commit: ${BASE_SHA}"
           fi
+      - name: Update extension metadata
+        run: |
+          ./mvnw -N cq:update-quarkus-metadata ${CQ_MAVEN_ARGS}
+      - name: mvn clean install -DskipTests
+        run: |
+          eval ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} clean install -DskipTests -Dquarkus.build.skip -Pformat \
+            -Dscalpel.baseBranch=${{ steps.base-commit.outputs.base-commit }}
+      - name: Preserve Scalpel report
+        run: |
+          # Copy Scalpel report to safe location before subsequent Maven commands can overwrite it
+          if [ -f "target/scalpel-report.json" ]; then
+            cp target/scalpel-report.json ${{ runner.temp }}/scalpel-report.json
+            echo "Preserved Scalpel report:"
+            cat ${{ runner.temp }}/scalpel-report.json | jq '.baseBranch, .fullBuildTriggered, (.affectedModules | length)'
+          else
+            echo "Warning: Scalpel report not found at target/scalpel-report.json"
+          fi
+      - name: Sync Maven properties
+        run: |
+          ./mvnw cq:sync-versions ${CQ_MAVEN_ARGS} -N
+      - name: Fail if there are uncommitted changes
+        shell: bash
+        run: |
+          [[ -z $(git status --porcelain | grep -v antora.yml) ]] || { echo 'There are uncommitted changes'; git status; git diff; exit 1; }
+      - name: Get project version
+        id: get-version
+        run: |
+          CQ_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout -N)
+          echo "version=${CQ_VERSION}" >> $GITHUB_OUTPUT
       - name: Tar Maven Repo
         shell: bash
         run: |
@@ -244,12 +255,9 @@ jobs:
       - name: Detect Changed Modules
         id: detect-changes
         run: |
-          # Run Scalpel to generate change detection report
-          ./mvnw ${CQ_MAVEN_ARGS} validate \
-            -Dscalpel.baseBranch=${{ steps.base-commit.outputs.base-commit }}
-
-          # Transform Scalpel report to workflow matrices
+          # Transform Scalpel report (preserved from main build) to workflow matrices
           ./mvnw ${CQ_MAVEN_ARGS} -N org.apache.camel.quarkus:camel-quarkus-maven-plugin:${{ steps.get-version.outputs.version }}:detect-changed-modules \
+            -Dcq.scalpelReportFile=${{ runner.temp }}/scalpel-report.json \
             -Dcq.outputFile=${{ runner.temp }}/changed-modules.json
           
           if [ -f "${{ runner.temp }}/changed-modules.json" ]; then

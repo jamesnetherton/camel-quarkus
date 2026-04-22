@@ -58,6 +58,12 @@ public class DetectChangedModulesMojo extends AbstractMojo {
     private File outputFile;
 
     /**
+     * Path to the Scalpel report JSON file.
+     */
+    @Parameter(property = "cq.scalpelReportFile", defaultValue = "${project.build.directory}/scalpel-report.json")
+    private File scalpelReportFile;
+
+    /**
      * Path to the test categories YAML file.
      */
     @Parameter(property = "cq.testCategoriesFile", defaultValue = "tooling/scripts/test-categories.yaml")
@@ -134,19 +140,23 @@ public class DetectChangedModulesMojo extends AbstractMojo {
     }
 
     private ScalpelReport readScalpelReport() throws IOException {
-        // Scalpel writes report to target/scalpel-report.json by default
-        Path reportPath = project.getBasedir().toPath().resolve("target/scalpel-report.json");
+        // Use configured Scalpel report path (default: target/scalpel-report.json)
+        Path reportPath = scalpelReportFile.toPath();
+        if (!reportPath.isAbsolute()) {
+            reportPath = project.getBasedir().toPath().resolve(reportPath);
+        }
 
         if (!Files.exists(reportPath)) {
             throw new IOException("Scalpel report not found at: " + reportPath
                     + ". Please ensure Scalpel Maven extension is configured in .mvn/extensions.xml"
-                    + " and that 'mvn validate' has been run to generate the report.");
+                    + " and that the main build has been run to generate the report.");
         }
 
         ObjectMapper mapper = new ObjectMapper();
         ScalpelReport report = mapper.readValue(reportPath.toFile(), ScalpelReport.class);
 
-        getLog().info("Read Scalpel report (version " + report.getScalpelVersion() + ")");
+        getLog().info("Read Scalpel report from: " + reportPath);
+        getLog().info("Scalpel version: " + report.getScalpelVersion());
         getLog().info("Base branch: " + report.getBaseBranch());
         getLog().info("Changed files: " + (report.getChangedFiles() != null ? report.getChangedFiles().size() : 0));
 
