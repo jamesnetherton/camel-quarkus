@@ -454,5 +454,3 @@ public class DetectChangedModulesMojo extends AbstractMojo {
         getLog().info("Result: " + mapper.writeValueAsString(result));
     }
 }
-
-// Made with Bob

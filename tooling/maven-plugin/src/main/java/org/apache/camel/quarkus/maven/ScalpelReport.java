@@ -125,6 +125,7 @@ public class ScalpelReport {
         private String groupId;
         private String artifactId;
         private String path;
+        private String type;
         private List<String> reasons;
 
         public String getGroupId() {
@@ -149,6 +150,14 @@ public class ScalpelReport {
 
         public void setPath(String path) {
             this.path = path;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
         }
 
         public List<String> getReasons() {
