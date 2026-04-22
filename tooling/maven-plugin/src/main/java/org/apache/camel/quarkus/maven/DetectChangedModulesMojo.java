@@ -215,21 +215,21 @@ public class DetectChangedModulesMojo extends AbstractMojo {
 
         for (String module : modules) {
             if (module.startsWith("extensions-core/")) {
-                categorized.get("extensions-core").add(module);
+                categorized.get("extensions-core").add(module.substring("extensions-core/".length()));
             } else if (module.startsWith("extensions-jvm/")) {
-                categorized.get("extensions-jvm").add(module);
+                categorized.get("extensions-jvm").add(module.substring("extensions-jvm/".length()));
             } else if (module.startsWith("extensions/")) {
-                categorized.get("extensions").add(module);
+                categorized.get("extensions").add(module.substring("extensions/".length()));
             } else if (module.startsWith("integration-tests-jvm/")) {
                 categorized.get("integration-tests-jvm").add(module.substring("integration-tests-jvm/".length()));
             } else if (module.startsWith("integration-tests/")) {
                 categorized.get("integration-tests").add(module.substring("integration-tests/".length()));
             } else if (module.startsWith("test-framework/")) {
-                categorized.get("test-framework").add(module);
+                categorized.get("test-framework").add(module.substring("test-framework/".length()));
             } else if (module.startsWith("tooling/")) {
-                categorized.get("tooling").add(module);
+                categorized.get("tooling").add(module.substring("tooling/".length()));
             } else if (module.startsWith("catalog/")) {
-                categorized.get("catalog").add(module);
+                categorized.get("catalog").add(module.substring("catalog/".length()));
             } else {
                 categorized.get("other").add(module);
             }
