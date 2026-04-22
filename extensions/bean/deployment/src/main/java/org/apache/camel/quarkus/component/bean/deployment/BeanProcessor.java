@@ -16,12 +16,22 @@
  */
 package org.apache.camel.quarkus.component.bean.deployment;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+import io.quarkus.deployment.Capabilities;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
+import io.quarkus.deployment.pkg.steps.NativeOrNativeSourcesBuild;
 import org.apache.camel.Handler;
+import org.apache.camel.model.BeanDefinition;
+import org.apache.camel.quarkus.core.CamelCapabilities;
+import org.apache.camel.quarkus.core.deployment.spi.CamelDslMethodHandlerBuildItem;
 import org.apache.camel.support.language.DefaultAnnotationExpressionFactory;
 import org.apache.camel.support.language.LanguageAnnotation;
 import org.jboss.jandex.AnnotationInstance;
@@ -83,5 +93,93 @@ class BeanProcessor {
             reflectiveClass.produce(reflectiveClassBuildItem);
 
         });
+    }
+
+    /**
+     * Auto-detects bean classes referenced in .bean() DSL calls (Java, XML, YAML) and registers them
+     * for reflection. This eliminates the need for manual @RegisterForReflection annotations on bean classes.
+     * <p>
+     * This handler is consumed by:
+     * <ul>
+     * <li>Java DSL scanner - detects {@code .bean(MyClass.class)} calls in RouteBuilders</li>
+     * <li>XML DSL scanner - detects {@code <bean>} elements (if camel-xml-io-dsl is present)</li>
+     * <li>YAML DSL scanner - detects bean references (if camel-yaml-dsl is present)</li>
+     * </ul>
+     *
+     * @see <a href="https://github.com/apache/camel-quarkus/issues/2171">camel-quarkus#2171</a>
+     */
+    @BuildStep(onlyIf = NativeOrNativeSourcesBuild.class)
+    void registerBeanDslMethodHandlers(
+            Capabilities capabilities,
+            BuildProducer<CamelDslMethodHandlerBuildItem> dslHandlers) {
+
+        dslHandlers.produce(new CamelDslMethodHandlerBuildItem(
+                ctx -> {
+                    String className = ctx.getTypeName();
+                    LOGGER.debug("Auto-detected bean class from {} DSL: {}",
+                            ctx.getSource(), className);
+                    ctx.produce(ReflectiveClassBuildItem.builder(className).methods().build());
+                },
+                capabilities.isPresent(CamelCapabilities.XML_IO_DSL) ? BeanProcessor::extractBeanTypesFromXml : null,
+                capabilities.isPresent(CamelCapabilities.YAML_DSL) ? BeanProcessor::extractBeanTypesFromYaml : null,
+                "bean"));
+    }
+
+    /**
+     * Extracts bean type references from XML DSL ProcessorDefinitions.
+     *
+     * @param processorDef a ProcessorDefinition from the XML model
+     * @return map of method name to discovered type names (empty if not a bean element)
+     */
+    private static Map<String, Set<String>> extractBeanTypesFromXml(Object processorDef) {
+        if (!(processorDef instanceof BeanDefinition beanDef)) {
+            return Map.of();
+        }
+
+        Set<String> types = new HashSet<>();
+
+        // Extract beanType attribute: <bean beanType="com.example.MyClass"/>
+        String beanType = beanDef.getBeanType();
+        if (beanType != null && !beanType.isEmpty()) {
+            types.add(beanType);
+        }
+
+        // Extract ref attribute if it looks like a class name (contains dots)
+        // Example: <bean ref="com.example.MyClass"/>
+        String ref = beanDef.getRef();
+        if (ref != null && ref.contains(".")) {
+            types.add(ref);
+        }
+
+        return types.isEmpty() ? Map.of() : Map.of("bean", types);
+    }
+
+    /**
+     * Extracts bean type references from YAML DSL maps.
+     *
+     * @param key the YAML key (e.g., "bean")
+     * @param map the YAML map value
+     * @return map of method name to discovered type names (empty if not a bean element)
+     */
+    private static Map<String, Set<String>> extractBeanTypesFromYaml(String key, Map<?, ?> map) {
+        if (!"bean".equals(key)) {
+            return Map.of();
+        }
+
+        Set<String> types = new HashSet<>();
+
+        // Extract beanType field
+        Object beanType = map.get("beanType");
+        if (beanType instanceof String className && !className.isEmpty()) {
+            types.add(className);
+        }
+
+        // Extract ref field if it looks like a class name (contains dots)
+        Object ref = map.get("ref");
+        if (ref instanceof String refStr && refStr.contains(".")) {
+            types.add(refStr);
+        }
+
+        return types.isEmpty() ? Map.of() : Map.of("bean", types);
     }
 }

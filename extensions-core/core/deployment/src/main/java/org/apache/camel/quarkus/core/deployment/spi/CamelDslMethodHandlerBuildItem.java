@@ -17,9 +17,12 @@
 package org.apache.camel.quarkus.core.deployment.spi;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import io.quarkus.builder.item.MultiBuildItem;
 
@@ -60,14 +63,22 @@ public final class CamelDslMethodHandlerBuildItem extends MultiBuildItem {
 
     private final Set<String> methodNames;
     private final Consumer<CamelDslDiscoveryContext> handler;
+    private final Function<Object, Map<String, Set<String>>> xmlExtractor;
+    private final BiFunction<String, Map<?, ?>, Map<String, Set<String>>> yamlExtractor;
 
     /**
-     * Creates a new DSL method handler registration.
+     * Creates a new DSL method handler registration with optional format-specific extractors.
      *
-     * @param handler     the handler that will be invoked when a registered method is discovered
-     * @param methodNames the DSL method names to watch for (must not be empty)
+     * @param handler       the handler that will be invoked when a registered method is discovered
+     * @param xmlExtractor  optional extractor for XML DSL (receives ProcessorDefinition, returns methodName -> types)
+     * @param yamlExtractor optional extractor for YAML DSL (receives key and map, returns methodName -> types)
+     * @param methodNames   the DSL method names to watch for (must not be empty)
      */
-    public CamelDslMethodHandlerBuildItem(Consumer<CamelDslDiscoveryContext> handler, String... methodNames) {
+    public CamelDslMethodHandlerBuildItem(
+            Consumer<CamelDslDiscoveryContext> handler,
+            Function<Object, Map<String, Set<String>>> xmlExtractor,
+            BiFunction<String, Map<?, ?>, Map<String, Set<String>>> yamlExtractor,
+            String... methodNames) {
         Objects.requireNonNull(handler, "handler must not be null");
         Objects.requireNonNull(methodNames, "methodNames must not be null");
         if (methodNames.length == 0) {
@@ -75,6 +86,19 @@ public final class CamelDslMethodHandlerBuildItem extends MultiBuildItem {
         }
         this.methodNames = Set.of(methodNames);
         this.handler = handler;
+        this.xmlExtractor = xmlExtractor;
+        this.yamlExtractor = yamlExtractor;
+    }
+
+    /**
+     * Creates a new DSL method handler registration without format-specific extractors.
+     * Suitable for handlers that only work with Java bytecode scanning.
+     *
+     * @param handler     the handler that will be invoked when a registered method is discovered
+     * @param methodNames the DSL method names to watch for (must not be empty)
+     */
+    public CamelDslMethodHandlerBuildItem(Consumer<CamelDslDiscoveryContext> handler, String... methodNames) {
+        this(handler, null, null, methodNames);
     }
 
     /**
@@ -89,5 +113,19 @@ public final class CamelDslMethodHandlerBuildItem extends MultiBuildItem {
      */
     public Consumer<CamelDslDiscoveryContext> getHandler() {
         return handler;
+    }
+
+    /**
+     * @return optional XML extractor for discovering types from ProcessorDefinitions, or null if not provided
+     */
+    public Function<Object, Map<String, Set<String>>> getXmlExtractor() {
+        return xmlExtractor;
+    }
+
+    /**
+     * @return optional YAML extractor for discovering types from YAML maps, or null if not provided
+     */
+    public BiFunction<String, Map<?, ?>, Map<String, Set<String>>> getYamlExtractor() {
+        return yamlExtractor;
     }
 }

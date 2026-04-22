@@ -58,7 +58,54 @@ public class YamlDslProcessor {
     CamelDslMethodHandlerBuildItem registerExceptionHandlerDslMethods() {
         return new CamelDslMethodHandlerBuildItem(
                 ctx -> ctx.produce(ReflectiveClassBuildItem.builder(ctx.getTypeName()).build()),
+                null, // No XML extractor needed - XML DSL has its own handler
+                YamlDslProcessor::extractExceptionTypesFromYaml,
                 "onException", "doCatch", "throwException");
+    }
+
+    /**
+     * Extracts exception type references from YAML DSL maps.
+     */
+    private static Map<String, Set<String>> extractExceptionTypesFromYaml(String key, Map<?, ?> map) {
+        Map<String, Set<String>> result = new HashMap<>();
+
+        // Check for onException or doCatch (using both camelCase and kebab-case)
+        if (key.equals("onException") || key.equals("on-exception")) {
+            Set<String> exceptions = extractExceptionField(map);
+            if (!exceptions.isEmpty()) {
+                result.put("onException", exceptions);
+            }
+        } else if (key.equals("doCatch") || key.equals("do-catch")) {
+            Set<String> exceptions = extractExceptionField(map);
+            if (!exceptions.isEmpty()) {
+                result.put("doCatch", exceptions);
+            }
+        } else if (key.equals("throwException") || key.equals("throw-exception")) {
+            Object exType = map.get("exceptionType");
+            if (exType instanceof String className) {
+                result.put("throwException", Set.of(className));
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Extracts exception class names from the "exception" field of a YAML mapping.
+     */
+    private static Set<String> extractExceptionField(Map<?, ?> mapping) {
+        Set<String> result = new HashSet<>();
+        Object exceptions = mapping.get("exception");
+        if (exceptions instanceof List<?> list) {
+            for (Object item : list) {
+                if (item instanceof String className) {
+                    result.add(className);
+                }
+            }
+        } else if (exceptions instanceof String className) {
+            result.add(className);
+        }
+        return result;
     }
 
     /**
@@ -79,13 +126,16 @@ public class YamlDslProcessor {
             return;
         }
 
-        // Collect all method names that handlers are interested in
-        Set<String> interestedMethods = new HashSet<>();
-        for (CamelDslMethodHandlerBuildItem handler : handlers) {
-            interestedMethods.addAll(handler.getMethodNames());
+        // Filter handlers that have YAML extractors
+        List<CamelDslMethodHandlerBuildItem> yamlHandlers = handlers.stream()
+                .filter(h -> h.getYamlExtractor() != null)
+                .collect(java.util.stream.Collectors.toList());
+
+        if (yamlHandlers.isEmpty()) {
+            return;
         }
 
-        // Scan YAML files for all interested methods
+        // Scan YAML files using handler extractors
         Map<String, Map<String, Set<String>>> discoveries = new HashMap<>();
 
         for (CamelRouteResourceBuildItem routeResource : camelRouteResources) {
@@ -103,7 +153,7 @@ public class YamlDslProcessor {
                 LoadSettings settings = LoadSettings.builder().build();
                 Load load = new Load(settings);
                 for (Object document : load.loadAllFromInputStream(is)) {
-                    collectDslMethodClasses(document, interestedMethods, discoveries, sourcePath);
+                    collectDslMethodClasses(document, yamlHandlers, discoveries, sourcePath);
                 }
             } catch (Exception e) {
                 LOGGER.debug("Failed to parse YAML route resource for DSL method detection: {}", sourcePath, e);
@@ -111,7 +161,7 @@ public class YamlDslProcessor {
         }
 
         // Invoke handlers for each discovery
-        for (CamelDslMethodHandlerBuildItem handler : handlers) {
+        for (CamelDslMethodHandlerBuildItem handler : yamlHandlers) {
             for (String methodName : handler.getMethodNames()) {
                 Map<String, Set<String>> methodDiscoveries = discoveries.get(methodName);
                 if (methodDiscoveries != null) {
@@ -134,61 +184,42 @@ public class YamlDslProcessor {
 
     /**
      * Recursively walks a parsed YAML structure looking for DSL method mappings and extracts
-     * type references from their fields.
+     * type references using registered extractors.
      */
     @SuppressWarnings("unchecked")
-    private static void collectDslMethodClasses(Object node, Set<String> interestedMethods,
+    private static void collectDslMethodClasses(Object node, List<CamelDslMethodHandlerBuildItem> handlers,
             Map<String, Map<String, Set<String>>> discoveries, String sourcePath) {
         if (node instanceof java.util.Map<?, ?> map) {
             for (java.util.Map.Entry<?, ?> entry : map.entrySet()) {
                 String key = String.valueOf(entry.getKey());
 
-                // Check for onException or doCatch (using both camelCase and kebab-case)
-                if ((key.equals("onException") || key.equals("on-exception")) && interestedMethods.contains("onException")
-                        && entry.getValue() instanceof java.util.Map<?, ?> inner) {
-                    extractExceptionField(inner, "onException", discoveries, sourcePath);
-                } else if ((key.equals("doCatch") || key.equals("do-catch")) && interestedMethods.contains("doCatch")
-                        && entry.getValue() instanceof java.util.Map<?, ?> inner) {
-                    extractExceptionField(inner, "doCatch", discoveries, sourcePath);
-                } else if ((key.equals("throwException") || key.equals("throw-exception"))
-                        && interestedMethods.contains("throwException")
-                        && entry.getValue() instanceof java.util.Map<?, ?> inner) {
-                    // Extract "exceptionType" from throwException mapping
-                    Object exType = inner.get("exceptionType");
-                    if (exType instanceof String className) {
-                        discoveries.computeIfAbsent("throwException", k -> new HashMap<>())
-                                .computeIfAbsent(sourcePath, k -> new HashSet<>())
-                                .add(className);
+                // Try each handler's extractor if value is a map
+                if (entry.getValue() instanceof java.util.Map<?, ?> innerMap) {
+                    for (CamelDslMethodHandlerBuildItem handler : handlers) {
+                        Map<String, Set<String>> extracted = handler.getYamlExtractor().apply(key, innerMap);
+                        mergeDiscoveries(extracted, discoveries, sourcePath);
                     }
                 }
+
                 // Continue walking the tree
-                collectDslMethodClasses(entry.getValue(), interestedMethods, discoveries, sourcePath);
+                collectDslMethodClasses(entry.getValue(), handlers, discoveries, sourcePath);
             }
         } else if (node instanceof List<?> list) {
             for (Object item : list) {
-                collectDslMethodClasses(item, interestedMethods, discoveries, sourcePath);
+                collectDslMethodClasses(item, handlers, discoveries, sourcePath);
             }
         }
     }
 
-    /**
-     * Extracts exception class names from the "exception" field of a YAML mapping.
-     */
-    private static void extractExceptionField(java.util.Map<?, ?> mapping, String methodName,
+    private static void mergeDiscoveries(Map<String, Set<String>> extracted,
             Map<String, Map<String, Set<String>>> discoveries, String sourcePath) {
-        Object exceptions = mapping.get("exception");
-        if (exceptions instanceof List<?> list) {
-            for (Object item : list) {
-                if (item instanceof String className) {
-                    discoveries.computeIfAbsent(methodName, k -> new HashMap<>())
-                            .computeIfAbsent(sourcePath, k -> new HashSet<>())
-                            .add(className);
-                }
+        for (Map.Entry<String, Set<String>> entry : extracted.entrySet()) {
+            String methodName = entry.getKey();
+            for (String typeName : entry.getValue()) {
+                discoveries.computeIfAbsent(methodName, k -> new HashMap<>())
+                        .computeIfAbsent(sourcePath, k -> new HashSet<>())
+                        .add(typeName);
             }
-        } else if (exceptions instanceof String className) {
-            discoveries.computeIfAbsent(methodName, k -> new HashMap<>())
-                    .computeIfAbsent(sourcePath, k -> new HashSet<>())
-                    .add(className);
         }
     }
 }

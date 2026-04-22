@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
@@ -164,7 +163,7 @@ public class BeanRoutes extends RouteBuilder {
         };
     }
 
-    @RegisterForReflection
+    // @RegisterForReflection - Now auto-detected via .bean() DSL scanning!
     public class MyOrderService {
 
         private int counter;
@@ -190,7 +189,7 @@ public class BeanRoutes extends RouteBuilder {
         }
     }
 
-    @RegisterForReflection
+    // @RegisterForReflection - Now auto-detected via .bean() DSL scanning!
     public static class MyBean {
         /**
          * Just return an hello message.
