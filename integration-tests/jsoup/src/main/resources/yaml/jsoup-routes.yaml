@@ -15,23 +15,26 @@
 # limitations under the License.
 #
 
-# This is a generated file. Do not edit directly!
-# To re-generate, run the following command from the top level directory:
-#
-#   mvn -N cq:update-quarkus-metadata
-#
----
-name: "Camel IEC 60870 Client"
-description: "IEC 60870 supervisory control and data acquisition (SCADA) client using NeoSCADA implementation"
-metadata:
-  icon-url: "https://raw.githubusercontent.com/apache/camel-website/main/antora-ui-camel/src/img/logo-d.svg"
-  sponsor: "Apache Software Foundation"
-  unlisted: true
-  guide: "https://camel.apache.org/camel-quarkus/latest/reference/extensions/iec60870.html"
-  categories:
-  - "integration"
-  status: "deprecated"
-  integrates:
-    - name: "Camel"
-      artifact: "org.apache.camel:camel-base"
-      version: "${camel.version}"
+- route:
+    id: "clean-yaml"
+    from:
+      uri: "direct:clean-yaml"
+      steps:
+        - setBody:
+            simple: "${htmlClean()}"
+
+- route:
+    id: "decode-yaml"
+    from:
+      uri: "direct:decode-yaml"
+      steps:
+        - setBody:
+            simple: "${htmlDecode()}"
+
+- route:
+    id: "parse-yaml"
+    from:
+      uri: "direct:parse-yaml"
+      steps:
+        - setBody:
+            simple: "${htmlParse()}"
