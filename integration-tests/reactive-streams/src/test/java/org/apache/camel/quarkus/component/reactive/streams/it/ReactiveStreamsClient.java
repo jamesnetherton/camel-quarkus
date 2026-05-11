@@ -16,21 +16,19 @@
  */
 package org.apache.camel.quarkus.component.reactive.streams.it;
 
-import org.apache.camel.builder.RouteBuilder;
+import io.smallrye.mutiny.Multi;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
-public class ReactiveStreamsRoute extends RouteBuilder {
-    @Override
-    public void configure() throws Exception {
-        from("direct:toUpper")
-                .routeId("toUpper")
-                .setBody().body(String.class, s -> s.toUpperCase())
-                .to("reactive-streams:toUpper?backpressureStrategy=BUFFER");
+@RegisterRestClient(configKey = "reactive-streams")
+@Path("/reactive-streams")
+public interface ReactiveStreamsClient {
 
-        from("timer:streamEvents?includeMetadata=true&repeatCount=5&period=100")
-                .routeId("streamEvents")
-                .autoStartup(false)
-                .setBody().simple("event-${header.CamelTimerCounter}")
-                .log("Sending to queue: ${body}")
-                .to("seda:streamQueue");
-    }
+    @GET
+    @Path("/template/stream-from")
+    @Produces(MediaType.SERVER_SENT_EVENTS)
+    Multi<String> streamFrom();
 }

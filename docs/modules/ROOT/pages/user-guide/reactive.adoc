@@ -1,0 +1,216 @@
+= Reactive Programming
+:page-aliases: reactive.adoc
+
+Camel Quarkus integrates seamlessly with Quarkus's reactive programming model through Mutiny, SmallRye's reactive programming library.
+
+== Reactive Templates
+
+Camel Quarkus Core provides reactive wrappers for Camel's `ProducerTemplate`, `ConsumerTemplate`, and `FluentProducerTemplate` that integrate with Mutiny's `Uni` and `Multi` types, making it natural to use Camel in reactive Quarkus applications.
+
+=== ReactiveProducerTemplate
+
+`ReactiveProducerTemplate` wraps Camel's `ProducerTemplate` async methods and returns `Uni` for non-blocking operations. This is the recommended template for thread-safe reactive operations.
+
+[source,java]
+----
+import io.smallrye.mutiny.Uni;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import org.apache.camel.quarkus.core.ReactiveProducerTemplate;
+
+@Path("/api")
+public class MyResource {
+
+    @Inject
+    ReactiveProducerTemplate template;
+
+    @GET
+    @Path("/process")
+    public Uni<String> process(String data) {
+        return template.requestBody("direct:process", data, String.class);
+    }
+}
+----
+
+Available methods:
+
+* `requestBody(String endpointUri, Object body)` - Send and receive result as `Uni<Object>`
+* `requestBody(String endpointUri, Object body, Class<T> type)` - Send and receive with type conversion
+* `requestBodyAndHeader(...)` - Send with a single header
+* `requestBodyAndHeaders(...)` - Send with multiple headers
+* `sendBody(...)` - Fire and forget (InOnly pattern)
+* `send(...)` - Send with processor or exchange
+
+=== ReactiveConsumerTemplate
+
+`ReactiveConsumerTemplate` wraps Camel's `ConsumerTemplate` blocking methods and executes them on a worker thread pool to avoid blocking the event loop.
+
+[source,java]
+----
+import io.smallrye.mutiny.Uni;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import org.apache.camel.quarkus.core.ReactiveConsumerTemplate;
+
+@Path("/api")
+public class MyResource {
+
+    @Inject
+    ReactiveConsumerTemplate template;
+
+    @GET
+    @Path("/poll")
+    public Uni<String> poll() {
+        return template.receiveBody("seda:incoming", 5000L, String.class);
+    }
+}
+----
+
+Available methods:
+
+* `receive(String endpointUri, long timeout)` - Receive an exchange with timeout
+* `receiveBody(String endpointUri, long timeout)` - Receive a message body with timeout
+* `receiveBody(String endpointUri, long timeout, Class<T> type)` - Receive and convert to type
+* `receiveNoWait(...)` / `receiveBodyNoWait(...)` - Non-blocking receive (returns immediately if no message)
+
+NOTE: While `ReactiveConsumerTemplate` makes consuming reactive via `Uni`, the underlying operations are still blocking.
+For truly reactive streaming consumption, use the `streamFrom()` methods described below.
+
+=== ReactiveFluentProducerTemplate
+
+`ReactiveFluentProducerTemplate` provides a fluent API for building messages with `Uni` return types.
+
+[source,java]
+----
+import io.smallrye.mutiny.Uni;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import org.apache.camel.quarkus.core.ReactiveFluentProducerTemplate;
+
+@Path("/api")
+public class MyResource {
+
+    @Inject
+    ReactiveFluentProducerTemplate template;
+
+    @POST
+    @Path("/process")
+    public Uni<String> process(String data) {
+        return template.to("direct:process")
+                .withBody(data)
+                .withHeader("Source", "API")
+                .request(String.class);
+    }
+}
+----
+
+IMPORTANT: Each `ReactiveFluentProducerTemplate` instance is not thread-safe, as it's assumed that a single thread calls the fluent methods to build up the message. This matches the behavior of the underlying `FluentProducerTemplate`.
+For thread-safe reactive operations, prefer `ReactiveProducerTemplate`.
+
+== Reactive Streaming with Multi
+
+Both `ReactiveProducerTemplate` and `ReactiveConsumerTemplate` support streaming operations using Mutiny's `Multi` type for continuous streams of data.
+
+=== Prerequisites
+
+Streaming methods require the xref:reference/extensions/reactive-streams.adoc[Reactive Streams] extension. Add it to your `pom.xml`:
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.apache.camel.quarkus</groupId>
+    <artifactId>camel-quarkus-reactive-streams</artifactId>
+</dependency>
+----
+
+If the extension is not present, calling streaming methods will throw an `IllegalStateException` with a helpful message.
+
+=== Consuming as a Stream
+
+Stream items from a Camel endpoint as a reactive `Multi`:
+
+[source,java]
+----
+import io.smallrye.mutiny.Multi;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import org.apache.camel.quarkus.core.ReactiveConsumerTemplate;
+import org.jboss.resteasy.reactive.RestStreamElementType;
+
+@Path("/api")
+public class MyResource {
+
+    @Inject
+    ReactiveConsumerTemplate template;
+
+    @GET
+    @Path("/stream")
+    @Produces(MediaType.SERVER_SENT_EVENTS)
+    @RestStreamElementType(MediaType.TEXT_PLAIN)
+    public Multi<String> streamEvents() {
+        return template.streamFrom("seda:events", String.class)
+                .onItem().transform(String::toUpperCase);
+    }
+}
+----
+
+Available streaming methods:
+
+* `streamFrom(String endpointUri, Class<T> type)` - Stream items of a specific type as `Multi<T>`
+* `streamFrom(String endpointUri)` - Stream full `Exchange` objects as `Multi<Exchange>`
+
+=== Producing to a Stream
+
+Send a reactive `Multi` stream to a Camel endpoint:
+
+[source,java]
+----
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import org.apache.camel.quarkus.core.ReactiveProducerTemplate;
+
+@Path("/api")
+public class MyResource {
+
+    @Inject
+    ReactiveProducerTemplate template;
+
+    @POST
+    @Path("/send-stream")
+    public Uni<Void> sendStream() {
+        Multi<String> stream = Multi.createFrom().items("a", "b", "c");
+        return template.streamTo("seda:output", stream);
+    }
+}
+----
+
+Available streaming methods:
+
+* `streamTo(String endpointUri, Multi<T> stream)` - Send a `Multi` stream to an endpoint, returns `Uni<Void>`
+
+== Related Extensions
+
+=== Reactive Streams
+
+The xref:reference/extensions/reactive-streams.adoc[camel-quarkus-reactive-streams] extension provides the bridge between Camel endpoints and reactive streams (Publisher/Subscriber pattern).
+It is required for the `streamFrom()` and `streamTo()` methods on reactive templates.
+
+=== SmallRye Reactive Messaging
+
+The xref:reference/extensions/smallrye-reactive-messaging.adoc[camel-quarkus-smallrye-reactive-messaging] extension allows Camel routes to produce and consume messages via MicroProfile Reactive Messaging channels.
+This is useful for integrating Camel routes with other reactive messaging systems like Kafka, AMQP, or in-memory channels.
+
+== Additional Resources
+
+* https://smallrye.io/smallrye-mutiny/[SmallRye Mutiny documentation]
+* https://quarkus.io/guides/mutiny-primer[Quarkus Mutiny Primer]
+* xref:manual:ROOT:reactive-streams.adoc[Camel Reactive Streams documentation]

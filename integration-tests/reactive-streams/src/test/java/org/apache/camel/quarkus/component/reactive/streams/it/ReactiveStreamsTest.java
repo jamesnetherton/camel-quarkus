@@ -16,16 +16,33 @@
  */
 package org.apache.camel.quarkus.component.reactive.streams.it;
 
+import java.net.URI;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
+
+import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
 import io.restassured.path.json.JsonPath;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.ClientBuilder;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.sse.SseEventSource;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.is;
 
 @QuarkusTest
 class ReactiveStreamsTest {
+
+    @Inject
+    @RestClient
+    ReactiveStreamsClient reactiveStreamsClient;
+
     @Test
     public void reactiveStreamsService() {
         JsonPath result = RestAssured.get("/reactive-streams/inspect")
@@ -59,4 +76,44 @@ class ReactiveStreamsTest {
                 .body(is(payload.toUpperCase()));
     }
 
+    @Test
+    void reactiveTemplateStreamTo() {
+        RestAssured.given()
+                .post("/reactive-streams/template/stream-to")
+                .then()
+                .statusCode(200)
+                .body(is("streamed"));
+    }
+
+    @TestHTTPResource("/reactive-streams/template/stream-from")
+    URI streamFromUri;
+
+    @Test
+    void reactiveTemplateStreamFrom() throws InterruptedException {
+        var resultList = new CopyOnWriteArrayList<String>();
+
+        Client client = ClientBuilder.newClient();
+        WebTarget target = client.target(streamFromUri);
+        SseEventSource eventSource = SseEventSource.target(target).build();
+
+        eventSource.register(event -> {
+            String data = event.readData();
+            System.out.println("Received: " + data);
+            resultList.add(data);
+        });
+
+        eventSource.open();
+
+        // Timer sends 5 events (event-0 through event-4)
+        // Wait for them to arrive
+        await().atMost(10, TimeUnit.SECONDS)
+                .untilAsserted(() -> assertThat(resultList).hasSizeGreaterThanOrEqualTo(5));
+
+        eventSource.close();
+        client.close();
+
+        // Verify we got the expected events
+        assertThat(resultList)
+                .contains("event-1", "event-2", "event-3", "event-4", "event-5");
+    }
 }

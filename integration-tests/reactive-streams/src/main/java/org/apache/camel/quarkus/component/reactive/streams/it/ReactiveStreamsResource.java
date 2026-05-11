@@ -20,6 +20,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.json.Json;
@@ -36,6 +38,8 @@ import org.apache.camel.component.reactive.streams.ReactiveStreamsEndpoint;
 import org.apache.camel.component.reactive.streams.api.CamelReactiveStreamsService;
 import org.apache.camel.component.reactive.streams.api.CamelReactiveStreamsServiceFactory;
 import org.apache.camel.quarkus.component.reactive.streams.it.support.TestSubscriber;
+import org.apache.camel.quarkus.core.ReactiveConsumerTemplate;
+import org.apache.camel.quarkus.core.ReactiveProducerTemplate;
 
 @Path("/reactive-streams")
 @ApplicationScoped
@@ -48,6 +52,10 @@ public class ReactiveStreamsResource {
     CamelReactiveStreamsService reactiveStreamsService;
     @Inject
     CamelReactiveStreamsServiceFactory reactiveStreamsServiceFactory;
+    @Inject
+    ReactiveProducerTemplate reactiveProducerTemplate;
+    @Inject
+    ReactiveConsumerTemplate reactiveConsumerTemplate;
 
     @Path("/inspect")
     @GET
@@ -90,4 +98,32 @@ public class ReactiveStreamsResource {
 
         return result.get();
     }
+
+    @Path("/template/stream-to")
+    @POST
+    @Produces(MediaType.TEXT_PLAIN)
+    public Uni<String> templateStreamTo() {
+        Multi<String> stream = Multi.createFrom().items("a", "b", "c");
+        return reactiveProducerTemplate.streamTo("seda:streamQueue", stream)
+                .map(v -> "streamed");
+    }
+
+    @Path("/template/stream-from")
+    @GET
+    @Produces(MediaType.SERVER_SENT_EVENTS)
+    public Multi<String> templateStreamFrom() {
+        try {
+            // Start the timer route to generate events
+            camelContext.getRouteController().startRoute("streamEvents");
+            System.out.println("Started streamEvents route");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to start streamEvents route", e);
+        }
+
+        System.out.println("Starting to stream from SEDA queue using auto-bridge...");
+        return reactiveConsumerTemplate.streamFromEndpoint("seda:streamQueue", String.class)
+                .onItem().invoke(item -> System.out.println("Streaming: " + item))
+                .select().first(5);
+    }
+
 }

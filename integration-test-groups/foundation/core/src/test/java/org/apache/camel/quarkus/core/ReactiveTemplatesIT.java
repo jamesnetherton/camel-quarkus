@@ -14,23 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.camel.quarkus.component.reactive.streams.it;
+package org.apache.camel.quarkus.core;
 
-import org.apache.camel.builder.RouteBuilder;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 
-public class ReactiveStreamsRoute extends RouteBuilder {
-    @Override
-    public void configure() throws Exception {
-        from("direct:toUpper")
-                .routeId("toUpper")
-                .setBody().body(String.class, s -> s.toUpperCase())
-                .to("reactive-streams:toUpper?backpressureStrategy=BUFFER");
-
-        from("timer:streamEvents?includeMetadata=true&repeatCount=5&period=100")
-                .routeId("streamEvents")
-                .autoStartup(false)
-                .setBody().simple("event-${header.CamelTimerCounter}")
-                .log("Sending to queue: ${body}")
-                .to("seda:streamQueue");
-    }
+/**
+ * Integration test for reactive templates in native mode.
+ */
+@QuarkusIntegrationTest
+public class ReactiveTemplatesIT extends ReactiveTemplatesTest {
 }

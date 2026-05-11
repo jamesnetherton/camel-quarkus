@@ -16,11 +16,14 @@
  */
 package org.apache.camel.quarkus.component.reactive.streams;
 
+import io.smallrye.common.annotation.Identifier;
 import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 import org.apache.camel.CamelContext;
 import org.apache.camel.component.reactive.streams.api.CamelReactiveStreams;
 import org.apache.camel.component.reactive.streams.api.CamelReactiveStreamsService;
+import org.apache.camel.quarkus.core.ReactiveStreamsAdapter;
 
 /**
  * Producers of CamelReactiveStreams related beans that are injectable via CDI.
@@ -36,6 +39,17 @@ public class ReactiveStreamsProducers {
     @Singleton
     @Produces
     CamelReactiveStreamsService camelReactiveStreamsService() {
-        return CamelReactiveStreams.get(camelContext);
+        try {
+            return CamelReactiveStreams.get(camelContext);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to get CamelReactiveStreamsService", e);
+        }
+    }
+
+    @Singleton
+    @Produces
+    @Identifier("reactive-streams-adapter")
+    ReactiveStreamsAdapter reactiveStreamsAdapter() {
+        return new CamelReactiveStreamsAdapter(camelContext);
     }
 }

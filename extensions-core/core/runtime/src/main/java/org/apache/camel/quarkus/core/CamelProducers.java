@@ -16,8 +16,8 @@
  */
 package org.apache.camel.quarkus.core;
 
+import jakarta.enterprise.context.Dependent;
 import jakarta.enterprise.inject.Produces;
-import jakarta.enterprise.inject.spi.InjectionPoint;
 import jakarta.inject.Singleton;
 import org.apache.camel.CamelContext;
 import org.apache.camel.ConsumerTemplate;
@@ -60,7 +60,7 @@ public class CamelProducers {
     }
 
     @Produces
-    ProducerTemplate camelProducerTemplate(InjectionPoint injectionPoint) {
+    ProducerTemplate camelProducerTemplate() {
         /*
          * Note that ProducerTemplate injection points qualified with @EndpointInject and @Produce are handled in
          * InjectionPointsProcessor.syntheticBeans()
@@ -69,7 +69,7 @@ public class CamelProducers {
     }
 
     @Produces
-    FluentProducerTemplate camelFluentProducerTemplate(InjectionPoint injectionPoint) {
+    FluentProducerTemplate camelFluentProducerTemplate() {
         /*
          * Note that FluentProducerTemplate injection points qualified with @EndpointInject and @Produce are handled in
          * InjectionPointsProcessor.syntheticBeans()
@@ -80,5 +80,31 @@ public class CamelProducers {
     @Produces
     ConsumerTemplate camelConsumerTemplate() {
         return this.context.createConsumerTemplate();
+    }
+
+    @Produces
+    ReactiveProducerTemplate reactiveProducerTemplate() {
+        ReactiveStreamsAdapter adapter = getReactiveStreamsAdapter();
+        return new DefaultReactiveProducerTemplate(this.context.createProducerTemplate(), adapter);
+    }
+
+    @Dependent
+    @Produces
+    ReactiveFluentProducerTemplate reactiveFluentProducerTemplate() {
+        return new DefaultReactiveFluentProducerTemplate(this.context);
+    }
+
+    @Produces
+    ReactiveConsumerTemplate reactiveConsumerTemplate() {
+        ReactiveStreamsAdapter adapter = getReactiveStreamsAdapter();
+        return new DefaultReactiveConsumerTemplate(this.context.createConsumerTemplate(), adapter);
+    }
+
+    private ReactiveStreamsAdapter getReactiveStreamsAdapter() {
+        // Try to find adapter provided by reactive-streams extension
+        ReactiveStreamsAdapter adapter = this.context.getRegistry()
+                .lookupByNameAndType("reactive-streams-adapter", ReactiveStreamsAdapter.class);
+        // Fallback to default no-op implementation
+        return adapter != null ? adapter : new DefaultReactiveStreamsAdapter();
     }
 }
