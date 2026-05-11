@@ -250,11 +250,11 @@ public interface ReactiveConsumerTemplate {
      *
      * <b>Important limitations:</b>
      * <ul>
-     *   <li>Designed for streaming/reactive scenarios where you control termination</li>
-     *   <li>If you terminate early (e.g., {@code .select().first(5)}), remaining messages in the source
-     *       endpoint will be left unprocessed</li>
-     *   <li>Suitable for infinite streams or on-demand event generation</li>
-     *   <li>NOT suitable for draining finite queues where all messages must be processed</li>
+     * <li>Designed for streaming/reactive scenarios where you control termination</li>
+     * <li>If you terminate early (e.g., {@code .select().first(5)}), remaining messages in the source
+     * endpoint will be left unprocessed</li>
+     * <li>Suitable for infinite streams or on-demand event generation</li>
+     * <li>NOT suitable for draining finite queues where all messages must be processed</li>
      * </ul>
      *
      * <b>Note:</b> This method requires the camel-quarkus-reactive-streams extension to be present.

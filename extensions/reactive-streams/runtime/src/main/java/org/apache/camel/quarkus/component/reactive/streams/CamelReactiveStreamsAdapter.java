@@ -16,7 +16,6 @@
  */
 package org.apache.camel.quarkus.component.reactive.streams;
 
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -44,21 +43,8 @@ public class CamelReactiveStreamsAdapter implements ReactiveStreamsAdapter {
     private final CamelContext camelContext;
     private volatile CamelReactiveStreamsService reactiveStreamsService;
 
-    // Track auto-created bridge routes: endpointUri -> BridgeInfo
-    private final ConcurrentHashMap<String, BridgeInfo> endpointBridges = new ConcurrentHashMap<>();
-
-    private static class BridgeInfo {
-        final String streamName;
-        final String routeId;
-        final AtomicInteger refCount;
-        volatile boolean cleanupPending = false;
-
-        BridgeInfo(String streamName, String routeId) {
-            this.streamName = streamName;
-            this.routeId = routeId;
-            this.refCount = new AtomicInteger(0);
-        }
-    }
+    // Counter for generating unique stream names
+    private final AtomicInteger bridgeCounter = new AtomicInteger(0);
 
     public CamelReactiveStreamsAdapter(CamelContext camelContext) {
         this.camelContext = camelContext;
@@ -100,51 +86,35 @@ public class CamelReactiveStreamsAdapter implements ReactiveStreamsAdapter {
 
     @Override
     public <T> Multi<T> streamFromEndpoint(String endpointUri, Class<T> type) {
-        BridgeInfo bridge = endpointBridges.computeIfAbsent(endpointUri, uri -> {
-            try {
-                return createBridge(uri);
-            } catch (Exception e) {
-                throw new IllegalStateException("Failed to create reactive-streams bridge for endpoint: " + uri, e);
-            }
-        });
+        // Generate unique stream name and route ID for this stream
+        int bridgeId = bridgeCounter.incrementAndGet();
+        String streamName = "auto-bridge-" + bridgeId;
+        String routeId = "auto-bridge-route-" + bridgeId;
 
-        // Resume the route if it was previously suspended
         try {
-            if (!camelContext.getRouteController().getRouteStatus(bridge.routeId).isStarted()) {
-                camelContext.getRouteController().resumeRoute(bridge.routeId);
-            }
+            createBridge(endpointUri, streamName, routeId);
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to resume bridge route: " + bridge.routeId, e);
+            throw new IllegalStateException("Failed to create reactive-streams bridge for endpoint: " + endpointUri, e);
         }
-
-        // Increment reference count
-        bridge.refCount.incrementAndGet();
 
         // Create the stream and add cleanup on any termination (completion, cancellation, or failure)
         // NOTE: If the stream terminates early (e.g., .first(N)), any remaining messages in the
-        // source endpoint will be left unprocessed since the bridge route is suspended.
+        // source endpoint will be left unprocessed since the bridge route is removed.
         // This is by design for reactive streaming scenarios but means this method is NOT suitable
         // for draining finite queues where all messages must be processed.
         //
-        // We mark cleanup as pending rather than cleaning up immediately to avoid suspending the route
-        // while the last exchange is still in-flight. The route's onCompletion() handler will
-        // perform the actual cleanup after the final exchange completes.
-        //
-        // The route is suspended (not removed) so it can be reused if streamFromEndpoint() is called
-        // again for the same endpoint URI.
-        return streamFrom(bridge.streamName, type)
-                .onCompletion().invoke(() -> markForCleanup(endpointUri, bridge))
-                .onCancellation().invoke(() -> markForCleanup(endpointUri, bridge))
-                .onFailure().invoke(failure -> markForCleanup(endpointUri, bridge));
+        // The route is fully removed (not just stopped) to ensure all resources are properly released.
+        // This is important for components that manage resources like database connections, JMS sessions, etc.
+        Multi<T> stream = streamFrom(streamName, type);
+
+        // Add cleanup handlers for all termination scenarios
+        return stream
+                .onCompletion().invoke(() -> removeRoute(routeId))
+                .onCancellation().invoke(() -> removeRoute(routeId))
+                .onFailure().invoke(failure -> removeRoute(routeId));
     }
 
-    private BridgeInfo createBridge(String endpointUri) throws Exception {
-        // Generate a unique stream name based on the endpoint URI
-        String streamName = "auto-bridge-" + Math.abs(endpointUri.hashCode());
-        String routeId = "auto-bridge-route-" + streamName;
-
-        BridgeInfo bridge = new BridgeInfo(streamName, routeId);
-
+    private void createBridge(String endpointUri, String streamName, String routeId) throws Exception {
         // Create a route that bridges the endpoint to reactive-streams
         camelContext.addRoutes(new RouteBuilder() {
             @Override
@@ -153,43 +123,23 @@ public class CamelReactiveStreamsAdapter implements ReactiveStreamsAdapter {
                         .routeId(routeId)
                         .shutdownRoute(ShutdownRoute.Defer) // Shutdown last, after other routes
                         .shutdownRunningTask(ShutdownRunningTask.CompleteCurrentTaskOnly) // Don't wait for all tasks
-                        .to("reactive-streams:" + streamName)
-                        .onCompletion()
-                            // After each exchange completes, check if cleanup is pending
-                            .process(exchange -> {
-                                if (bridge.cleanupPending) {
-                                    performCleanup(endpointUri, bridge);
-                                }
-                            })
-                        .end();
+                        // Use BUFFER backpressure strategy to ensure all messages from the source endpoint
+                        // are available to the stream. This prevents message loss when the subscriber is slow.
+                        // Alternative strategies (LATEST/OLDEST) drop messages which would be surprising when
+                        // bridging from queues or other endpoints where users expect all messages to be consumable.
+                        .to("reactive-streams:" + streamName + "?backpressureStrategy=BUFFER");
             }
         });
-
-        return bridge;
     }
 
-    private void markForCleanup(String endpointUri, BridgeInfo bridge) {
-        int count = bridge.refCount.decrementAndGet();
-        if (count <= 0) {
-            // Mark that cleanup should happen after the next exchange completes
-            // The route's onCompletion() handler will perform the actual cleanup
-            bridge.cleanupPending = true;
-        }
-    }
-
-    private void performCleanup(String endpointUri, BridgeInfo bridge) {
-        // Only cleanup if still marked as pending (avoid duplicate cleanup)
-        if (bridge.cleanupPending) {
-            bridge.cleanupPending = false;
-            // Keep the bridge in the map for potential reuse - just suspend the route
-            try {
-                // Suspend the route (don't remove it) so it can be reused
-                // The route is configured with ShutdownRunningTask.CompleteCurrentTaskOnly
-                camelContext.getRouteController().suspendRoute(bridge.routeId, 1, TimeUnit.MILLISECONDS);
-            } catch (Exception e) {
-                // Log but don't fail - route cleanup is best-effort
-                System.err.println("Failed to suspend bridge route " + bridge.routeId + ": " + e.getMessage());
-            }
+    private void removeRoute(String routeId) {
+        try {
+            // Stop and remove the route to ensure all resources are properly released
+            camelContext.getRouteController().stopRoute(routeId, 1, TimeUnit.MILLISECONDS);
+            camelContext.removeRoute(routeId);
+        } catch (Exception e) {
+            // Log but don't fail - route cleanup is best-effort
+            System.err.println("Failed to remove bridge route " + routeId + ": " + e.getMessage());
         }
     }
 }

@@ -48,9 +48,9 @@ public interface ReactiveStreamsAdapter {
     /**
      * Sends a reactive stream of items to a Camel endpoint.
      *
-     * @param  endpointUri the endpoint URI to send to
-     * @param  stream      the Multi stream of items to send
-     * @param  <T>         the item type
+     * @param endpointUri the endpoint URI to send to
+     * @param stream      the Multi stream of items to send
+     * @param <T>         the item type
      */
     <T> void streamTo(String endpointUri, Multi<T> stream);
 

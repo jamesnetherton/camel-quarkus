@@ -18,7 +18,6 @@ package org.apache.camel.quarkus.component.reactive.streams;
 
 import io.smallrye.common.annotation.Identifier;
 import jakarta.enterprise.inject.Produces;
-import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 import org.apache.camel.CamelContext;
 import org.apache.camel.component.reactive.streams.api.CamelReactiveStreams;
