@@ -29,6 +29,9 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import org.apache.camel.CamelContext;
+import org.apache.camel.Endpoint;
+import org.apache.camel.Exchange;
 
 @Path("/reactive-templates")
 @ApplicationScoped
@@ -39,6 +42,9 @@ public class ReactiveTemplatesResource {
 
     @Inject
     ReactiveConsumerTemplate reactiveConsumerTemplate;
+
+    @Inject
+    CamelContext camelContext;
 
     @Path("/producer/request-body")
     @POST
@@ -108,5 +114,128 @@ public class ReactiveTemplatesResource {
     public Uni<String> chain(String body) {
         return reactiveProducerTemplate.requestBody("direct:toUpper", body, String.class)
                 .chain(upper -> reactiveProducerTemplate.requestBody("direct:prefix", upper, String.class));
+    }
+
+    // Endpoint-based variants
+    @Path("/producer/request-body-endpoint")
+    @POST
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.TEXT_PLAIN)
+    public Uni<String> requestBodyEndpoint(String body) {
+        Endpoint endpoint = camelContext.getEndpoint("direct:toUpper");
+        return reactiveProducerTemplate.requestBody(endpoint, body, String.class);
+    }
+
+    @Path("/producer/send-body-endpoint")
+    @POST
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.TEXT_PLAIN)
+    public Uni<String> sendBodyEndpoint(String body) {
+        Endpoint endpoint = camelContext.getEndpoint("seda:queue");
+        return reactiveProducerTemplate.sendBody(endpoint, body)
+                .map(result -> "sent");
+    }
+
+    @Path("/consumer/receive-endpoint/{timeout}")
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public Uni<String> receiveEndpoint(@PathParam("timeout") long timeout) {
+        Endpoint endpoint = camelContext.getEndpoint("seda:queue");
+        return reactiveConsumerTemplate.receiveBody(endpoint, timeout, String.class)
+                .map(body -> body != null ? body : "null");
+    }
+
+    @Path("/consumer/receive-no-wait-endpoint")
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public Uni<String> receiveNoWaitEndpoint() {
+        Endpoint endpoint = camelContext.getEndpoint("seda:queue");
+        return reactiveConsumerTemplate.receiveBodyNoWait(endpoint, String.class)
+                .map(body -> body != null ? body : "null");
+    }
+
+    // Untyped variants
+    @Path("/producer/request-body-untyped")
+    @POST
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.TEXT_PLAIN)
+    public Uni<String> requestBodyUntyped(String body) {
+        return reactiveProducerTemplate.requestBody("direct:toUpper", body)
+                .map(result -> result != null ? result.toString() : "null");
+    }
+
+    @Path("/producer/request-body-and-header-untyped")
+    @POST
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.TEXT_PLAIN)
+    public Uni<String> requestBodyAndHeaderUntyped(String body) {
+        return reactiveProducerTemplate.requestBodyAndHeader("direct:withHeader", body, "customHeader", "headerValue")
+                .map(result -> result != null ? result.toString() : "null");
+    }
+
+    @Path("/producer/request-body-and-headers-untyped")
+    @POST
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.TEXT_PLAIN)
+    public Uni<String> requestBodyAndHeadersUntyped(String body) {
+        Map<String, Object> headers = new HashMap<>();
+        headers.put("header1", "value1");
+        headers.put("header2", "value2");
+        return reactiveProducerTemplate.requestBodyAndHeaders("direct:withHeaders", body, headers)
+                .map(result -> result != null ? result.toString() : "null");
+    }
+
+    @Path("/consumer/receive-body-untyped/{timeout}")
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public Uni<String> receiveBodyUntyped(@PathParam("timeout") long timeout) {
+        return reactiveConsumerTemplate.receiveBody("seda:queue", timeout)
+                .map(body -> body != null ? body.toString() : "null");
+    }
+
+    @Path("/consumer/receive-body-no-wait-untyped")
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public Uni<String> receiveBodyNoWaitUntyped() {
+        return reactiveConsumerTemplate.receiveBodyNoWait("seda:queue")
+                .map(body -> body != null ? body.toString() : "null");
+    }
+
+    // Exchange-based methods
+    @Path("/producer/send-exchange")
+    @POST
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.TEXT_PLAIN)
+    public Uni<String> sendExchange(String body) {
+        Exchange exchange = camelContext.getEndpoint("direct:toUpper").createExchange();
+        exchange.getIn().setBody(body);
+        return reactiveProducerTemplate.send("direct:toUpper", exchange)
+                .map(result -> result.getIn().getBody(String.class));
+    }
+
+    @Path("/producer/send-processor")
+    @POST
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.TEXT_PLAIN)
+    public Uni<String> sendProcessor(String body) {
+        return reactiveProducerTemplate.send("direct:toUpper", exchange -> {
+            exchange.getIn().setBody(body);
+        }).map(result -> result.getIn().getBody(String.class));
+    }
+
+    @Path("/consumer/receive-exchange/{timeout}")
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public Uni<String> receiveExchange(@PathParam("timeout") long timeout) {
+        return reactiveConsumerTemplate.receive("seda:queue", timeout)
+                .map(exchange -> exchange != null ? exchange.getIn().getBody(String.class) : "null");
+    }
+
+    @Path("/consumer/receive-exchange-no-wait")
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public Uni<String> receiveExchangeNoWait() {
+        return reactiveConsumerTemplate.receiveNoWait("seda:queue")
+                .map(exchange -> exchange != null ? exchange.getIn().getBody(String.class) : "null");
     }
 }

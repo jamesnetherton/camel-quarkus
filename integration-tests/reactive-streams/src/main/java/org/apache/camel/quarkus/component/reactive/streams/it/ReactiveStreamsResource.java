@@ -126,4 +126,43 @@ public class ReactiveStreamsResource {
                 .select().first(5);
     }
 
+    @Path("/template/stream-from-name")
+    @GET
+    @Produces(MediaType.SERVER_SENT_EVENTS)
+    public Multi<String> templateStreamFromName() {
+        try {
+            // Start the timer route to generate events to the named stream
+            camelContext.getRouteController().startRoute("namedStreamEvents");
+            System.out.println("Started namedStreamEvents route");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to start namedStreamEvents route", e);
+        }
+
+        // Use streamFrom() with a stream name (not endpoint URI)
+        // This requires a route that sends to reactive-streams:streamName
+        return reactiveConsumerTemplate.streamFrom("namedStream", String.class)
+                .onItem().invoke(item -> System.out.println("Streaming from namedStream: " + item))
+                .select().first(3);
+    }
+
+    @Path("/template/stream-from-exchange")
+    @GET
+    @Produces(MediaType.SERVER_SENT_EVENTS)
+    public Multi<String> templateStreamFromExchange() {
+        try {
+            // Start the timer route to generate events to the exchange stream
+            camelContext.getRouteController().startRoute("exchangeStreamEvents");
+            System.out.println("Started exchangeStreamEvents route");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to start exchangeStreamEvents route", e);
+        }
+
+        // Use streamFrom() with Exchange variant
+        return reactiveConsumerTemplate.streamFrom("exchangeStream")
+                .onItem().invoke(exchange -> System.out
+                        .println("Streaming exchange from exchangeStream: " + exchange.getIn().getBody(String.class)))
+                .map(exchange -> exchange.getIn().getBody(String.class))
+                .select().first(3);
+    }
+
 }

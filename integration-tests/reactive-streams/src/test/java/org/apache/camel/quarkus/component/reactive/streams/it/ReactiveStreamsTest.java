@@ -104,7 +104,7 @@ class ReactiveStreamsTest {
 
         eventSource.open();
 
-        // Timer sends 5 events (event-0 through event-4)
+        // Timer sends 5 events (event-1 through event-5)
         // Wait for them to arrive
         await().atMost(10, TimeUnit.SECONDS)
                 .untilAsserted(() -> assertThat(resultList).hasSizeGreaterThanOrEqualTo(5));
@@ -115,5 +115,69 @@ class ReactiveStreamsTest {
         // Verify we got the expected events
         assertThat(resultList)
                 .contains("event-1", "event-2", "event-3", "event-4", "event-5");
+    }
+
+    @TestHTTPResource("/reactive-streams/template/stream-from-name")
+    URI streamFromNameUri;
+
+    @Test
+    void reactiveTemplateStreamFromName() throws InterruptedException {
+        var resultList = new CopyOnWriteArrayList<String>();
+
+        Client client = ClientBuilder.newClient();
+        WebTarget target = client.target(streamFromNameUri);
+        SseEventSource eventSource = SseEventSource.target(target).build();
+
+        eventSource.register(event -> {
+            String data = event.readData();
+            System.out.println("Received from named stream: " + data);
+            resultList.add(data);
+        });
+
+        eventSource.open();
+
+        // Timer sends 3 events (named-1 through named-3)
+        // Wait for them to arrive
+        await().atMost(10, TimeUnit.SECONDS)
+                .untilAsserted(() -> assertThat(resultList).hasSizeGreaterThanOrEqualTo(3));
+
+        eventSource.close();
+        client.close();
+
+        // Verify we got the expected events
+        assertThat(resultList)
+                .contains("named-1", "named-2", "named-3");
+    }
+
+    @TestHTTPResource("/reactive-streams/template/stream-from-exchange")
+    URI streamFromExchangeUri;
+
+    @Test
+    void reactiveTemplateStreamFromExchange() throws InterruptedException {
+        var resultList = new CopyOnWriteArrayList<String>();
+
+        Client client = ClientBuilder.newClient();
+        WebTarget target = client.target(streamFromExchangeUri);
+        SseEventSource eventSource = SseEventSource.target(target).build();
+
+        eventSource.register(event -> {
+            String data = event.readData();
+            System.out.println("Received exchange from exchange stream: " + data);
+            resultList.add(data);
+        });
+
+        eventSource.open();
+
+        // Timer sends 3 events (exchange-1 through exchange-3)
+        // Wait for them to arrive
+        await().atMost(10, TimeUnit.SECONDS)
+                .untilAsserted(() -> assertThat(resultList).hasSizeGreaterThanOrEqualTo(3));
+
+        eventSource.close();
+        client.close();
+
+        // Verify we got the expected events
+        assertThat(resultList)
+                .contains("exchange-1", "exchange-2", "exchange-3");
     }
 }

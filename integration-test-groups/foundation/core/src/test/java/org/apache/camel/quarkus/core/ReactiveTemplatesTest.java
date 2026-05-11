@@ -138,4 +138,200 @@ class ReactiveTemplatesTest {
                 .statusCode(200)
                 .body(is("PREFIX:CHAINED"));
     }
+
+    // Endpoint-based variants
+    @Test
+    void testReactiveProducerTemplateRequestBodyEndpoint() {
+        RestAssured.given()
+                .contentType(ContentType.TEXT)
+                .body("hello")
+                .when()
+                .post("/reactive-templates/producer/request-body-endpoint")
+                .then()
+                .statusCode(200)
+                .body(is("HELLO"));
+    }
+
+    @Test
+    void testReactiveProducerTemplateSendBodyEndpoint() {
+        RestAssured.given()
+                .contentType(ContentType.TEXT)
+                .body("endpoint-message")
+                .when()
+                .post("/reactive-templates/producer/send-body-endpoint")
+                .then()
+                .statusCode(200)
+                .body(is("sent"));
+
+        RestAssured.when()
+                .get("/reactive-templates/consumer/receive-endpoint/5000")
+                .then()
+                .statusCode(200)
+                .body(is("endpoint-message"));
+    }
+
+    @Test
+    void testReactiveConsumerTemplateReceiveNoWaitEndpoint() {
+        RestAssured.when()
+                .get("/reactive-templates/consumer/receive-no-wait-endpoint")
+                .then()
+                .statusCode(200)
+                .body(is("null"));
+
+        RestAssured.given()
+                .contentType(ContentType.TEXT)
+                .body("endpoint-quick")
+                .when()
+                .post("/reactive-templates/producer/send-body")
+                .then()
+                .statusCode(200);
+
+        RestAssured.when()
+                .get("/reactive-templates/consumer/receive-no-wait-endpoint")
+                .then()
+                .statusCode(200)
+                .body(is("endpoint-quick"));
+    }
+
+    // Untyped variants
+    @Test
+    void testReactiveProducerTemplateRequestBodyUntyped() {
+        RestAssured.given()
+                .contentType(ContentType.TEXT)
+                .body("untyped")
+                .when()
+                .post("/reactive-templates/producer/request-body-untyped")
+                .then()
+                .statusCode(200)
+                .body(is("UNTYPED"));
+    }
+
+    @Test
+    void testReactiveProducerTemplateRequestBodyAndHeaderUntyped() {
+        RestAssured.given()
+                .contentType(ContentType.TEXT)
+                .body("untyped")
+                .when()
+                .post("/reactive-templates/producer/request-body-and-header-untyped")
+                .then()
+                .statusCode(200)
+                .body(is("untyped - headerValue"));
+    }
+
+    @Test
+    void testReactiveProducerTemplateRequestBodyAndHeadersUntyped() {
+        RestAssured.given()
+                .contentType(ContentType.TEXT)
+                .body("untyped")
+                .when()
+                .post("/reactive-templates/producer/request-body-and-headers-untyped")
+                .then()
+                .statusCode(200)
+                .body(is("untyped - value1 - value2"));
+    }
+
+    @Test
+    void testReactiveConsumerTemplateReceiveBodyUntyped() {
+        RestAssured.given()
+                .contentType(ContentType.TEXT)
+                .body("untyped-message")
+                .when()
+                .post("/reactive-templates/producer/send-body")
+                .then()
+                .statusCode(200);
+
+        RestAssured.when()
+                .get("/reactive-templates/consumer/receive-body-untyped/5000")
+                .then()
+                .statusCode(200)
+                .body(is("untyped-message"));
+    }
+
+    @Test
+    void testReactiveConsumerTemplateReceiveBodyNoWaitUntyped() {
+        RestAssured.when()
+                .get("/reactive-templates/consumer/receive-body-no-wait-untyped")
+                .then()
+                .statusCode(200)
+                .body(is("null"));
+
+        RestAssured.given()
+                .contentType(ContentType.TEXT)
+                .body("untyped-quick")
+                .when()
+                .post("/reactive-templates/producer/send-body")
+                .then()
+                .statusCode(200);
+
+        RestAssured.when()
+                .get("/reactive-templates/consumer/receive-body-no-wait-untyped")
+                .then()
+                .statusCode(200)
+                .body(is("untyped-quick"));
+    }
+
+    // Exchange-based methods
+    @Test
+    void testReactiveProducerTemplateSendExchange() {
+        RestAssured.given()
+                .contentType(ContentType.TEXT)
+                .body("exchange")
+                .when()
+                .post("/reactive-templates/producer/send-exchange")
+                .then()
+                .statusCode(200)
+                .body(is("EXCHANGE"));
+    }
+
+    @Test
+    void testReactiveProducerTemplateSendProcessor() {
+        RestAssured.given()
+                .contentType(ContentType.TEXT)
+                .body("processor")
+                .when()
+                .post("/reactive-templates/producer/send-processor")
+                .then()
+                .statusCode(200)
+                .body(is("PROCESSOR"));
+    }
+
+    @Test
+    void testReactiveConsumerTemplateReceiveExchange() {
+        RestAssured.given()
+                .contentType(ContentType.TEXT)
+                .body("exchange-message")
+                .when()
+                .post("/reactive-templates/producer/send-body")
+                .then()
+                .statusCode(200);
+
+        RestAssured.when()
+                .get("/reactive-templates/consumer/receive-exchange/5000")
+                .then()
+                .statusCode(200)
+                .body(is("exchange-message"));
+    }
+
+    @Test
+    void testReactiveConsumerTemplateReceiveExchangeNoWait() {
+        RestAssured.when()
+                .get("/reactive-templates/consumer/receive-exchange-no-wait")
+                .then()
+                .statusCode(200)
+                .body(is("null"));
+
+        RestAssured.given()
+                .contentType(ContentType.TEXT)
+                .body("exchange-quick")
+                .when()
+                .post("/reactive-templates/producer/send-body")
+                .then()
+                .statusCode(200);
+
+        RestAssured.when()
+                .get("/reactive-templates/consumer/receive-exchange-no-wait")
+                .then()
+                .statusCode(200)
+                .body(is("exchange-quick"));
+    }
 }

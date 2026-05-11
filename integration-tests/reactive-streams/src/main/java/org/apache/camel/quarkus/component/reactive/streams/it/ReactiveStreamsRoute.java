@@ -32,5 +32,19 @@ public class ReactiveStreamsRoute extends RouteBuilder {
                 .setBody().simple("event-${header.CamelTimerCounter}")
                 .log("Sending to queue: ${body}")
                 .to("seda:streamQueue");
+
+        from("timer:namedStreamEvents?includeMetadata=true&repeatCount=3&period=500&delay=500")
+                .routeId("namedStreamEvents")
+                .autoStartup(false)
+                .setBody().simple("named-${header.CamelTimerCounter}")
+                .log("Sending to named stream: ${body}")
+                .to("reactive-streams:namedStream?backpressureStrategy=BUFFER");
+
+        from("timer:exchangeStreamEvents?includeMetadata=true&repeatCount=3&period=500&delay=500")
+                .routeId("exchangeStreamEvents")
+                .autoStartup(false)
+                .setBody().simple("exchange-${header.CamelTimerCounter}")
+                .log("Sending to exchange stream: ${body}")
+                .to("reactive-streams:exchangeStream?backpressureStrategy=BUFFER");
     }
 }
