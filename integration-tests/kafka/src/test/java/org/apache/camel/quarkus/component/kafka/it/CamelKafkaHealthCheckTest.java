@@ -57,3 +57,4 @@ public class CamelKafkaHealthCheckTest {
                         "checks.find { it.name == 'camel-producers' }.data.'client.id'", notNullValue());
     }
 }
+// test change
