@@ -51,3 +51,4 @@ class HttpProcessor {
                 ReflectiveClassBuildItem.builder(HttpOperationFailedException.class).build());
     }
 }
+// test change
