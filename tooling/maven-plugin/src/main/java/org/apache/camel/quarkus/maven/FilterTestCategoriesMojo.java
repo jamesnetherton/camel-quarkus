@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,7 +99,8 @@ public class FilterTestCategoriesMojo extends AbstractMojo {
     private File outputFile;
 
     /**
-     * Output format: "list" (one per line), "comma" (comma-separated), or "maven" (-pl format with integration-tests/ prefix)
+     * Output format: "list" (one per line), "comma" (comma-separated), or "maven" (-pl format with integration-tests/
+     * prefix)
      */
     @Parameter(property = "cq.outputFormat", defaultValue = "list")
     private String outputFormat;
@@ -160,6 +160,7 @@ public class FilterTestCategoriesMojo extends AbstractMojo {
         }
 
         return report.affectedModules.stream()
+                .filter(module -> "DIRECT".equals(module.category) || "DOWNSTREAM".equals(module.category))
                 .map(module -> module.path)
                 .filter(path -> path.startsWith("integration-tests/") || path.startsWith("integration-test-groups/"))
                 .map(this::normalizeModulePath)
@@ -214,11 +215,11 @@ public class FilterTestCategoriesMojo extends AbstractMojo {
         }
 
         String content = switch (outputFormat.toLowerCase()) {
-            case "comma" -> String.join(",", modules);
-            case "maven" -> modules.stream()
-                    .map(m -> "integration-tests/" + m)
-                    .collect(Collectors.joining(","));
-            default -> String.join("\n", modules) + (modules.isEmpty() ? "" : "\n");
+        case "comma" -> String.join(",", modules);
+        case "maven" -> modules.stream()
+                .map(m -> "integration-tests/" + m)
+                .collect(Collectors.joining(","));
+        default -> String.join("\n", modules) + (modules.isEmpty() ? "" : "\n");
         };
 
         Files.writeString(outputFile.toPath(), content, StandardCharsets.UTF_8);
