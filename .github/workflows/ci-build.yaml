@@ -18,38 +18,39 @@
 name: Camel Quarkus CI
 
 on:
-  push:
-    branches:
-      - main
-      - camel-main
-      - quarkus-main
-      - "[0-9]+.[0-9]+.x"
-    paths-ignore:
-      - '**.adoc'
-      - '**.md'
-      - 'Jenkinsfile'
-      - 'Jenkinsfile.*'
-      - 'KEYS'
-      - 'LICENSE.txt'
-      - 'NOTICE.txt'
-      - 'camel-quarkus-sbom/**'
-      - '.github/*.sh'
-      - '.github/*.yaml'
-      - '.github/*.yml'
-      - '.github/workflows/assign-issue-milestone.yaml'
-      - '.github/workflows/assign-wontfix-issue-milestone.yaml'
-      - '.github/workflows/camel-master-cron.yaml'
-      - '.github/workflows/check-dependency-convergence.yml'
-      - '.github/workflows/ci-semeru-jdk.yaml'
-      - '.github/workflows/generate-sbom-main.yml'
-      - '.github/workflows/jdk25-build.yaml'
-      - '.github/workflows/label-issue.yaml'
-      - '.github/workflows/pr-validate.yml'
-      - '.github/workflows/quarkus-master-cron.yaml'
-      - '.github/workflows/synchronize-dependabot-branch.yaml'
-      - '.github/workflows/pr-doc-validation.yaml'
-      - 'docs/antora.yml'
-      - 'release-utils/**'
+  # Commented out push trigger for Scalpel testing - only run on pull_request
+  # push:
+  #   branches:
+  #     - main
+  #     - camel-main
+  #     - quarkus-main
+  #     - "[0-9]+.[0-9]+.x"
+  #   paths-ignore:
+  #     - '**.adoc'
+  #     - '**.md'
+  #     - 'Jenkinsfile'
+  #     - 'Jenkinsfile.*'
+  #     - 'KEYS'
+  #     - 'LICENSE.txt'
+  #     - 'NOTICE.txt'
+  #     - 'camel-quarkus-sbom/**'
+  #     - '.github/*.sh'
+  #     - '.github/*.yaml'
+  #     - '.github/*.yml'
+  #     - '.github/workflows/assign-issue-milestone.yaml'
+  #     - '.github/workflows/assign-wontfix-issue-milestone.yaml'
+  #     - '.github/workflows/camel-master-cron.yaml'
+  #     - '.github/workflows/check-dependency-convergence.yml'
+  #     - '.github/workflows/ci-semeru-jdk.yaml'
+  #     - '.github/workflows/generate-sbom-main.yml'
+  #     - '.github/workflows/jdk25-build.yaml'
+  #     - '.github/workflows/label-issue.yaml'
+  #     - '.github/workflows/pr-validate.yml'
+  #     - '.github/workflows/quarkus-master-cron.yaml'
+  #     - '.github/workflows/synchronize-dependabot-branch.yaml'
+  #     - '.github/workflows/pr-doc-validation.yaml'
+  #     - 'docs/antora.yml'
+  #     - 'release-utils/**'
   pull_request:
     branches:
       - main
@@ -57,28 +58,28 @@ on:
       - quarkus-main
       - "[0-9]+.[0-9]+.x"
     paths-ignore:
-      - '**.adoc'
-      - '**.md'
-      - 'Jenkinsfile'
-      - 'Jenkinsfile.*'
-      - 'KEYS'
-      - 'LICENSE.txt'
-      - 'NOTICE.txt'
-      - '.github/*.sh'
-      - '.github/*.yaml'
-      - '.github/*.yml'
-      - '.github/workflows/assign-issue-milestone.yaml'
-      - '.github/workflows/assign-wontfix-issue-milestone.yaml'
-      - '.github/workflows/camel-master-cron.yaml'
-      - '.github/workflows/generate-sbom-main.yml'
-      - '.github/workflows/label-issue.yaml'
-      - '.github/workflows/pr-validate.yml'
-      - '.github/workflows/quarkus-lts-ci-build.yaml'
-      - '.github/workflows/quarkus-master-cron.yaml'
-      - '.github/workflows/synchronize-dependabot-branch.yaml'
-      - '.github/workflows/pr-doc-validation.yaml'
-      - 'docs/antora.yml'
-      - 'release-utils/**'
+  #     - '**.adoc'
+  #     - '**.md'
+  #     - 'Jenkinsfile'
+  #     - 'Jenkinsfile.*'
+  #     - 'KEYS'
+  #     - 'LICENSE.txt'
+  #     - 'NOTICE.txt'
+  #     - '.github/*.sh'
+  #     - '.github/*.yaml'
+  #     - '.github/*.yml'
+  #     - '.github/workflows/assign-issue-milestone.yaml'
+  #     - '.github/workflows/assign-wontfix-issue-milestone.yaml'
+  #     - '.github/workflows/camel-master-cron.yaml'
+  #     - '.github/workflows/generate-sbom-main.yml'
+  #     - '.github/workflows/label-issue.yaml'
+  #     - '.github/workflows/pr-validate.yml'
+  #     - '.github/workflows/quarkus-lts-ci-build.yaml'
+  #     - '.github/workflows/quarkus-master-cron.yaml'
+  #     - '.github/workflows/synchronize-dependabot-branch.yaml'
+  #     - '.github/workflows/pr-doc-validation.yaml'
+  #     - 'docs/antora.yml'
+  #     - 'release-utils/**'
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
