@@ -322,23 +322,23 @@ jobs:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: scalpel-reports
-          path: target/
+          path: ${{ runner.temp }}/scalpel/
         continue-on-error: true
       - name: Filter Test Categories
         if: github.event_name == 'pull_request' && needs.initial-mvn-install.outputs.full-build != 'true'
         id: filter-categories
         run: |
-          if [ -f target/scalpel-report.json ]; then
+          if [ -f ${{ runner.temp }}/scalpel/scalpel-report.json ]; then
             # Use Maven mojo to filter test categories
             ./mvnw cq:filter-test-categories \
               -Dcq.category=${{ matrix.category }} \
-              -Dcq.scalpelReportFile=target/scalpel-report.json \
-              -Dcq.outputFile=target/filtered-modules.txt \
+              -Dcq.scalpelReportFile=${{ runner.temp }}/scalpel/scalpel-report.json \
+              -Dcq.outputFile=${{ runner.temp }}/scalpel/filtered-modules.txt \
               -Dcq.outputFormat=list \
               -N ${CQ_MAVEN_ARGS}
             
-            if [ -s target/filtered-modules.txt ]; then
-              MODULE_COUNT=$(wc -l < target/filtered-modules.txt)
+            if [ -s ${{ runner.temp }}/scalpel/filtered-modules.txt ]; then
+              MODULE_COUNT=$(wc -l < ${{ runner.temp }}/scalpel/filtered-modules.txt)
               echo "skip-tests=false" >> $GITHUB_OUTPUT
               echo "::notice::Running tests for ${MODULE_COUNT} modules in category ${{ matrix.category }}"
             else
@@ -353,14 +353,15 @@ jobs:
         if: steps.filter-categories.outputs.skip-tests != 'true'
         run: |
           # Determine which modules to test
-          if [ -f target/filtered-modules.txt ]; then
+          if [ -f ${{ runner.temp }}/scalpel/filtered-modules.txt ]; then
             # Use filtered modules from Scalpel
-            MODULES_FILE=target/filtered-modules.txt
+            MODULES_FILE=${{ runner.temp }}/scalpel/filtered-modules.txt
             echo "::notice::Using filtered module list from Scalpel"
           else
             # Use all modules from test-categories.yaml (full build)
-            yq -M -N e ".${{ matrix.category }}" tooling/scripts/test-categories.yaml | grep -vE '^\s*#' | cut -f2 -d' ' > target/all-modules.txt
-            MODULES_FILE=target/all-modules.txt
+            mkdir -p ${{ runner.temp }}/scalpel
+            yq -M -N e ".${{ matrix.category }}" tooling/scripts/test-categories.yaml | grep -vE '^\s*#' | cut -f2 -d' ' > ${{ runner.temp }}/scalpel/all-modules.txt
+            MODULES_FILE=${{ runner.temp }}/scalpel/all-modules.txt
             echo "::notice::Using full module list from test-categories.yaml"
           fi
           
