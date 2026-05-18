@@ -203,7 +203,7 @@ jobs:
         id: scalpel-report
         run: |
           # Generate Scalpel report (baseBranch auto-detected from GITHUB_BASE_REF)
-          ./mvnw validate -Dscalpel.enabled=true \
+          ./mvnw validate -Dscalpel.enabled=true -Dquickly \
             ${CQ_MAVEN_ARGS}
           
           # Check if full build was triggered
