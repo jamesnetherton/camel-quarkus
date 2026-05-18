@@ -18,10 +18,11 @@
 name: Camel Quarkus CI
 
 on:
-  push:
-    branches:
-      - '*'
-    paths-ignore:
+  # Commented out push trigger for Scalpel testing - only run on pull_request
+  # push:
+  #   branches:
+  #     - '*'
+  #   paths-ignore:
       - '**.adoc'
       - '**.md'
       - 'Jenkinsfile'
