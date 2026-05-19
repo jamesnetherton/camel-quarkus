@@ -161,6 +161,8 @@ jobs:
       matrix: ${{ steps.set-native-matrix.outputs.matrix }}
       examples-matrix: ${{ steps.set-examples-matrix.outputs.examples-matrix }}
       alternate-jvm-matrix: ${{ steps.set-alternate-jvm-matrix.outputs.alternate-jvm-matrix }}
+      use-filtered-matrix: ${{ steps.filter-categories.outputs.use-filtered-matrix }}
+      filtered-matrix: ${{ steps.filter-categories.outputs.filtered-matrix }}
     env:
       MAVEN_OPTS: -Xmx4600m
     steps:
@@ -335,14 +337,42 @@ jobs:
         id: set-alternate-jvm-matrix
         shell: bash
         run: |
-          cd integration-tests
-          mvn help:evaluate -Dexpression=project.modules -N -q -DforceStdout | sed -e 's/<[^>]*>//g' -e 's/^[[:space:]]*//' -e '/^$/d' > ${{ runner.temp }}/itest-modules.txt
-          MODULE_COUNT=$(wc -l < ${{ runner.temp }}/itest-modules.txt)
-          GROUP1_COUNT=$((MODULE_COUNT / 2))
-          GROUP2_COUNT=$((MODULE_COUNT - GROUP1_COUNT))
-          GROUP1_MODULES=$(head -n $GROUP1_COUNT ${{ runner.temp }}/itest-modules.txt | tr '\n' ',' | sed 's/,$//')
-          GROUP2_MODULES=$(tail -n $GROUP2_COUNT ${{ runner.temp }}/itest-modules.txt | tr '\n' ',' | sed 's/,$//')
-          echo "alternate-jvm-matrix={'include': [{'name': 'group-01', 'modules': '${GROUP1_MODULES}'},{'name': 'group-02', 'modules': '${GROUP2_MODULES}'}]}" >> $GITHUB_OUTPUT
+          if [ "${{ steps.filter-categories.outputs.use-filtered-matrix }}" == "true" ]; then
+            # Incremental build - use filtered modules
+            MODULES_JSON=$(jq -c '.modules' target/filtered-matrix.json)
+            MODULE_COUNT=$(echo "$MODULES_JSON" | jq 'length')
+
+            if [ "$MODULE_COUNT" -eq 0 ]; then
+              # No modules affected - create empty matrix
+              echo "alternate-jvm-matrix={'include': []}" >> $GITHUB_OUTPUT
+            else
+              # Split modules into 2 groups
+              GROUP1_COUNT=$((MODULE_COUNT / 2))
+              if [ "$GROUP1_COUNT" -eq 0 ]; then
+                GROUP1_COUNT=1
+              fi
+              GROUP2_COUNT=$((MODULE_COUNT - GROUP1_COUNT))
+
+              GROUP1_MODULES=$(echo "$MODULES_JSON" | jq -r --argjson count "$GROUP1_COUNT" '.[:$count] | join(",")')
+              GROUP2_MODULES=$(echo "$MODULES_JSON" | jq -r --argjson start "$GROUP1_COUNT" '.[$start:] | join(",")')
+
+              if [ -n "$GROUP2_MODULES" ]; then
+                echo "alternate-jvm-matrix={'include': [{'name': 'group-01', 'modules': '${GROUP1_MODULES}'},{'name': 'group-02', 'modules': '${GROUP2_MODULES}'}]}" >> $GITHUB_OUTPUT
+              else
+                echo "alternate-jvm-matrix={'include': [{'name': 'group-01', 'modules': '${GROUP1_MODULES}'}]}" >> $GITHUB_OUTPUT
+              fi
+            fi
+          else
+            # Full build - use all modules
+            cd integration-tests
+            mvn help:evaluate -Dexpression=project.modules -N -q -DforceStdout | sed -e 's/<[^>]*>//g' -e 's/^[[:space:]]*//' -e '/^$/d' > ${{ runner.temp }}/itest-modules.txt
+            MODULE_COUNT=$(wc -l < ${{ runner.temp }}/itest-modules.txt)
+            GROUP1_COUNT=$((MODULE_COUNT / 2))
+            GROUP2_COUNT=$((MODULE_COUNT - GROUP1_COUNT))
+            GROUP1_MODULES=$(head -n $GROUP1_COUNT ${{ runner.temp }}/itest-modules.txt | tr '\n' ',' | sed 's/,$//')
+            GROUP2_MODULES=$(tail -n $GROUP2_COUNT ${{ runner.temp }}/itest-modules.txt | tr '\n' ',' | sed 's/,$//')
+            echo "alternate-jvm-matrix={'include': [{'name': 'group-01', 'modules': '${GROUP1_MODULES}'},{'name': 'group-02', 'modules': '${GROUP2_MODULES}'}]}" >> $GITHUB_OUTPUT
+          fi
       - name: Setup Examples Matrix
         id: set-examples-matrix
         run: |
@@ -578,7 +608,32 @@ jobs:
           tar -xzf ../maven-repo.tgz -C ~
           rm -f ../maven-repo.tgz
           df -h /
+      - name: Check if integration-tests-jvm affected
+        id: check-jvm-tests
+        shell: bash
+        run: |
+          if [ "${{ needs.initial-mvn-install.outputs.use-filtered-matrix }}" == "true" ]; then
+            # Check if any JVM-only integration tests are affected
+            cd integration-tests-jvm
+            JVM_MODULES=$(mvn help:evaluate -Dexpression=project.modules -N -q -DforceStdout | sed -e 's/<[^>]*>//g' -e 's/^[[:space:]]*//' -e '/^$/d')
+
+            # Get affected modules from filtered matrix
+            AFFECTED_MODULES=$(echo '${{ needs.initial-mvn-install.outputs.filtered-matrix }}' | jq -r '.modules[]')
+
+            # Check if any affected module is in JVM modules
+            SHOULD_RUN=false
+            for MODULE in $AFFECTED_MODULES; do
+              if echo "$JVM_MODULES" | grep -q "^${MODULE}$"; then
+                SHOULD_RUN=true
+                break
+              fi
+            done
+            echo "should-run=$SHOULD_RUN" >> $GITHUB_OUTPUT
+          else
+            echo "should-run=true" >> $GITHUB_OUTPUT
+          fi
       - name: cd integration-tests-jvm && mvn clean test
+        if: steps.check-jvm-tests.outputs.should-run == 'true'
         run: |
           cd integration-tests-jvm
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
@@ -684,10 +739,27 @@ jobs:
           MAVEN_REPO_LOCAL: D:\\maven-repo\.m2\repository
         run: |
           cd integration-tests
-          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} -Dmaven.repo.local='${{ env.MAVEN_REPO_LOCAL }}' \
-            -Dskip-testcontainers-tests -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-            --fail-at-end \
-            clean verify
+
+          if [ "${{ needs.initial-mvn-install.outputs.use-filtered-matrix }}" == "true" ]; then
+            # Incremental build - only run affected modules
+            MODULES=$(echo '${{ needs.initial-mvn-install.outputs.filtered-matrix }}' | jq -r '.modules | join(",")')
+            if [ -n "$MODULES" ]; then
+              echo "Running affected modules: $MODULES"
+              ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} -Dmaven.repo.local='${{ env.MAVEN_REPO_LOCAL }}' \
+                -pl "$MODULES" \
+                -Dskip-testcontainers-tests -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+                --fail-at-end \
+                clean verify
+            else
+              echo "No integration tests affected - skipping"
+            fi
+          else
+            # Full build - run all modules
+            ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} -Dmaven.repo.local='${{ env.MAVEN_REPO_LOCAL }}' \
+              -Dskip-testcontainers-tests -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+              --fail-at-end \
+              clean verify
+          fi
       - name: Report test failures
         uses: ./.github/actions/test-summary-report
         if: ${{ failure() }}
