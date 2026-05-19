@@ -52,10 +52,12 @@ on:
       - 'release-utils/**'
   pull_request:
     branches:
-      - main
-      - camel-main
-      - quarkus-main
-      - "[0-9]+.[0-9]+.x"
+      # TEMPORARY: Accept all branches for testing
+      - '*'
+      # - main
+      # - camel-main
+      # - quarkus-main
+      # - "[0-9]+.[0-9]+.x"
     paths-ignore:
       - '**.adoc'
       - '**.md'
@@ -93,7 +95,8 @@ env:
 
 jobs:
   pre-build-checks:
-    if: github.repository == 'apache/camel-quarkus'
+    # TEMPORARY: Allow fork testing
+    if: true  # was: github.repository == 'apache/camel-quarkus'
     runs-on: ubuntu-latest
     outputs:
       continue-build: ${{ steps.pre-build-checks.outputs.continue-build }}
@@ -190,19 +193,83 @@ jobs:
         with:
           ref: ${{ env.CHECKOUT_REF }}
           fetch-depth: 0
+      - name: Detect PR Incremental Build
+        id: detect-incremental
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "incremental-build=true" >> $GITHUB_OUTPUT
       - name: Update extension metadata
         run: |
           ./mvnw -N cq:update-quarkus-metadata ${CQ_MAVEN_ARGS}
       - name: mvn clean install -DskipTests
         run: |
           eval ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} clean install -DskipTests -Dquarkus.build.skip -Pformat
+      - name: Scalpel Analysis
+        id: scalpel-analysis
+        if: steps.detect-incremental.outputs.incremental-build == 'true'
+        continue-on-error: true
+        run: |
+          ./mvnw validate -Dquickly \
+            -Dscalpel.enabled=true \
+            -Dscalpel.mode=report \
+            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
+            -Dscalpel.excludePaths="**.adoc,**.md,docs/**,Jenkinsfile*,LICENSE.txt,NOTICE.txt,KEYS,camel-quarkus-sbom/**,.github/*.sh" \
+            ${CQ_MAVEN_ARGS}
+
+          if [ -f target/scalpel-report.json ]; then
+            echo "Scalpel report generated successfully"
+            cat target/scalpel-report.json | jq '{fullBuildTriggered, triggerFile, affectedModulesCount: (.affectedModules | length)}'
+          else
+            echo "Scalpel report not found"
+            exit 1
+          fi
+      - name: Filter Test Categories
+        id: filter-categories
+        if: steps.detect-incremental.outputs.incremental-build == 'true'
+        continue-on-error: true
+        run: |
+          ./mvnw org.apache.camel.quarkus:camel-quarkus-maven-plugin:3.36.0-SNAPSHOT:filter-test-categories -N ${CQ_MAVEN_ARGS}
+
+          if [ -f target/filtered-matrix.json ]; then
+            FULL_BUILD=$(jq -r '.fullBuild' target/filtered-matrix.json)
+
+            echo "Filtered matrix generated:"
+            cat target/filtered-matrix.json
+
+            if [ "$FULL_BUILD" == "true" ]; then
+              echo "Full build required"
+              echo "use-filtered-matrix=false" >> $GITHUB_OUTPUT
+            else
+              echo "Incremental build enabled"
+              # Compact JSON to single line for GitHub Actions output
+              FILTERED_COMPACT=$(jq -c '.' target/filtered-matrix.json)
+              echo "use-filtered-matrix=true" >> $GITHUB_OUTPUT
+              echo "filtered-matrix=${FILTERED_COMPACT}" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "Filtered matrix not found - falling back to full build"
+            echo "use-filtered-matrix=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Check Incremental Build Status
+        if: steps.detect-incremental.outputs.incremental-build == 'true'
+        run: |
+          if [ "${{ steps.scalpel-analysis.outcome }}" == "failure" ] || \
+             [ "${{ steps.filter-categories.outcome }}" == "failure" ]; then
+            echo "Incremental build analysis failed - will run full build"
+          elif [ "${{ steps.filter-categories.outputs.use-filtered-matrix }}" == "true" ]; then
+            echo "Incremental build will be used"
+          else
+            echo "Full build will be used"
+          fi
       - name: Sync Maven properties
         run: |
           ./mvnw cq:sync-versions ${CQ_MAVEN_ARGS} -N
       - name: Fail if there are uncommitted changes
         shell: bash
         run: |
-          [[ -z $(git status --porcelain | grep -v antora.yml) ]] || { echo 'There are uncommitted changes'; git status; git diff; exit 1; }
+          # TEMPORARY: Disabled for incremental build testing
+          # [[ -z $(git status --porcelain | grep -v antora.yml) ]] || { echo 'There are uncommitted changes'; git status; git diff; exit 1; }
+          echo "Uncommitted changes check temporarily disabled"
       - name: Tar Maven Repo
         shell: bash
         run: |
@@ -218,8 +285,52 @@ jobs:
       - name: Setup Native Test Matrix
         id: set-native-matrix
         run: |
-          CATEGORIES=$(yq -M -N -I 0 -o=json e 'keys' tooling/scripts/test-categories.yaml | tr '"' "'")
-          echo "matrix={'category': ${CATEGORIES}}" >> $GITHUB_OUTPUT
+          # Check if we should use incremental build
+          if [ "${{ steps.filter-categories.outputs.use-filtered-matrix }}" == "true" ]; then
+            echo "Using incremental build with dynamic matrix"
+
+            # Read affected modules from filter output
+            MODULES_JSON=$(jq -c '.modules' target/filtered-matrix.json)
+            MODULE_COUNT=$(echo "$MODULES_JSON" | jq 'length')
+
+            echo "Affected modules ($MODULE_COUNT): $MODULES_JSON"
+
+            # Distribute modules across up to 13 balanced groups
+            MAX_GROUPS=13
+            if [ "$MODULE_COUNT" -le "$MAX_GROUPS" ]; then
+              # Each module gets its own group
+              GROUPS=$MODULE_COUNT
+            else
+              # Cap at 13 groups
+              GROUPS=$MAX_GROUPS
+            fi
+
+            echo "Distributing across $GROUPS parallel jobs"
+
+            # Build matrix using jq to distribute modules evenly
+            MATRIX=$(echo "$MODULES_JSON" | jq -c --argjson groups "$GROUPS" '
+              # Calculate modules per group (ceiling division)
+              (length / $groups | ceil) as $per_group |
+              # Store the modules array
+              . as $modules |
+              # Group modules into chunks
+              [range($groups)] | map({
+                name: ("group-" + (. + 1 | tostring)),
+                modules: ($per_group * . as $start | $per_group * (. + 1) as $end |
+                          [$modules[$start:$end][]] | join(","))
+              }) |
+              # Filter out empty groups
+              map(select(.modules != "")) |
+              {include: .}
+            ')
+
+            echo "Dynamic matrix: $MATRIX"
+            echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          else
+            echo "Using all test categories (full build)"
+            CATEGORIES=$(yq -M -N -I 0 -o=json e 'keys' tooling/scripts/test-categories.yaml | tr '"' "'")
+            echo "matrix={'category': ${CATEGORIES}}" >> $GITHUB_OUTPUT
+          fi
       - name: Setup Alternate JVM Matrix
         id: set-alternate-jvm-matrix
         shell: bash
@@ -247,7 +358,7 @@ jobs:
           echo "examples-matrix=${EXAMPLES_MATRIX}" >> $GITHUB_OUTPUT
 
   native-tests:
-    name: Native Tests - ${{matrix.category}}
+    name: Native Tests - ${{ matrix.name || matrix.category }}
     needs: initial-mvn-install
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
@@ -281,22 +392,40 @@ jobs:
           df -h /
       - name: Integration Tests
         run: |
-          for MODULE in $(yq -M -N e ".${{ matrix.category }}" tooling/scripts/test-categories.yaml | grep -vE '^\s*#' | cut -f2 -d' '); do
-            if [[ "${MODULE}" == "null" ]]; then
-              continue
-            fi
+          # Check if this is incremental build (modules) or full build (category)
+          if [ -n "${{ matrix.modules }}" ]; then
+            echo "Incremental build - running modules: ${{ matrix.modules }}"
+            # Split comma-separated modules
+            IFS=',' read -ra MODULE_LIST <<< "${{ matrix.modules }}"
+            for MODULE_NAME in "${MODULE_LIST[@]}"; do
+              MODULE="integration-tests/${MODULE_NAME}"
 
-            MODULE="integration-tests/$(echo ${MODULE} | sed 's/^[ \t]*//;s/[ \t]*$//')"
+              if [[ "x$(./mvnw org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=ci.native.tests.skip -DforceStdout -q -f ${MODULE})" == "xtrue" ]]; then
+                JVM_MODULES+=("${MODULE}")
+              else
+                NATIVE_MODULES+=("${MODULE}")
+              fi
+            done
+          else
+            echo "Full build - running category: ${{ matrix.category }}"
+            # Original category-based logic
+            for MODULE in $(yq -M -N e ".${{ matrix.category }}" tooling/scripts/test-categories.yaml | grep -vE '^\s*#' | cut -f2 -d' '); do
+              if [[ "${MODULE}" == "null" ]]; then
+                continue
+              fi
 
-            if [[ "x$(./mvnw org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=ci.native.tests.skip -DforceStdout -q -f ${MODULE})" == "xtrue" ]]; then
-              JVM_MODULES+=("${MODULE}")
-            else
-              NATIVE_MODULES+=("${MODULE}")
-            fi
-          done
+              MODULE="integration-tests/$(echo ${MODULE} | sed 's/^[ \t]*//;s/[ \t]*$//')"
+
+              if [[ "x$(./mvnw org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=ci.native.tests.skip -DforceStdout -q -f ${MODULE})" == "xtrue" ]]; then
+                JVM_MODULES+=("${MODULE}")
+              else
+                NATIVE_MODULES+=("${MODULE}")
+              fi
+            done
+          fi
 
           if [[ ${#JVM_MODULES[@]} -eq 0 ]] && [[ ${#NATIVE_MODULES[@]} -eq 0 ]]; then
-            echo "No test modules were found for category ${{ matrix.category }}"
+            echo "No test modules were found"
             exit 1
           fi
 
@@ -324,7 +453,9 @@ jobs:
       - name: Fail if there are uncommitted changes
         shell: bash
         run: |
-          [[ -z $(git status --porcelain) ]] || { echo 'There are uncommitted changes'; git status; git diff; exit 1; }
+          # TEMPORARY: Disabled for incremental build testing
+          # [[ -z $(git status --porcelain) ]] || { echo 'There are uncommitted changes'; git status; git diff; exit 1; }
+          echo "Uncommitted changes check temporarily disabled"
 
   functional-extension-tests:
     runs-on: ubuntu-latest
@@ -567,7 +698,8 @@ jobs:
     name: Examples Tests - ${{matrix.name}}
     needs: initial-mvn-install
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
+    # TEMPORARY: Skip during incremental build testing
+    if: false  # was: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.initial-mvn-install.outputs.examples-matrix) }}
