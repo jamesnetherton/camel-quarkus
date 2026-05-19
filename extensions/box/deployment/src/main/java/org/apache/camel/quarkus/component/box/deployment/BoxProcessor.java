@@ -25,6 +25,10 @@ import io.quarkus.deployment.builditem.ExtensionSslNativeSupportBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.RuntimeInitializedClassBuildItem;
 
+/**
+ * Build-time configuration for the Box extension.
+ * This is a test change for incremental build testing.
+ */
 class BoxProcessor {
 
     private static final String FEATURE = "camel-box";
