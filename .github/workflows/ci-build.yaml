@@ -338,11 +338,32 @@ jobs:
             ')
 
             echo "Dynamic matrix: $MATRIX"
+
+            # Validate matrix size
+            MATRIX_SIZE=$(echo "$MATRIX" | jq '.include | length')
+            echo "Native tests matrix size: $MATRIX_SIZE jobs"
+            if [ "$MATRIX_SIZE" -gt 20 ]; then
+              echo "ERROR: Native tests matrix size ($MATRIX_SIZE) exceeds maximum expected (20)"
+              echo "Matrix content: $MATRIX"
+              exit 1
+            fi
+
             echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
           else
             echo "Using all test categories (full build)"
             CATEGORIES=$(yq -M -N -I 0 -o=json e 'keys' tooling/scripts/test-categories.yaml | tr '"' "'")
-            echo "matrix={'category': ${CATEGORIES}}" >> $GITHUB_OUTPUT
+            MATRIX_FULL="{'category': ${CATEGORIES}}"
+
+            # Validate matrix size
+            MATRIX_SIZE=$(echo "$MATRIX_FULL" | jq '.category | length')
+            echo "Native tests matrix size: $MATRIX_SIZE jobs (full build)"
+            if [ "$MATRIX_SIZE" -gt 20 ]; then
+              echo "ERROR: Native tests matrix size ($MATRIX_SIZE) exceeds maximum expected (20)"
+              echo "Matrix content: $MATRIX_FULL"
+              exit 1
+            fi
+
+            echo "matrix=$MATRIX_FULL" >> $GITHUB_OUTPUT
           fi
       - name: Setup Alternate JVM Matrix
         id: set-alternate-jvm-matrix
@@ -355,7 +376,9 @@ jobs:
 
             if [ "$MODULE_COUNT" -eq 0 ]; then
               # No modules affected - create empty matrix
-              echo "alternate-jvm-matrix={'include': []}" >> $GITHUB_OUTPUT
+              ALT_MATRIX="{'include': []}"
+              echo "Alternate JVM matrix: 0 jobs (no modules affected)"
+              echo "alternate-jvm-matrix=$ALT_MATRIX" >> $GITHUB_OUTPUT
             else
               # Split modules into 2 groups
               GROUP1_COUNT=$((MODULE_COUNT / 2))
@@ -368,10 +391,22 @@ jobs:
               GROUP2_MODULES=$(echo "$MODULES_JSON" | jq -r --argjson start "$GROUP1_COUNT" '.[$start:] | join(",")')
 
               if [ -n "$GROUP2_MODULES" ]; then
-                echo "alternate-jvm-matrix={'include': [{'name': 'group-01', 'modules': '${GROUP1_MODULES}'},{'name': 'group-02', 'modules': '${GROUP2_MODULES}'}]}" >> $GITHUB_OUTPUT
+                ALT_MATRIX="{'include': [{'name': 'group-01', 'modules': '${GROUP1_MODULES}'},{'name': 'group-02', 'modules': '${GROUP2_MODULES}'}]}"
+                echo "Alternate JVM matrix: 2 jobs"
               else
-                echo "alternate-jvm-matrix={'include': [{'name': 'group-01', 'modules': '${GROUP1_MODULES}'}]}" >> $GITHUB_OUTPUT
+                ALT_MATRIX="{'include': [{'name': 'group-01', 'modules': '${GROUP1_MODULES}'}]}"
+                echo "Alternate JVM matrix: 1 job"
               fi
+
+              # Validate matrix using jq
+              MATRIX_SIZE=$(echo "$ALT_MATRIX" | jq '.include | length')
+              if [ "$MATRIX_SIZE" -gt 5 ]; then
+                echo "ERROR: Alternate JVM matrix size ($MATRIX_SIZE) exceeds maximum expected (5)"
+                echo "Matrix content: $ALT_MATRIX"
+                exit 1
+              fi
+
+              echo "alternate-jvm-matrix=$ALT_MATRIX" >> $GITHUB_OUTPUT
             fi
           else
             # Full build - use all modules
@@ -382,7 +417,19 @@ jobs:
             GROUP2_COUNT=$((MODULE_COUNT - GROUP1_COUNT))
             GROUP1_MODULES=$(head -n $GROUP1_COUNT ${{ runner.temp }}/itest-modules.txt | tr '\n' ',' | sed 's/,$//')
             GROUP2_MODULES=$(tail -n $GROUP2_COUNT ${{ runner.temp }}/itest-modules.txt | tr '\n' ',' | sed 's/,$//')
-            echo "alternate-jvm-matrix={'include': [{'name': 'group-01', 'modules': '${GROUP1_MODULES}'},{'name': 'group-02', 'modules': '${GROUP2_MODULES}'}]}" >> $GITHUB_OUTPUT
+            ALT_MATRIX="{'include': [{'name': 'group-01', 'modules': '${GROUP1_MODULES}'},{'name': 'group-02', 'modules': '${GROUP2_MODULES}'}]}"
+
+            echo "Alternate JVM matrix: 2 jobs (full build)"
+
+            # Validate matrix using jq
+            MATRIX_SIZE=$(echo "$ALT_MATRIX" | jq '.include | length')
+            if [ "$MATRIX_SIZE" -gt 5 ]; then
+              echo "ERROR: Alternate JVM matrix size ($MATRIX_SIZE) exceeds maximum expected (5)"
+              echo "Matrix content: $ALT_MATRIX"
+              exit 1
+            fi
+
+            echo "alternate-jvm-matrix=$ALT_MATRIX" >> $GITHUB_OUTPUT
           fi
       - name: Check if JVM Tests Should Run
         id: check-jvm-tests
