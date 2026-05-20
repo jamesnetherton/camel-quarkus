@@ -661,6 +661,11 @@ jobs:
           cd extensions-core
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
+            -Dscalpel.enabled=true \
+            -Dscalpel.mode=trim \
+            -Dscalpel.alsoMake=true \
+            -Dscalpel.alsoMakeDependents=false \
+            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
             --fail-at-end \
             test
       - name: Report test failures
@@ -674,6 +679,11 @@ jobs:
           cd extensions
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
+            -Dscalpel.enabled=true \
+            -Dscalpel.mode=trim \
+            -Dscalpel.alsoMake=true \
+            -Dscalpel.alsoMakeDependents=false \
+            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
             --fail-at-end \
             test
       - name: Report test failures
@@ -687,6 +697,11 @@ jobs:
           cd test-framework
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
+            -Dscalpel.enabled=true \
+            -Dscalpel.mode=trim \
+            -Dscalpel.alsoMake=true \
+            -Dscalpel.alsoMakeDependents=false \
+            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
             --fail-at-end \
             test
       - name: Report test failures
@@ -700,6 +715,11 @@ jobs:
           cd tooling
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+            -Dscalpel.enabled=true \
+            -Dscalpel.mode=trim \
+            -Dscalpel.alsoMake=true \
+            -Dscalpel.alsoMakeDependents=false \
+            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
             --fail-at-end \
             verify
       - name: Report test failures
@@ -713,6 +733,11 @@ jobs:
           cd catalog
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+            -Dscalpel.enabled=true \
+            -Dscalpel.mode=trim \
+            -Dscalpel.alsoMake=true \
+            -Dscalpel.alsoMakeDependents=false \
+            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
             test
       - name: Report test failures
         uses: ./.github/actions/test-summary-report
