@@ -169,6 +169,12 @@ jobs:
       use-filtered-matrix: ${{ steps.filter-categories.outputs.use-filtered-matrix }}
       filtered-matrix: ${{ steps.filter-categories.outputs.filtered-matrix }}
       run-jvm-tests: ${{ steps.check-jvm-tests.outputs.run-jvm-tests }}
+      run-extensions-core-tests: ${{ steps.detect-functional-tests.outputs.run-extensions-core-tests }}
+      run-extensions-tests: ${{ steps.detect-functional-tests.outputs.run-extensions-tests }}
+      extensions-modules: ${{ steps.detect-functional-tests.outputs.extensions-modules }}
+      run-test-framework-tests: ${{ steps.detect-functional-tests.outputs.run-test-framework-tests }}
+      run-tooling-tests: ${{ steps.detect-functional-tests.outputs.run-tooling-tests }}
+      run-catalog-tests: ${{ steps.detect-functional-tests.outputs.run-catalog-tests }}
     env:
       MAVEN_OPTS: -Xmx4600m
     steps:
@@ -410,6 +416,71 @@ jobs:
             # Full build - always run JVM tests
             echo "run-jvm-tests=true" >> $GITHUB_OUTPUT
           fi
+      - name: Detect Functional Test Scope
+        id: detect-functional-tests
+        shell: bash
+        run: |
+          if [ "${{ steps.filter-categories.outputs.use-filtered-matrix }}" == "true" ]; then
+            # Incremental build - detect which functional test directories are affected
+            AFFECTED_PATHS=$(jq -r '.affectedModules[].path' target/scalpel-report.json)
+
+            # Initialize flags
+            RUN_EXTENSIONS_CORE=false
+            RUN_EXTENSIONS=false
+            RUN_TEST_FRAMEWORK=false
+            RUN_TOOLING=false
+            RUN_CATALOG=false
+            EXTENSIONS_MODULES=""
+
+            # Parse affected paths and categorize
+            while IFS= read -r PATH; do
+              if [[ "$PATH" == extensions-core/* ]]; then
+                RUN_EXTENSIONS_CORE=true
+              elif [[ "$PATH" == extensions-jvm/* ]]; then
+                RUN_EXTENSIONS=true
+                # Extract extension name: extensions-jvm/foo/... -> foo
+                EXT_NAME=$(echo "$PATH" | cut -d'/' -f2)
+                if [ -n "$EXT_NAME" ] && [[ ! "$EXTENSIONS_MODULES" =~ (^|,)"$EXT_NAME"(,|$) ]]; then
+                  EXTENSIONS_MODULES="${EXTENSIONS_MODULES:+$EXTENSIONS_MODULES,}$EXT_NAME"
+                fi
+              elif [[ "$PATH" == extensions/* ]]; then
+                RUN_EXTENSIONS=true
+                # Extract extension name: extensions/foo/... -> foo
+                EXT_NAME=$(echo "$PATH" | cut -d'/' -f2)
+                if [ -n "$EXT_NAME" ] && [[ ! "$EXTENSIONS_MODULES" =~ (^|,)"$EXT_NAME"(,|$) ]]; then
+                  EXTENSIONS_MODULES="${EXTENSIONS_MODULES:+$EXTENSIONS_MODULES,}$EXT_NAME"
+                fi
+              elif [[ "$PATH" == test-framework/* ]]; then
+                RUN_TEST_FRAMEWORK=true
+              elif [[ "$PATH" == tooling/* ]]; then
+                RUN_TOOLING=true
+              elif [[ "$PATH" == catalog/* ]]; then
+                RUN_CATALOG=true
+              fi
+            done <<< "$AFFECTED_PATHS"
+
+            echo "run-extensions-core-tests=$RUN_EXTENSIONS_CORE" >> $GITHUB_OUTPUT
+            echo "run-extensions-tests=$RUN_EXTENSIONS" >> $GITHUB_OUTPUT
+            echo "extensions-modules=$EXTENSIONS_MODULES" >> $GITHUB_OUTPUT
+            echo "run-test-framework-tests=$RUN_TEST_FRAMEWORK" >> $GITHUB_OUTPUT
+            echo "run-tooling-tests=$RUN_TOOLING" >> $GITHUB_OUTPUT
+            echo "run-catalog-tests=$RUN_CATALOG" >> $GITHUB_OUTPUT
+
+            echo "Functional test scope detection:"
+            echo "  extensions-core: $RUN_EXTENSIONS_CORE"
+            echo "  extensions: $RUN_EXTENSIONS (modules: ${EXTENSIONS_MODULES:-none})"
+            echo "  test-framework: $RUN_TEST_FRAMEWORK"
+            echo "  tooling: $RUN_TOOLING"
+            echo "  catalog: $RUN_CATALOG"
+          else
+            # Full build - run all functional tests
+            echo "run-extensions-core-tests=true" >> $GITHUB_OUTPUT
+            echo "run-extensions-tests=true" >> $GITHUB_OUTPUT
+            echo "extensions-modules=" >> $GITHUB_OUTPUT
+            echo "run-test-framework-tests=true" >> $GITHUB_OUTPUT
+            echo "run-tooling-tests=true" >> $GITHUB_OUTPUT
+            echo "run-catalog-tests=true" >> $GITHUB_OUTPUT
+          fi
       - name: Setup Examples Matrix
         id: set-examples-matrix
         run: |
@@ -554,6 +625,7 @@ jobs:
           rm -f ../maven-repo.tgz
           df -h /
       - name: cd extensions-core && mvn test
+        if: needs.initial-mvn-install.outputs.run-extensions-core-tests == 'true'
         run: |
           cd extensions-core
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
@@ -566,18 +638,31 @@ jobs:
         with:
           test-report-xml-base-dir: extensions-core
       - name: cd extensions && mvn test
+        if: needs.initial-mvn-install.outputs.run-extensions-tests == 'true'
         run: |
           cd extensions
-          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
-            --fail-at-end \
-            test
+          MODULES="${{ needs.initial-mvn-install.outputs.extensions-modules }}"
+          if [ -n "$MODULES" ]; then
+            echo "Running tests for specific extensions: $MODULES"
+            ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+              -pl "$MODULES" \
+              -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
+              --fail-at-end \
+              test
+          else
+            echo "Running tests for all extensions"
+            ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+              -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
+              --fail-at-end \
+              test
+          fi
       - name: Report test failures
         uses: ./.github/actions/test-summary-report
         if: ${{ failure() }}
         with:
           test-report-xml-base-dir: extensions
       - name: cd test-framework && mvn test
+        if: needs.initial-mvn-install.outputs.run-test-framework-tests == 'true'
         run: |
           cd test-framework
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
@@ -590,6 +675,7 @@ jobs:
         with:
           test-report-xml-base-dir: test-framework
       - name: cd tooling && mvn verify
+        if: needs.initial-mvn-install.outputs.run-tooling-tests == 'true'
         run: |
           cd tooling
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
@@ -602,6 +688,7 @@ jobs:
         with:
           test-report-xml-base-dir: tooling
       - name: cd catalog && mvn test
+        if: needs.initial-mvn-install.outputs.run-catalog-tests == 'true'
         run: |
           cd catalog
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
