@@ -301,16 +301,24 @@ jobs:
             MODULES_JSON=$(jq -c '.modules' target/filtered-matrix.json)
             MODULE_COUNT=$(echo "$MODULES_JSON" | jq 'length')
 
+            # Ensure clean integer (remove any whitespace)
+            MODULE_COUNT=$(echo "$MODULE_COUNT" | tr -d '[:space:]')
+
             echo "Affected modules ($MODULE_COUNT): $MODULES_JSON"
 
             # Distribute modules across up to 13 balanced groups
             MAX_GROUPS=13
-            if [ "$MODULE_COUNT" -le "$MAX_GROUPS" ]; then
+            echo "DEBUG: MODULE_COUNT=$MODULE_COUNT, MAX_GROUPS=$MAX_GROUPS"
+
+            # Use arithmetic comparison for reliable integer comparison
+            if (( MODULE_COUNT <= MAX_GROUPS )); then
               # Each module gets its own group
               GROUPS=$MODULE_COUNT
+              echo "DEBUG: Using MODULE_COUNT as GROUPS ($GROUPS)"
             else
               # Cap at 13 groups
               GROUPS=$MAX_GROUPS
+              echo "DEBUG: Capping GROUPS at MAX_GROUPS ($GROUPS)"
             fi
 
             echo "Distributing across $GROUPS parallel jobs"
