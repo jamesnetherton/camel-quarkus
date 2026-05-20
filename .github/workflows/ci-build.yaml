@@ -163,6 +163,7 @@ jobs:
       alternate-jvm-matrix: ${{ steps.set-alternate-jvm-matrix.outputs.alternate-jvm-matrix }}
       use-filtered-matrix: ${{ steps.filter-categories.outputs.use-filtered-matrix }}
       filtered-matrix: ${{ steps.filter-categories.outputs.filtered-matrix }}
+      run-jvm-tests: ${{ steps.check-jvm-tests.outputs.run-jvm-tests }}
     env:
       MAVEN_OPTS: -Xmx4600m
     steps:
@@ -373,6 +374,37 @@ jobs:
             GROUP2_MODULES=$(tail -n $GROUP2_COUNT ${{ runner.temp }}/itest-modules.txt | tr '\n' ',' | sed 's/,$//')
             echo "alternate-jvm-matrix={'include': [{'name': 'group-01', 'modules': '${GROUP1_MODULES}'},{'name': 'group-02', 'modules': '${GROUP2_MODULES}'}]}" >> $GITHUB_OUTPUT
           fi
+      - name: Check if JVM Tests Should Run
+        id: check-jvm-tests
+        shell: bash
+        run: |
+          if [ "${{ steps.filter-categories.outputs.use-filtered-matrix }}" == "true" ]; then
+            # Incremental build - check if any JVM-only integration tests are affected
+            cd integration-tests-jvm
+            JVM_MODULES=$(mvn help:evaluate -Dexpression=project.modules -N -q -DforceStdout | sed -e 's/<[^>]*>//g' -e 's/^[[:space:]]*//' -e '/^$/d')
+
+            # Get affected modules from filtered matrix
+            AFFECTED_MODULES=$(echo '${{ steps.filter-categories.outputs.filtered-matrix }}' | jq -r '.modules[]')
+
+            # Check if any affected module is in JVM modules
+            SHOULD_RUN=false
+            for MODULE in $AFFECTED_MODULES; do
+              if echo "$JVM_MODULES" | grep -q "^${MODULE}$"; then
+                SHOULD_RUN=true
+                break
+              fi
+            done
+
+            echo "run-jvm-tests=$SHOULD_RUN" >> $GITHUB_OUTPUT
+            if [ "$SHOULD_RUN" == "true" ]; then
+              echo "JVM-only integration tests will run (affected modules found)"
+            else
+              echo "JVM-only integration tests will be skipped (no JVM-only modules affected)"
+            fi
+          else
+            # Full build - always run JVM tests
+            echo "run-jvm-tests=true" >> $GITHUB_OUTPUT
+          fi
       - name: Setup Examples Matrix
         id: set-examples-matrix
         run: |
@@ -579,6 +611,7 @@ jobs:
   integration-tests-jvm:
     runs-on: ubuntu-latest
     needs: initial-mvn-install
+    if: needs.initial-mvn-install.outputs.run-jvm-tests == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -608,32 +641,7 @@ jobs:
           tar -xzf ../maven-repo.tgz -C ~
           rm -f ../maven-repo.tgz
           df -h /
-      - name: Check if integration-tests-jvm affected
-        id: check-jvm-tests
-        shell: bash
-        run: |
-          if [ "${{ needs.initial-mvn-install.outputs.use-filtered-matrix }}" == "true" ]; then
-            # Check if any JVM-only integration tests are affected
-            cd integration-tests-jvm
-            JVM_MODULES=$(mvn help:evaluate -Dexpression=project.modules -N -q -DforceStdout | sed -e 's/<[^>]*>//g' -e 's/^[[:space:]]*//' -e '/^$/d')
-
-            # Get affected modules from filtered matrix
-            AFFECTED_MODULES=$(echo '${{ needs.initial-mvn-install.outputs.filtered-matrix }}' | jq -r '.modules[]')
-
-            # Check if any affected module is in JVM modules
-            SHOULD_RUN=false
-            for MODULE in $AFFECTED_MODULES; do
-              if echo "$JVM_MODULES" | grep -q "^${MODULE}$"; then
-                SHOULD_RUN=true
-                break
-              fi
-            done
-            echo "should-run=$SHOULD_RUN" >> $GITHUB_OUTPUT
-          else
-            echo "should-run=true" >> $GITHUB_OUTPUT
-          fi
       - name: cd integration-tests-jvm && mvn clean test
-        if: steps.check-jvm-tests.outputs.should-run == 'true'
         run: |
           cd integration-tests-jvm
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
