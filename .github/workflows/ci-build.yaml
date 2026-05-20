@@ -434,14 +434,16 @@ jobs:
               elif [[ "$PATH" == extensions-jvm/* ]]; then
                 RUN_EXTENSIONS=true
                 # Extract extension name: extensions-jvm/foo/... -> foo
-                EXT_NAME=$(echo "$PATH" | cut -d'/' -f2)
+                TEMP="${PATH#extensions-jvm/}"
+                EXT_NAME="${TEMP%%/*}"
                 if [ -n "$EXT_NAME" ] && [[ ! "$EXTENSIONS_MODULES" =~ (^|,)"$EXT_NAME"(,|$) ]]; then
                   EXTENSIONS_MODULES="${EXTENSIONS_MODULES:+$EXTENSIONS_MODULES,}$EXT_NAME"
                 fi
               elif [[ "$PATH" == extensions/* ]]; then
                 RUN_EXTENSIONS=true
                 # Extract extension name: extensions/foo/... -> foo
-                EXT_NAME=$(echo "$PATH" | cut -d'/' -f2)
+                TEMP="${PATH#extensions/}"
+                EXT_NAME="${TEMP%%/*}"
                 if [ -n "$EXT_NAME" ] && [[ ! "$EXTENSIONS_MODULES" =~ (^|,)"$EXT_NAME"(,|$) ]]; then
                   EXTENSIONS_MODULES="${EXTENSIONS_MODULES:+$EXTENSIONS_MODULES,}$EXT_NAME"
                 fi
