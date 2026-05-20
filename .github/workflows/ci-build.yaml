@@ -417,7 +417,12 @@ jobs:
         run: |
           if [ "${{ steps.filter-categories.outputs.use-filtered-matrix }}" == "true" ]; then
             # Incremental build - detect which functional test directories are affected
-            AFFECTED_PATHS=$(jq -r '.affectedModules[].path' target/scalpel-report.json)
+            # Use directlyAffectedModules to avoid testing upstream dependencies
+            # (e.g., if box changes, don't test extensions-core that box depends on)
+            AFFECTED_PATHS=$(jq -r '.directlyAffectedModules[].path' target/scalpel-report.json)
+
+            echo "Debug: Directly affected paths:"
+            echo "$AFFECTED_PATHS"
 
             # Initialize flags
             RUN_EXTENSIONS_CORE=false
