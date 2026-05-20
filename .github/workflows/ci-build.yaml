@@ -354,8 +354,8 @@ jobs:
             CATEGORIES=$(yq -M -N -I 0 -o=json e 'keys' tooling/scripts/test-categories.yaml | tr '"' "'")
             MATRIX_FULL="{'category': ${CATEGORIES}}"
 
-            # Validate matrix size
-            MATRIX_SIZE=$(echo "$MATRIX_FULL" | jq '.category | length')
+            # Validate matrix size (convert single quotes to double quotes for jq)
+            MATRIX_SIZE=$(echo "$MATRIX_FULL" | sed "s/'/\"/g" | jq '.category | length')
             echo "Native tests matrix size: $MATRIX_SIZE jobs (full build)"
             if [ "$MATRIX_SIZE" -gt 20 ]; then
               echo "ERROR: Native tests matrix size ($MATRIX_SIZE) exceeds maximum expected (20)"
@@ -398,8 +398,8 @@ jobs:
                 echo "Alternate JVM matrix: 1 job"
               fi
 
-              # Validate matrix using jq
-              MATRIX_SIZE=$(echo "$ALT_MATRIX" | jq '.include | length')
+              # Validate matrix size (convert single quotes to double quotes for jq)
+              MATRIX_SIZE=$(echo "$ALT_MATRIX" | sed "s/'/\"/g" | jq '.include | length')
               if [ "$MATRIX_SIZE" -gt 5 ]; then
                 echo "ERROR: Alternate JVM matrix size ($MATRIX_SIZE) exceeds maximum expected (5)"
                 echo "Matrix content: $ALT_MATRIX"
@@ -421,8 +421,8 @@ jobs:
 
             echo "Alternate JVM matrix: 2 jobs (full build)"
 
-            # Validate matrix using jq
-            MATRIX_SIZE=$(echo "$ALT_MATRIX" | jq '.include | length')
+            # Validate matrix size (convert single quotes to double quotes for jq)
+            MATRIX_SIZE=$(echo "$ALT_MATRIX" | sed "s/'/\"/g" | jq '.include | length')
             if [ "$MATRIX_SIZE" -gt 5 ]; then
               echo "ERROR: Alternate JVM matrix size ($MATRIX_SIZE) exceeds maximum expected (5)"
               echo "Matrix content: $ALT_MATRIX"
