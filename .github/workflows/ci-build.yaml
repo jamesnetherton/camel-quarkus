@@ -220,7 +220,7 @@ jobs:
           ./mvnw validate -Dquickly \
             -Dscalpel.enabled=true \
             -Dscalpel.mode=report \
-            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml,.github/workflows/ci-build.yaml" \
+            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
             -Dscalpel.excludePaths="**.adoc,**.md,docs/**,Jenkinsfile*,LICENSE.txt,NOTICE.txt,KEYS,camel-quarkus-sbom/**,.github/*.sh" \
             ${CQ_MAVEN_ARGS}
 
@@ -673,7 +673,7 @@ jobs:
             -Dscalpel.mode=trim \
             -Dscalpel.alsoMake=true \
             -Dscalpel.alsoMakeDependents=false \
-            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml,.github/workflows/ci-build.yaml" \
+            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
             --fail-at-end \
             test
       - name: Report test failures
@@ -691,7 +691,7 @@ jobs:
             -Dscalpel.mode=trim \
             -Dscalpel.alsoMake=true \
             -Dscalpel.alsoMakeDependents=false \
-            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml,.github/workflows/ci-build.yaml" \
+            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
             --fail-at-end \
             test
       - name: Report test failures
@@ -709,7 +709,7 @@ jobs:
             -Dscalpel.mode=trim \
             -Dscalpel.alsoMake=true \
             -Dscalpel.alsoMakeDependents=false \
-            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml,.github/workflows/ci-build.yaml" \
+            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
             --fail-at-end \
             test
       - name: Report test failures
@@ -727,7 +727,7 @@ jobs:
             -Dscalpel.mode=trim \
             -Dscalpel.alsoMake=true \
             -Dscalpel.alsoMakeDependents=false \
-            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml,.github/workflows/ci-build.yaml" \
+            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
             --fail-at-end \
             verify
       - name: Report test failures
@@ -745,7 +745,7 @@ jobs:
             -Dscalpel.mode=trim \
             -Dscalpel.alsoMake=true \
             -Dscalpel.alsoMakeDependents=false \
-            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml,.github/workflows/ci-build.yaml" \
+            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
             test
       - name: Report test failures
         uses: ./.github/actions/test-summary-report
@@ -795,7 +795,7 @@ jobs:
             -Dscalpel.mode=trim \
             -Dscalpel.alsoMake=true \
             -Dscalpel.alsoMakeDependents=false \
-            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml,.github/workflows/ci-build.yaml" \
+            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
             --fail-at-end \
             clean test
       - name: Report test failures
@@ -852,7 +852,7 @@ jobs:
               -Dscalpel.mode=trim \
               -Dscalpel.alsoMake=true \
               -Dscalpel.alsoMakeDependents=false \
-              -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml,.github/workflows/ci-build.yaml" \
+              -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
               --fail-at-end \
               clean verify
           else
@@ -921,7 +921,7 @@ jobs:
               -Dscalpel.mode=trim \
               -Dscalpel.alsoMake=true \
               -Dscalpel.alsoMakeDependents=false \
-              -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml,.github/workflows/ci-build.yaml" \
+              -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
               --fail-at-end \
               clean verify
           else
