@@ -796,6 +796,7 @@ jobs:
             -Dscalpel.alsoMake=true \
             -Dscalpel.alsoMakeDependents=false \
             -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
+            -Dscalpel.excludePaths="**.adoc,**.md,docs/**,Jenkinsfile*,LICENSE.txt,NOTICE.txt,KEYS,camel-quarkus-sbom/**,.github/*.sh" \
             --fail-at-end \
             clean test
       - name: Report test failures
@@ -853,6 +854,7 @@ jobs:
               -Dscalpel.alsoMake=true \
               -Dscalpel.alsoMakeDependents=false \
               -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
+              -Dscalpel.excludePaths="**.adoc,**.md,docs/**,Jenkinsfile*,LICENSE.txt,NOTICE.txt,KEYS,camel-quarkus-sbom/**,.github/*.sh" \
               --fail-at-end \
               clean verify
           else
@@ -922,6 +924,7 @@ jobs:
               -Dscalpel.alsoMake=true \
               -Dscalpel.alsoMakeDependents=false \
               -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
+              -Dscalpel.excludePaths="**.adoc,**.md,docs/**,Jenkinsfile*,LICENSE.txt,NOTICE.txt,KEYS,camel-quarkus-sbom/**,.github/*.sh" \
               --fail-at-end \
               clean verify
           else
