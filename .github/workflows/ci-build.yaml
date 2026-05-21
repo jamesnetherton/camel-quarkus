@@ -793,15 +793,9 @@ jobs:
           df -h /
       - name: cd integration-tests-jvm && mvn clean test
         run: |
-          ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            -f integration-tests-jvm/pom.xml \
+          cd integration-tests-jvm
+          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-            -Dscalpel.enabled=true \
-            -Dscalpel.mode=trim \
-            -Dscalpel.alsoMake=true \
-            -Dscalpel.alsoMakeDependents=false \
-            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
-            -Dscalpel.excludePaths="**.adoc,**.md,docs/**,Jenkinsfile*,LICENSE.txt,NOTICE.txt,KEYS,camel-quarkus-sbom/**,.github/*.sh" \
             --fail-at-end \
             clean test
       - name: Report test failures
@@ -848,24 +842,20 @@ jobs:
       - name: cd integration-tests && mvn clean verify
         shell: bash
         run: |
+          cd integration-tests
           if [ "${{ needs.initial-mvn-install.outputs.use-filtered-matrix }}" == "true" ]; then
-            # Incremental build - use Scalpel trim mode
-            echo "Running incremental build with Scalpel trim mode"
-            ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-              -f integration-tests/pom.xml \
+            # Incremental build - use affected modules from filtered matrix
+            AFFECTED_MODULES=$(echo '${{ needs.initial-mvn-install.outputs.filtered-matrix }}' | jq -r '.modules | join(",")')
+            echo "Running incremental build with affected modules: $AFFECTED_MODULES"
+            ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+              -pl "$AFFECTED_MODULES" \
+              -am \
               -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-              -Dscalpel.enabled=true \
-              -Dscalpel.mode=trim \
-              -Dscalpel.alsoMake=true \
-              -Dscalpel.alsoMakeDependents=false \
-              -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
-              -Dscalpel.excludePaths="**.adoc,**.md,docs/**,Jenkinsfile*,LICENSE.txt,NOTICE.txt,KEYS,camel-quarkus-sbom/**,.github/*.sh" \
               --fail-at-end \
               clean verify
           else
             # Full build - use module list from matrix
             echo "Running full build with module list: ${{ matrix.modules }}"
-            cd integration-tests
             ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
               -pl "${{ matrix.modules }}" \
               -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
@@ -918,24 +908,20 @@ jobs:
           TMP: D:\\temp
           MAVEN_REPO_LOCAL: D:\\maven-repo\.m2\repository
         run: |
+          cd integration-tests
           if [ "${{ needs.initial-mvn-install.outputs.use-filtered-matrix }}" == "true" ]; then
-            # Incremental build - use Scalpel trim mode
-            echo "Running incremental build with Scalpel trim mode"
-            ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} -Dmaven.repo.local='${{ env.MAVEN_REPO_LOCAL }}' \
-              -f integration-tests/pom.xml \
+            # Incremental build - use affected modules from filtered matrix
+            AFFECTED_MODULES=$(echo '${{ needs.initial-mvn-install.outputs.filtered-matrix }}' | jq -r '.modules | join(",")')
+            echo "Running incremental build with affected modules: $AFFECTED_MODULES"
+            ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} -Dmaven.repo.local='${{ env.MAVEN_REPO_LOCAL }}' \
+              -pl "$AFFECTED_MODULES" \
+              -am \
               -Dskip-testcontainers-tests -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-              -Dscalpel.enabled=true \
-              -Dscalpel.mode=trim \
-              -Dscalpel.alsoMake=true \
-              -Dscalpel.alsoMakeDependents=false \
-              -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
-              -Dscalpel.excludePaths="**.adoc,**.md,docs/**,Jenkinsfile*,LICENSE.txt,NOTICE.txt,KEYS,camel-quarkus-sbom/**,.github/*.sh" \
               --fail-at-end \
               clean verify
           else
             # Full build - run all modules
             echo "Running full build - all modules"
-            cd integration-tests
             ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} -Dmaven.repo.local='${{ env.MAVEN_REPO_LOCAL }}' \
               -Dskip-testcontainers-tests -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
               --fail-at-end \
