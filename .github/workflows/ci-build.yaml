@@ -793,8 +793,8 @@ jobs:
           df -h /
       - name: cd integration-tests-jvm && mvn clean test
         run: |
-          cd integration-tests-jvm
-          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+          ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+            -f integration-tests-jvm/pom.xml \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
             -Dscalpel.enabled=true \
             -Dscalpel.mode=trim \
@@ -848,11 +848,11 @@ jobs:
       - name: cd integration-tests && mvn clean verify
         shell: bash
         run: |
-          cd integration-tests
           if [ "${{ needs.initial-mvn-install.outputs.use-filtered-matrix }}" == "true" ]; then
             # Incremental build - use Scalpel trim mode
             echo "Running incremental build with Scalpel trim mode"
-            ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+            ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+              -f integration-tests/pom.xml \
               -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
               -Dscalpel.enabled=true \
               -Dscalpel.mode=trim \
@@ -865,6 +865,7 @@ jobs:
           else
             # Full build - use module list from matrix
             echo "Running full build with module list: ${{ matrix.modules }}"
+            cd integration-tests
             ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
               -pl "${{ matrix.modules }}" \
               -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
@@ -917,12 +918,11 @@ jobs:
           TMP: D:\\temp
           MAVEN_REPO_LOCAL: D:\\maven-repo\.m2\repository
         run: |
-          cd integration-tests
-
           if [ "${{ needs.initial-mvn-install.outputs.use-filtered-matrix }}" == "true" ]; then
             # Incremental build - use Scalpel trim mode
             echo "Running incremental build with Scalpel trim mode"
-            ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} -Dmaven.repo.local='${{ env.MAVEN_REPO_LOCAL }}' \
+            ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} -Dmaven.repo.local='${{ env.MAVEN_REPO_LOCAL }}' \
+              -f integration-tests/pom.xml \
               -Dskip-testcontainers-tests -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
               -Dscalpel.enabled=true \
               -Dscalpel.mode=trim \
@@ -935,6 +935,7 @@ jobs:
           else
             # Full build - run all modules
             echo "Running full build - all modules"
+            cd integration-tests
             ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} -Dmaven.repo.local='${{ env.MAVEN_REPO_LOCAL }}' \
               -Dskip-testcontainers-tests -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
               --fail-at-end \
