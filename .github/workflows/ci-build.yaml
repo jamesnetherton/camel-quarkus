@@ -1011,7 +1011,8 @@ jobs:
                   for AFFECTED in $AFFECTED_MODULES; do
                     # Convert module name to artifact ID (e.g., "box" -> "camel-quarkus-box")
                     ARTIFACT_ID="camel-quarkus-${AFFECTED}"
-                    if grep -q "$ARTIFACT_ID" target/deps.txt; then
+                    # Use word boundary matching to avoid partial matches (e.g., box matching dropbox)
+                    if grep -qw "$ARTIFACT_ID" target/deps.txt; then
                       echo "  → Depends on affected extension: $ARTIFACT_ID"
                       SHOULD_BUILD=true
                       break
