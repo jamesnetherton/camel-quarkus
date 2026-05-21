@@ -14,10 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- * Camel routes for Kafka integration test.
- * This is a test change for incremental build testing.
- */
 package org.apache.camel.quarkus.component.kafka;
 
 import java.util.List;

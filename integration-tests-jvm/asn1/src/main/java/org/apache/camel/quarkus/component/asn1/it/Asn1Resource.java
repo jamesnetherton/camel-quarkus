@@ -14,10 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- * JAX-RS resource for ASN.1 integration test (JVM-only).
- * This is a test change for incremental build testing.
- */
 package org.apache.camel.quarkus.component.asn1.it;
 
 import jakarta.enterprise.context.ApplicationScoped;
