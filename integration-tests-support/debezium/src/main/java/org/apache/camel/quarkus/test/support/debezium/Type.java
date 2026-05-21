@@ -20,6 +20,8 @@ package org.apache.camel.quarkus.test.support.debezium;
  * Each supported debezium connector has to have its own Type.
  * Types are used to return type specific names of system properties, which will be used for sharing container
  * properties.
+ *
+ * This is a test change for incremental build testing.
  */
 public enum Type {
 
