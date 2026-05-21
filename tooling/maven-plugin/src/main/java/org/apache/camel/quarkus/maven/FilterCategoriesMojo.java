@@ -136,17 +136,55 @@ public class FilterCategoriesMojo extends AbstractMojo {
     private Set<String> extractAffectedTests(List<Map<String, Object>> affectedModules) {
         Set<String> affectedTests = new LinkedHashSet<>();
 
+        // First pass: Check if any extensions or extensions-jvm were directly changed
+        boolean extensionChanged = false;
+        for (Map<String, Object> module : affectedModules) {
+            String category = (String) module.get("category");
+            String path = (String) module.get("path");
+
+            if ("DIRECT".equals(category) && path != null) {
+                if (path.startsWith("extensions/") ||
+                    path.startsWith("extensions-jvm/") ||
+                    path.startsWith("extensions-core/")) {
+                    extensionChanged = true;
+                    getLog().info("Extension change detected: " + path);
+                    break;
+                }
+            }
+        }
+
+        // Second pass: Include integration tests based on category and source of change
         for (Map<String, Object> module : affectedModules) {
             String path = (String) module.get("path");
+            String category = (String) module.get("category");
+
             if (path != null && path.startsWith("integration-tests/")) {
-                // Extract test name: integration-tests/box -> box
-                String testName = path.substring("integration-tests/".length());
-                // Remove any trailing path components (e.g., integration-tests/box/submodule -> box)
-                if (testName.contains("/")) {
-                    testName = testName.substring(0, testName.indexOf("/"));
+                boolean shouldInclude = false;
+
+                // Always include DIRECT changes to integration tests
+                if ("DIRECT".equals(category)) {
+                    shouldInclude = true;
+                    getLog().info("Including test (direct change): " + path);
                 }
-                affectedTests.add(testName);
-                getLog().debug("Affected test: " + testName);
+                // Include DOWNSTREAM if an extension was changed
+                else if ("DOWNSTREAM".equals(category) && extensionChanged) {
+                    shouldInclude = true;
+                    getLog().debug("Including test (downstream from extension): " + path);
+                }
+                // Otherwise skip (e.g., downstream from test-framework changes)
+                else {
+                    getLog().debug("Skipping test (downstream from infrastructure): " + path);
+                }
+
+                if (shouldInclude) {
+                    // Extract test name: integration-tests/box -> box
+                    String testName = path.substring("integration-tests/".length());
+                    // Remove any trailing path components
+                    if (testName.contains("/")) {
+                        testName = testName.substring(0, testName.indexOf("/"));
+                    }
+                    affectedTests.add(testName);
+                }
             }
         }
 
