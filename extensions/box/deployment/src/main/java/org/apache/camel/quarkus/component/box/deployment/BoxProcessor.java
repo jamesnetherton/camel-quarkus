@@ -14,6 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/**
+ * Build-time configuration for the Box extension.
+ * This is a test change for incremental build testing.
+ */
 package org.apache.camel.quarkus.component.box.deployment;
 
 import com.box.sdk.BoxAPIRequest;
