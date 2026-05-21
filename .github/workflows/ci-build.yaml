@@ -216,7 +216,7 @@ jobs:
           ./mvnw -N cq:update-quarkus-metadata ${CQ_MAVEN_ARGS}
       - name: mvn clean install -DskipTests
         run: |
-          eval ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} clean install -DskipTests -Dquarkus.build.skip -Pformat
+          eval ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} clean install -DskipTests -Dquarkus.build.skip -Pformat -T1C
       - name: Scalpel Analysis
         id: scalpel-analysis
         if: steps.detect-incremental.outputs.incremental-build == 'true'
