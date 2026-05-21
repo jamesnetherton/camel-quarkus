@@ -14,10 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- * Test framework callback for after-each test execution.
- * This is a test change for incremental build testing.
- */
 package org.apache.camel.quarkus.test;
 
 import io.quarkus.test.junit.callback.QuarkusTestAfterEachCallback;
