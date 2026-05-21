@@ -281,7 +281,11 @@ jobs:
       - name: Tar Maven Repo
         shell: bash
         run: |
-          tar -czf ${{ runner.temp }}/maven-repo.tgz -C ~ .m2/repository
+          # Exclude integration test artifacts - they're not dependencies for other modules
+          tar -czf ${{ runner.temp }}/maven-repo.tgz -C ~ \
+            --exclude='.m2/repository/org/apache/camel/quarkus/camel-quarkus-integration-test-*' \
+            --exclude='.m2/repository/org/apache/camel/quarkus/camel-quarkus-integration-tests-*' \
+            .m2/repository
           ls -lh ${{ runner.temp }}/maven-repo.tgz
           df -h /
       - name: Persist Maven Repo
