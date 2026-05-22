@@ -164,6 +164,7 @@ jobs:
       use-filtered-matrix: ${{ steps.filter-categories.outputs.use-filtered-matrix }}
       filtered-matrix: ${{ steps.filter-categories.outputs.filtered-matrix }}
       run-jvm-tests: ${{ steps.check-jvm-tests.outputs.run-jvm-tests }}
+      jvm-modules: ${{ steps.check-jvm-tests.outputs.jvm-modules }}
       run-extensions-core-tests: ${{ steps.detect-functional-tests.outputs.run-extensions-core-tests }}
       run-extensions-tests: ${{ steps.detect-functional-tests.outputs.run-extensions-tests }}
       run-test-framework-tests: ${{ steps.detect-functional-tests.outputs.run-test-framework-tests }}
@@ -455,24 +456,28 @@ jobs:
           if [ "${{ steps.filter-categories.outputs.use-filtered-matrix }}" == "true" ]; then
             # Incremental build - check Scalpel report for affected integration-tests-jvm modules
             if [ -f target/scalpel-report.json ]; then
-              # Check if any module path starts with integration-tests-jvm/
-              JVM_AFFECTED=$(cat target/scalpel-report.json | jq -r '.affectedModules[] | select(.path | startswith("integration-tests-jvm/")) | .path' | head -1)
+              # Extract affected integration-tests-jvm modules and convert to comma-separated list
+              JVM_MODULES=$(cat target/scalpel-report.json | jq -r '.affectedModules[] | select(.path | startswith("integration-tests-jvm/")) | .path' | sed 's|integration-tests-jvm/||' | tr '\n' ',' | sed 's/,$//')
 
-              if [ -n "$JVM_AFFECTED" ]; then
+              if [ -n "$JVM_MODULES" ]; then
                 echo "run-jvm-tests=true" >> $GITHUB_OUTPUT
-                echo "JVM-only integration tests will run (affected modules: $JVM_AFFECTED)"
+                echo "jvm-modules=$JVM_MODULES" >> $GITHUB_OUTPUT
+                echo "JVM-only integration tests will run for modules: $JVM_MODULES"
               else
                 echo "run-jvm-tests=false" >> $GITHUB_OUTPUT
+                echo "jvm-modules=" >> $GITHUB_OUTPUT
                 echo "JVM-only integration tests will be skipped (no JVM-only modules affected)"
               fi
             else
               # No Scalpel report - run JVM tests for safety
               echo "run-jvm-tests=true" >> $GITHUB_OUTPUT
+              echo "jvm-modules=" >> $GITHUB_OUTPUT
               echo "JVM-only integration tests will run (no Scalpel report found)"
             fi
           else
-            # Full build - always run JVM tests
+            # Full build - always run JVM tests (all modules)
             echo "run-jvm-tests=true" >> $GITHUB_OUTPUT
+            echo "jvm-modules=" >> $GITHUB_OUTPUT
           fi
       - name: Detect Functional Test Scope
         id: detect-functional-tests
@@ -799,33 +804,20 @@ jobs:
         run: |
           cd integration-tests-jvm
 
-          # For incremental builds, extract affected JVM modules from Scalpel report
-          if [ "${{ needs.initial-mvn-install.outputs.use-filtered-matrix }}" == "true" ]; then
-            if [ -f ../target/scalpel-report.json ]; then
-              # Extract affected integration-tests-jvm modules
-              AFFECTED=$(cat ../target/scalpel-report.json | jq -r '.affectedModules[] | select(.path | startswith("integration-tests-jvm/")) | .path' | sed 's|integration-tests-jvm/||' | tr '\n' ',' | sed 's/,$//')
+          JVM_MODULES="${{ needs.initial-mvn-install.outputs.jvm-modules }}"
 
-              if [ -n "$AFFECTED" ]; then
-                echo "Running incremental JVM tests for: $AFFECTED"
-                ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-                  -pl "$AFFECTED" \
-                  -am \
-                  -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-                  --fail-at-end \
-                  clean test
-              else
-                echo "No JVM tests to run"
-              fi
-            else
-              echo "No Scalpel report found - running all JVM tests"
-              ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-                -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-                --fail-at-end \
-                clean test
-            fi
+          # For incremental builds with specific modules
+          if [ -n "$JVM_MODULES" ]; then
+            echo "Running incremental JVM tests for: $JVM_MODULES"
+            ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+              -pl "$JVM_MODULES" \
+              -am \
+              -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+              --fail-at-end \
+              clean test
           else
             # Full build - run all JVM tests
-            echo "Running all JVM tests (full build)"
+            echo "Running all JVM tests"
             ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
               -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
               --fail-at-end \
