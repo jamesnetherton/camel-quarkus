@@ -798,10 +798,39 @@ jobs:
       - name: cd integration-tests-jvm && mvn clean test
         run: |
           cd integration-tests-jvm
-          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-            --fail-at-end \
-            clean test
+
+          # For incremental builds, extract affected JVM modules from Scalpel report
+          if [ "${{ needs.initial-mvn-install.outputs.use-filtered-matrix }}" == "true" ]; then
+            if [ -f ../target/scalpel-report.json ]; then
+              # Extract affected integration-tests-jvm modules
+              AFFECTED=$(cat ../target/scalpel-report.json | jq -r '.affectedModules[] | select(.path | startswith("integration-tests-jvm/")) | .path' | sed 's|integration-tests-jvm/||' | tr '\n' ',' | sed 's/,$//')
+
+              if [ -n "$AFFECTED" ]; then
+                echo "Running incremental JVM tests for: $AFFECTED"
+                ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+                  -pl "$AFFECTED" \
+                  -am \
+                  -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+                  --fail-at-end \
+                  clean test
+              else
+                echo "No JVM tests to run"
+              fi
+            else
+              echo "No Scalpel report found - running all JVM tests"
+              ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+                -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+                --fail-at-end \
+                clean test
+            fi
+          else
+            # Full build - run all JVM tests
+            echo "Running all JVM tests (full build)"
+            ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+              -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+              --fail-at-end \
+              clean test
+          fi
       - name: Report test failures
         uses: ./.github/actions/test-summary-report
         if: ${{ failure() }}
