@@ -154,6 +154,14 @@ public class IncrementalBuildMojo extends AbstractMojo {
     String jvmTestsPrefix;
 
     /**
+     * Prefix for grouped integration tests.
+     * Path structure: integration-test-groups/&lt;group&gt;/&lt;module&gt;/
+     * Default: integration-test-groups/
+     */
+    @Parameter(property = "cq.integrationTestGroupsPrefix", defaultValue = "integration-test-groups/")
+    String integrationTestGroupsPrefix;
+
+    /**
      * Comma-separated list of directory prefixes for functional test scope detection.
      * Format: prefix:scopeName
      * Default: extensions-core/:runExtensionsCoreTests,extensions/:runExtensionsTests,test-framework/:runTestFrameworkTests,tooling/:runToolingTests,catalog/:runCatalogTests
@@ -318,6 +326,21 @@ public class IncrementalBuildMojo extends AbstractMojo {
             String path = (String) module.get("path");
             String category = (String) module.get("category");
 
+            // Handle integration-test-groups: integration-test-groups/<group>/... -> <group>-grouped
+            if (path != null && path.startsWith(integrationTestGroupsPrefix)) {
+                // Extract group name from: integration-test-groups/<group>/...
+                String remainder = path.substring(integrationTestGroupsPrefix.length());
+                String[] parts = remainder.split("/");
+                if (parts.length >= 1) {
+                    String groupName = parts[0]; // Get the group name
+                    String groupedModuleName = groupName + "-grouped";
+                    affectedTests.add(groupedModuleName);
+                    getLog().debug("Including grouped test from integration-test-groups: " + groupedModuleName + " (path: " + path + ")");
+                }
+                continue;
+            }
+
+            // Handle regular integration-tests
             if (path != null && path.startsWith(nativeTestsPrefix)) {
                 boolean shouldInclude = false;
 
