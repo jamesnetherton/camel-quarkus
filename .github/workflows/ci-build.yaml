@@ -246,6 +246,12 @@ jobs:
         continue-on-error: true
         run: |
           # Run unified incremental build analysis
+          # Configuration parameters (using defaults, can be overridden if project structure changes):
+          #   -Dcq.extensionDirs="extensions/,extensions-jvm/,extensions-core/"
+          #   -Dcq.integrationTestDirs="integration-tests/,integration-tests-jvm/"
+          #   -Dcq.nativeTestsPrefix="integration-tests/"
+          #   -Dcq.jvmTestsPrefix="integration-tests-jvm/"
+          #   -Dcq.functionalScopeDirs="extensions-core/:runExtensionsCoreTests,extensions/:runExtensionsTests,test-framework/:runTestFrameworkTests,tooling/:runToolingTests,catalog/:runCatalogTests"
           ./mvnw org.apache.camel.quarkus:camel-quarkus-maven-plugin:3.36.0-SNAPSHOT:incremental-build \
             -Dcq.action=analyze \
             -Dcq.useIncrementalBuild=true \
