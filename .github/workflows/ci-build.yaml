@@ -163,18 +163,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: pre-build-checks
     outputs:
-      matrix: ${{ fromJson(steps.incremental-build.outputs.data || '{"incrementalBuild":false}').incrementalBuild && fromJson(steps.incremental-build.outputs.data).nativeTestMatrix || steps.set-native-matrix-full.outputs.matrix }}
+      matrix: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.native-matrix || steps.set-native-matrix-full.outputs.matrix }}
       examples-matrix: ${{ steps.set-examples-matrix.outputs.examples-matrix }}
-      alternate-jvm-matrix: ${{ fromJson(steps.incremental-build.outputs.data || '{"incrementalBuild":false}').incrementalBuild && fromJson(steps.incremental-build.outputs.data).alternateJvmMatrix || steps.set-alternate-jvm-matrix-full.outputs.alternate-jvm-matrix }}
-      use-filtered-matrix: ${{ fromJson(steps.incremental-build.outputs.data || '{"incrementalBuild":false}').incrementalBuild || false }}
+      alternate-jvm-matrix: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.alternate-jvm-matrix || steps.set-alternate-jvm-matrix-full.outputs.alternate-jvm-matrix }}
+      use-filtered-matrix: ${{ steps.process-incremental.outputs.use-incremental == 'true' }}
       filtered-matrix: ${{ steps.incremental-build.outputs.filtered-matrix }}
-      run-jvm-tests: ${{ fromJson(steps.incremental-build.outputs.data || '{"jvmOnlyTests":{"runJvmTests":true}}').jvmOnlyTests.runJvmTests }}
-      jvm-modules: ${{ fromJson(steps.incremental-build.outputs.data || '{"jvmOnlyTests":{"jvmModules":""}}').jvmOnlyTests.jvmModules }}
-      run-extensions-core-tests: ${{ fromJson(steps.incremental-build.outputs.data || '{"functionalTestScope":{"runExtensionsCoreTests":true}}').functionalTestScope.runExtensionsCoreTests }}
-      run-extensions-tests: ${{ fromJson(steps.incremental-build.outputs.data || '{"functionalTestScope":{"runExtensionsTests":true}}').functionalTestScope.runExtensionsTests }}
-      run-test-framework-tests: ${{ fromJson(steps.incremental-build.outputs.data || '{"functionalTestScope":{"runTestFrameworkTests":true}}').functionalTestScope.runTestFrameworkTests }}
-      run-tooling-tests: ${{ fromJson(steps.incremental-build.outputs.data || '{"functionalTestScope":{"runToolingTests":true}}').functionalTestScope.runToolingTests }}
-      run-catalog-tests: ${{ fromJson(steps.incremental-build.outputs.data || '{"functionalTestScope":{"runCatalogTests":true}}').functionalTestScope.runCatalogTests }}
+      run-jvm-tests: ${{ steps.process-incremental.outputs.run-jvm-tests || 'true' }}
+      jvm-modules: ${{ steps.process-incremental.outputs.jvm-modules || '' }}
+      run-extensions-core-tests: ${{ steps.process-incremental.outputs.run-extensions-core-tests || 'true' }}
+      run-extensions-tests: ${{ steps.process-incremental.outputs.run-extensions-tests || 'true' }}
+      run-test-framework-tests: ${{ steps.process-incremental.outputs.run-test-framework-tests || 'true' }}
+      run-tooling-tests: ${{ steps.process-incremental.outputs.run-tooling-tests || 'true' }}
+      run-catalog-tests: ${{ steps.process-incremental.outputs.run-catalog-tests || 'true' }}
     env:
       MAVEN_OPTS: -Xmx4600m
       SCALPEL_ENABLED: "-Dscalpel.enabled=true"
@@ -266,16 +266,38 @@ jobs:
             # Output empty JSON structure for fallback
             echo "data={\"incrementalBuild\":false}" >> $GITHUB_OUTPUT
           fi
-      - name: Check Incremental Build Status
-        if: steps.detect-incremental.outputs.incremental-build == 'true'
+      - name: Process Incremental Build Data
+        id: process-incremental
         run: |
-          if [ "${{ steps.scalpel-analysis.outcome }}" == "failure" ] || \
-             [ "${{ steps.incremental-build.outcome }}" == "failure" ]; then
-            echo "Incremental build analysis failed - will run full build"
-          elif [ "${{ fromJson(steps.incremental-build.outputs.data || '{\"incrementalBuild\":false}').incrementalBuild }}" == "true" ]; then
-            echo "Incremental build will be used"
+          # Parse JSON and set individual outputs to avoid complex expressions in job outputs
+          if [ -f target/incremental-build.json ]; then
+            DATA=$(cat target/incremental-build.json)
+
+            # Check if incremental build is enabled
+            INCREMENTAL=$(echo "$DATA" | jq -r '.incrementalBuild // false')
+            echo "use-incremental=$INCREMENTAL" >> $GITHUB_OUTPUT
+
+            if [ "$INCREMENTAL" == "true" ]; then
+              # Extract matrices
+              echo "native-matrix=$(echo "$DATA" | jq -c '.nativeTestMatrix')" >> $GITHUB_OUTPUT
+              echo "alternate-jvm-matrix=$(echo "$DATA" | jq -c '.alternateJvmMatrix')" >> $GITHUB_OUTPUT
+
+              # Extract flags
+              echo "run-jvm-tests=$(echo "$DATA" | jq -r '.jvmOnlyTests.runJvmTests')" >> $GITHUB_OUTPUT
+              echo "jvm-modules=$(echo "$DATA" | jq -r '.jvmOnlyTests.jvmModules')" >> $GITHUB_OUTPUT
+              echo "run-extensions-core-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runExtensionsCoreTests')" >> $GITHUB_OUTPUT
+              echo "run-extensions-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runExtensionsTests')" >> $GITHUB_OUTPUT
+              echo "run-test-framework-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runTestFrameworkTests')" >> $GITHUB_OUTPUT
+              echo "run-tooling-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runToolingTests')" >> $GITHUB_OUTPUT
+              echo "run-catalog-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runCatalogTests')" >> $GITHUB_OUTPUT
+
+              echo "Incremental build will be used"
+            else
+              echo "Full build will be used"
+            fi
           else
-            echo "Full build will be used"
+            echo "use-incremental=false" >> $GITHUB_OUTPUT
+            echo "Full build will be used (no data file)"
           fi
       - name: Sync Maven properties
         run: |
@@ -314,7 +336,7 @@ jobs:
           retention-days: 1
       - name: Setup Native Test Matrix (Full Build)
         id: set-native-matrix-full
-        if: fromJson(steps.incremental-build.outputs.data || '{"incrementalBuild":false}').incrementalBuild != true
+        if: steps.process-incremental.outputs.use-incremental != 'true'
         run: |
           echo "Using all test categories (full build)"
           CATEGORIES=$(yq -M -N -I 0 -o=json e 'keys' tooling/scripts/test-categories.yaml | tr '"' "'")
@@ -332,7 +354,7 @@ jobs:
           echo "matrix=$MATRIX_FULL" >> $GITHUB_OUTPUT
       - name: Setup Alternate JVM Matrix (Full Build)
         id: set-alternate-jvm-matrix-full
-        if: fromJson(steps.incremental-build.outputs.data || '{"incrementalBuild":false}').incrementalBuild != true
+        if: steps.process-incremental.outputs.use-incremental != 'true'
         shell: bash
         run: |
           # Full build - use all modules
