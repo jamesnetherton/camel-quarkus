@@ -287,14 +287,14 @@ jobs:
         shell: bash
         run: |
           # Exclude integration test artifacts - they're not dependencies for other modules
-          # Keep integration-tests-support - those ARE dependencies
+          # Keep *-support modules - those ARE dependencies
           cd ~/.m2/repository/org/apache/camel/quarkus
 
           # Build exclude list for integration test modules (but not support modules)
           EXCLUDE_ARGS=""
           for dir in camel-quarkus-integration-test-* camel-quarkus-integration-tests-*; do
-            # Skip if it's a support module
-            if [[ ! "$dir" =~ integration-tests-support ]]; then
+            # Skip if it's a support module (ends with -support or contains -support-)
+            if [[ ! "$dir" =~ -support($|-) ]]; then
               EXCLUDE_ARGS="$EXCLUDE_ARGS --exclude=.m2/repository/org/apache/camel/quarkus/$dir"
             fi
           done
