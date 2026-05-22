@@ -144,8 +144,8 @@ public class FilterCategoriesMojo extends AbstractMojo {
 
             if ("DIRECT".equals(category) && path != null) {
                 if (path.startsWith("extensions/") ||
-                    path.startsWith("extensions-jvm/") ||
-                    path.startsWith("extensions-core/")) {
+                        path.startsWith("extensions-jvm/") ||
+                        path.startsWith("extensions-core/")) {
                     extensionChanged = true;
                     getLog().info("Extension change detected: " + path);
                     break;

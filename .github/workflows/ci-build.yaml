@@ -163,20 +163,23 @@ jobs:
     runs-on: ubuntu-latest
     needs: pre-build-checks
     outputs:
-      matrix: ${{ steps.set-native-matrix.outputs.matrix }}
+      matrix: ${{ steps.incremental-build.outputs.use-filtered-matrix == 'true' && steps.incremental-build.outputs.matrix || steps.set-native-matrix-full.outputs.matrix }}
       examples-matrix: ${{ steps.set-examples-matrix.outputs.examples-matrix }}
-      alternate-jvm-matrix: ${{ steps.set-alternate-jvm-matrix.outputs.alternate-jvm-matrix }}
-      use-filtered-matrix: ${{ steps.filter-categories.outputs.use-filtered-matrix }}
-      filtered-matrix: ${{ steps.filter-categories.outputs.filtered-matrix }}
-      run-jvm-tests: ${{ steps.check-jvm-tests.outputs.run-jvm-tests }}
-      jvm-modules: ${{ steps.check-jvm-tests.outputs.jvm-modules }}
-      run-extensions-core-tests: ${{ steps.detect-functional-tests.outputs.run-extensions-core-tests }}
-      run-extensions-tests: ${{ steps.detect-functional-tests.outputs.run-extensions-tests }}
-      run-test-framework-tests: ${{ steps.detect-functional-tests.outputs.run-test-framework-tests }}
-      run-tooling-tests: ${{ steps.detect-functional-tests.outputs.run-tooling-tests }}
-      run-catalog-tests: ${{ steps.detect-functional-tests.outputs.run-catalog-tests }}
+      alternate-jvm-matrix: ${{ steps.incremental-build.outputs.use-filtered-matrix == 'true' && steps.incremental-build.outputs.alternate-jvm-matrix || steps.set-alternate-jvm-matrix-full.outputs.alternate-jvm-matrix }}
+      use-filtered-matrix: ${{ steps.incremental-build.outputs.use-filtered-matrix || 'false' }}
+      filtered-matrix: ${{ steps.incremental-build.outputs.filtered-matrix }}
+      run-jvm-tests: ${{ steps.incremental-build.outputs.run-jvm-tests || 'true' }}
+      jvm-modules: ${{ steps.incremental-build.outputs.jvm-modules || '' }}
+      run-extensions-core-tests: ${{ steps.incremental-build.outputs.run-extensions-core-tests || 'true' }}
+      run-extensions-tests: ${{ steps.incremental-build.outputs.run-extensions-tests || 'true' }}
+      run-test-framework-tests: ${{ steps.incremental-build.outputs.run-test-framework-tests || 'true' }}
+      run-tooling-tests: ${{ steps.incremental-build.outputs.run-tooling-tests || 'true' }}
+      run-catalog-tests: ${{ steps.incremental-build.outputs.run-catalog-tests || 'true' }}
     env:
       MAVEN_OPTS: -Xmx4600m
+      SCALPEL_ENABLED: "-Dscalpel.enabled=true"
+      SCALPEL_FULL_BUILD_TRIGGERS: "-Dscalpel.fullBuildTriggers=poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml"
+      SCALPEL_EXCLUDE_PATHS: "-Dscalpel.excludePaths=**.adoc,**.md,docs/**,Jenkinsfile*,LICENSE.txt,NOTICE.txt,KEYS,camel-quarkus-sbom/**,.github/*.sh"
     steps:
       - name: Check free space on disk
         run: |
@@ -224,10 +227,10 @@ jobs:
         continue-on-error: true
         run: |
           ./mvnw validate -Dquickly \
-            -Dscalpel.enabled=true \
+            ${SCALPEL_ENABLED} \
             -Dscalpel.mode=report \
-            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
-            -Dscalpel.excludePaths="**.adoc,**.md,docs/**,Jenkinsfile*,LICENSE.txt,NOTICE.txt,KEYS,camel-quarkus-sbom/**,.github/*.sh" \
+            ${SCALPEL_FULL_BUILD_TRIGGERS} \
+            ${SCALPEL_EXCLUDE_PATHS} \
             ${CQ_MAVEN_ARGS}
 
           if [ -f target/scalpel-report.json ]; then
@@ -237,40 +240,64 @@ jobs:
             echo "Scalpel report not found"
             exit 1
           fi
-      - name: Filter Test Categories
-        id: filter-categories
+      - name: Incremental Build Analysis
+        id: incremental-build
         if: steps.detect-incremental.outputs.incremental-build == 'true'
         continue-on-error: true
         run: |
-          ./mvnw org.apache.camel.quarkus:camel-quarkus-maven-plugin:3.36.0-SNAPSHOT:filter-test-categories -N ${CQ_MAVEN_ARGS}
+          # Run unified incremental build analysis
+          ./mvnw org.apache.camel.quarkus:camel-quarkus-maven-plugin:3.36.0-SNAPSHOT:incremental-build \
+            -Dcq.action=analyze \
+            -Dcq.useIncrementalBuild=true \
+            -N ${CQ_MAVEN_ARGS}
 
-          if [ -f target/filtered-matrix.json ]; then
-            FULL_BUILD=$(jq -r '.fullBuild' target/filtered-matrix.json)
+          if [ -f target/incremental-build.json ]; then
+            echo "Incremental build analysis complete"
+            cat target/incremental-build.json
 
-            echo "Filtered matrix generated:"
-            cat target/filtered-matrix.json
+            # Parse comprehensive JSON and set all outputs
+            BUILD_DATA=$(cat target/incremental-build.json)
 
-            if [ "$FULL_BUILD" == "true" ]; then
-              echo "Full build required"
-              echo "use-filtered-matrix=false" >> $GITHUB_OUTPUT
-            else
-              echo "Incremental build enabled"
-              # Compact JSON to single line for GitHub Actions output
-              FILTERED_COMPACT=$(jq -c '.' target/filtered-matrix.json)
-              echo "use-filtered-matrix=true" >> $GITHUB_OUTPUT
-              echo "filtered-matrix=${FILTERED_COMPACT}" >> $GITHUB_OUTPUT
-            fi
+            # Core incremental build flags
+            USE_INCREMENTAL=$(echo "$BUILD_DATA" | jq -r '.incrementalBuild')
+            echo "use-filtered-matrix=$USE_INCREMENTAL" >> $GITHUB_OUTPUT
+
+            # Affected modules for examples filtering
+            AFFECTED_MODULES=$(echo "$BUILD_DATA" | jq -c '.affectedModules')
+            FILTERED_MATRIX=$(echo "$BUILD_DATA" | jq -c '{modules: .affectedModules, fullBuild: false, totalModules: .affectedModulesCount}')
+            echo "filtered-matrix=$FILTERED_MATRIX" >> $GITHUB_OUTPUT
+
+            # Native test matrix
+            NATIVE_MATRIX=$(echo "$BUILD_DATA" | jq -c '.nativeTestMatrix')
+            echo "matrix=$NATIVE_MATRIX" >> $GITHUB_OUTPUT
+
+            # Alternate JVM matrix
+            ALT_JVM_MATRIX=$(echo "$BUILD_DATA" | jq -c '.alternateJvmMatrix')
+            echo "alternate-jvm-matrix=$ALT_JVM_MATRIX" >> $GITHUB_OUTPUT
+
+            # Functional test scope flags
+            echo "run-extensions-core-tests=$(echo "$BUILD_DATA" | jq -r '.functionalTestScope.runExtensionsCoreTests')" >> $GITHUB_OUTPUT
+            echo "run-extensions-tests=$(echo "$BUILD_DATA" | jq -r '.functionalTestScope.runExtensionsTests')" >> $GITHUB_OUTPUT
+            echo "run-test-framework-tests=$(echo "$BUILD_DATA" | jq -r '.functionalTestScope.runTestFrameworkTests')" >> $GITHUB_OUTPUT
+            echo "run-tooling-tests=$(echo "$BUILD_DATA" | jq -r '.functionalTestScope.runToolingTests')" >> $GITHUB_OUTPUT
+            echo "run-catalog-tests=$(echo "$BUILD_DATA" | jq -r '.functionalTestScope.runCatalogTests')" >> $GITHUB_OUTPUT
+
+            # JVM-only tests
+            echo "run-jvm-tests=$(echo "$BUILD_DATA" | jq -r '.jvmOnlyTests.runJvmTests')" >> $GITHUB_OUTPUT
+            echo "jvm-modules=$(echo "$BUILD_DATA" | jq -r '.jvmOnlyTests.jvmModules')" >> $GITHUB_OUTPUT
+
+            echo "Incremental build enabled: $USE_INCREMENTAL"
           else
-            echo "Filtered matrix not found - falling back to full build"
+            echo "Incremental build analysis failed - falling back to full build"
             echo "use-filtered-matrix=false" >> $GITHUB_OUTPUT
           fi
       - name: Check Incremental Build Status
         if: steps.detect-incremental.outputs.incremental-build == 'true'
         run: |
           if [ "${{ steps.scalpel-analysis.outcome }}" == "failure" ] || \
-             [ "${{ steps.filter-categories.outcome }}" == "failure" ]; then
+             [ "${{ steps.incremental-build.outcome }}" == "failure" ]; then
             echo "Incremental build analysis failed - will run full build"
-          elif [ "${{ steps.filter-categories.outputs.use-filtered-matrix }}" == "true" ]; then
+          elif [ "${{ steps.incremental-build.outputs.use-filtered-matrix }}" == "true" ]; then
             echo "Incremental build will be used"
           else
             echo "Full build will be used"
@@ -310,235 +337,50 @@ jobs:
           name: maven-repo
           path: ${{ runner.temp }}/maven-repo.tgz
           retention-days: 1
-      - name: Setup Native Test Matrix
-        id: set-native-matrix
+      - name: Setup Native Test Matrix (Full Build)
+        id: set-native-matrix-full
+        if: steps.incremental-build.outputs.use-filtered-matrix != 'true'
         run: |
-          # Check if we should use incremental build
-          if [ "${{ steps.filter-categories.outputs.use-filtered-matrix }}" == "true" ]; then
-            echo "Using incremental build with dynamic matrix"
+          echo "Using all test categories (full build)"
+          CATEGORIES=$(yq -M -N -I 0 -o=json e 'keys' tooling/scripts/test-categories.yaml | tr '"' "'")
+          MATRIX_FULL="{'category': ${CATEGORIES}}"
 
-            # Read affected modules from filter output
-            MODULES_JSON=$(jq -c '.modules' target/filtered-matrix.json)
-            MODULE_COUNT=$(echo "$MODULES_JSON" | jq 'length')
-
-            # Ensure clean integer (remove any whitespace)
-            MODULE_COUNT=$(echo "$MODULE_COUNT" | tr -d '[:space:]')
-
-            echo "Affected modules ($MODULE_COUNT): $MODULES_JSON"
-
-            # Distribute modules across up to 13 balanced groups
-            MAX_GROUPS=13
-            echo "DEBUG: MODULE_COUNT=$MODULE_COUNT, MAX_GROUPS=$MAX_GROUPS"
-
-            # Use arithmetic comparison for reliable integer comparison
-            if (( MODULE_COUNT <= MAX_GROUPS )); then
-              # Each module gets its own group
-              GROUPS=$MODULE_COUNT
-              echo "DEBUG: Using MODULE_COUNT as GROUPS ($GROUPS)"
-            else
-              # Cap at 13 groups
-              GROUPS=$MAX_GROUPS
-              echo "DEBUG: Capping GROUPS at MAX_GROUPS ($GROUPS)"
-            fi
-
-            echo "Distributing across $GROUPS parallel jobs"
-
-            # Build matrix using jq to distribute modules evenly
-            MATRIX=$(echo "$MODULES_JSON" | jq -c --argjson groups "$GROUPS" '
-              # Calculate modules per group (ceiling division)
-              (length / $groups | ceil) as $per_group |
-              # Store the modules array
-              . as $modules |
-              # Group modules into chunks
-              [range($groups)] | map({
-                name: ("group-" + (. + 1 | tostring)),
-                modules: ($per_group * . as $start | $per_group * (. + 1) as $end |
-                          [$modules[$start:$end][]] | join(","))
-              }) |
-              # Filter out empty groups
-              map(select(.modules != "")) |
-              {include: .}
-            ')
-
-            echo "Dynamic matrix: $MATRIX"
-
-            # Validate matrix size
-            MATRIX_SIZE=$(echo "$MATRIX" | jq '.include | length')
-            echo "Native tests matrix size: $MATRIX_SIZE jobs"
-            if [ "$MATRIX_SIZE" -gt 20 ]; then
-              echo "ERROR: Native tests matrix size ($MATRIX_SIZE) exceeds maximum expected (20)"
-              echo "Matrix content: $MATRIX"
-              exit 1
-            fi
-
-            echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
-          else
-            echo "Using all test categories (full build)"
-            CATEGORIES=$(yq -M -N -I 0 -o=json e 'keys' tooling/scripts/test-categories.yaml | tr '"' "'")
-            MATRIX_FULL="{'category': ${CATEGORIES}}"
-
-            # Validate matrix size (convert single quotes to double quotes for jq)
-            MATRIX_SIZE=$(echo "$MATRIX_FULL" | sed "s/'/\"/g" | jq '.category | length')
-            echo "Native tests matrix size: $MATRIX_SIZE jobs (full build)"
-            if [ "$MATRIX_SIZE" -gt 20 ]; then
-              echo "ERROR: Native tests matrix size ($MATRIX_SIZE) exceeds maximum expected (20)"
-              echo "Matrix content: $MATRIX_FULL"
-              exit 1
-            fi
-
-            echo "matrix=$MATRIX_FULL" >> $GITHUB_OUTPUT
+          # Validate matrix size (convert single quotes to double quotes for jq)
+          MATRIX_SIZE=$(echo "$MATRIX_FULL" | sed "s/'/\"/g" | jq '.category | length')
+          echo "Native tests matrix size: $MATRIX_SIZE jobs (full build)"
+          if [ "$MATRIX_SIZE" -gt 20 ]; then
+            echo "ERROR: Native tests matrix size ($MATRIX_SIZE) exceeds maximum expected (20)"
+            echo "Matrix content: $MATRIX_FULL"
+            exit 1
           fi
-      - name: Setup Alternate JVM Matrix
-        id: set-alternate-jvm-matrix
+
+          echo "matrix=$MATRIX_FULL" >> $GITHUB_OUTPUT
+      - name: Setup Alternate JVM Matrix (Full Build)
+        id: set-alternate-jvm-matrix-full
+        if: steps.incremental-build.outputs.use-filtered-matrix != 'true'
         shell: bash
         run: |
-          if [ "${{ steps.filter-categories.outputs.use-filtered-matrix }}" == "true" ]; then
-            # Incremental build - use filtered modules
-            MODULES_JSON=$(jq -c '.modules' target/filtered-matrix.json)
-            MODULE_COUNT=$(echo "$MODULES_JSON" | jq 'length')
+          # Full build - use all modules
+          cd integration-tests
+          mvn help:evaluate -Dexpression=project.modules -N -q -DforceStdout | sed -e 's/<[^>]*>//g' -e 's/^[[:space:]]*//' -e '/^$/d' > ${{ runner.temp }}/itest-modules.txt
+          MODULE_COUNT=$(wc -l < ${{ runner.temp }}/itest-modules.txt)
+          GROUP1_COUNT=$((MODULE_COUNT / 2))
+          GROUP2_COUNT=$((MODULE_COUNT - GROUP1_COUNT))
+          GROUP1_MODULES=$(head -n $GROUP1_COUNT ${{ runner.temp }}/itest-modules.txt | tr '\n' ',' | sed 's/,$//')
+          GROUP2_MODULES=$(tail -n $GROUP2_COUNT ${{ runner.temp }}/itest-modules.txt | tr '\n' ',' | sed 's/,$//')
+          ALT_MATRIX="{'include': [{'name': 'group-01', 'modules': '${GROUP1_MODULES}'},{'name': 'group-02', 'modules': '${GROUP2_MODULES}'}]}"
 
-            if [ "$MODULE_COUNT" -eq 0 ]; then
-              # No modules affected - create empty matrix
-              ALT_MATRIX="{'include': []}"
-              echo "Alternate JVM matrix: 0 jobs (no modules affected)"
-              echo "alternate-jvm-matrix=$ALT_MATRIX" >> $GITHUB_OUTPUT
-            else
-              # Split modules into 2 groups
-              GROUP1_COUNT=$((MODULE_COUNT / 2))
-              if [ "$GROUP1_COUNT" -eq 0 ]; then
-                GROUP1_COUNT=1
-              fi
-              GROUP2_COUNT=$((MODULE_COUNT - GROUP1_COUNT))
+          echo "Alternate JVM matrix: 2 jobs (full build)"
 
-              GROUP1_MODULES=$(echo "$MODULES_JSON" | jq -r --argjson count "$GROUP1_COUNT" '.[:$count] | join(",")')
-              GROUP2_MODULES=$(echo "$MODULES_JSON" | jq -r --argjson start "$GROUP1_COUNT" '.[$start:] | join(",")')
-
-              if [ -n "$GROUP2_MODULES" ]; then
-                ALT_MATRIX="{'include': [{'name': 'group-01', 'modules': '${GROUP1_MODULES}'},{'name': 'group-02', 'modules': '${GROUP2_MODULES}'}]}"
-                echo "Alternate JVM matrix: 2 jobs"
-              else
-                ALT_MATRIX="{'include': [{'name': 'group-01', 'modules': '${GROUP1_MODULES}'}]}"
-                echo "Alternate JVM matrix: 1 job"
-              fi
-
-              # Validate matrix size (convert single quotes to double quotes for jq)
-              MATRIX_SIZE=$(echo "$ALT_MATRIX" | sed "s/'/\"/g" | jq '.include | length')
-              if [ "$MATRIX_SIZE" -gt 5 ]; then
-                echo "ERROR: Alternate JVM matrix size ($MATRIX_SIZE) exceeds maximum expected (5)"
-                echo "Matrix content: $ALT_MATRIX"
-                exit 1
-              fi
-
-              echo "alternate-jvm-matrix=$ALT_MATRIX" >> $GITHUB_OUTPUT
-            fi
-          else
-            # Full build - use all modules
-            cd integration-tests
-            mvn help:evaluate -Dexpression=project.modules -N -q -DforceStdout | sed -e 's/<[^>]*>//g' -e 's/^[[:space:]]*//' -e '/^$/d' > ${{ runner.temp }}/itest-modules.txt
-            MODULE_COUNT=$(wc -l < ${{ runner.temp }}/itest-modules.txt)
-            GROUP1_COUNT=$((MODULE_COUNT / 2))
-            GROUP2_COUNT=$((MODULE_COUNT - GROUP1_COUNT))
-            GROUP1_MODULES=$(head -n $GROUP1_COUNT ${{ runner.temp }}/itest-modules.txt | tr '\n' ',' | sed 's/,$//')
-            GROUP2_MODULES=$(tail -n $GROUP2_COUNT ${{ runner.temp }}/itest-modules.txt | tr '\n' ',' | sed 's/,$//')
-            ALT_MATRIX="{'include': [{'name': 'group-01', 'modules': '${GROUP1_MODULES}'},{'name': 'group-02', 'modules': '${GROUP2_MODULES}'}]}"
-
-            echo "Alternate JVM matrix: 2 jobs (full build)"
-
-            # Validate matrix size (convert single quotes to double quotes for jq)
-            MATRIX_SIZE=$(echo "$ALT_MATRIX" | sed "s/'/\"/g" | jq '.include | length')
-            if [ "$MATRIX_SIZE" -gt 5 ]; then
-              echo "ERROR: Alternate JVM matrix size ($MATRIX_SIZE) exceeds maximum expected (5)"
-              echo "Matrix content: $ALT_MATRIX"
-              exit 1
-            fi
-
-            echo "alternate-jvm-matrix=$ALT_MATRIX" >> $GITHUB_OUTPUT
+          # Validate matrix size (convert single quotes to double quotes for jq)
+          MATRIX_SIZE=$(echo "$ALT_MATRIX" | sed "s/'/\"/g" | jq '.include | length')
+          if [ "$MATRIX_SIZE" -gt 5 ]; then
+            echo "ERROR: Alternate JVM matrix size ($MATRIX_SIZE) exceeds maximum expected (5)"
+            echo "Matrix content: $ALT_MATRIX"
+            exit 1
           fi
-      - name: Check if JVM Tests Should Run
-        id: check-jvm-tests
-        shell: bash
-        run: |
-          if [ "${{ steps.filter-categories.outputs.use-filtered-matrix }}" == "true" ]; then
-            # Incremental build - check Scalpel report for affected integration-tests-jvm modules
-            if [ -f target/scalpel-report.json ]; then
-              # Extract affected integration-tests-jvm modules and convert to comma-separated list
-              JVM_MODULES=$(cat target/scalpel-report.json | jq -r '.affectedModules[] | select(.path | startswith("integration-tests-jvm/")) | .path' | sed 's|integration-tests-jvm/||' | tr '\n' ',' | sed 's/,$//')
 
-              if [ -n "$JVM_MODULES" ]; then
-                echo "run-jvm-tests=true" >> $GITHUB_OUTPUT
-                echo "jvm-modules=$JVM_MODULES" >> $GITHUB_OUTPUT
-                echo "JVM-only integration tests will run for modules: $JVM_MODULES"
-              else
-                echo "run-jvm-tests=false" >> $GITHUB_OUTPUT
-                echo "jvm-modules=" >> $GITHUB_OUTPUT
-                echo "JVM-only integration tests will be skipped (no JVM-only modules affected)"
-              fi
-            else
-              # No Scalpel report - run JVM tests for safety
-              echo "run-jvm-tests=true" >> $GITHUB_OUTPUT
-              echo "jvm-modules=" >> $GITHUB_OUTPUT
-              echo "JVM-only integration tests will run (no Scalpel report found)"
-            fi
-          else
-            # Full build - always run JVM tests (all modules)
-            echo "run-jvm-tests=true" >> $GITHUB_OUTPUT
-            echo "jvm-modules=" >> $GITHUB_OUTPUT
-          fi
-      - name: Detect Functional Test Scope
-        id: detect-functional-tests
-        shell: bash
-        run: |
-          if [ "${{ steps.filter-categories.outputs.use-filtered-matrix }}" == "true" ]; then
-            # Incremental build - detect which functional test directories are affected
-            # Filter to category="DIRECT" to avoid testing upstream dependencies
-            # (e.g., if box changes, don't test extensions-core that box depends on)
-            AFFECTED_PATHS=$(jq -r '.affectedModules[] | select(.category == "DIRECT") | .path' target/scalpel-report.json)
-
-            echo "Debug: Directly affected paths (category=DIRECT):"
-            echo "$AFFECTED_PATHS"
-
-            # Initialize flags
-            RUN_EXTENSIONS_CORE=false
-            RUN_EXTENSIONS=false
-            RUN_TEST_FRAMEWORK=false
-            RUN_TOOLING=false
-            RUN_CATALOG=false
-
-            # Parse affected paths and categorize
-            while IFS= read -r PATH; do
-              if [[ "$PATH" == extensions-core/* ]]; then
-                RUN_EXTENSIONS_CORE=true
-              elif [[ "$PATH" == extensions-jvm/* ]] || [[ "$PATH" == extensions/* ]]; then
-                RUN_EXTENSIONS=true
-              elif [[ "$PATH" == test-framework/* ]]; then
-                RUN_TEST_FRAMEWORK=true
-              elif [[ "$PATH" == tooling/* ]]; then
-                RUN_TOOLING=true
-              elif [[ "$PATH" == catalog/* ]]; then
-                RUN_CATALOG=true
-              fi
-            done <<< "$AFFECTED_PATHS"
-
-            echo "run-extensions-core-tests=$RUN_EXTENSIONS_CORE" >> $GITHUB_OUTPUT
-            echo "run-extensions-tests=$RUN_EXTENSIONS" >> $GITHUB_OUTPUT
-            echo "run-test-framework-tests=$RUN_TEST_FRAMEWORK" >> $GITHUB_OUTPUT
-            echo "run-tooling-tests=$RUN_TOOLING" >> $GITHUB_OUTPUT
-            echo "run-catalog-tests=$RUN_CATALOG" >> $GITHUB_OUTPUT
-
-            echo "Functional test scope detection:"
-            echo "  extensions-core: $RUN_EXTENSIONS_CORE"
-            echo "  extensions: $RUN_EXTENSIONS"
-            echo "  test-framework: $RUN_TEST_FRAMEWORK"
-            echo "  tooling: $RUN_TOOLING"
-            echo "  catalog: $RUN_CATALOG"
-          else
-            # Full build - run all functional tests
-            echo "run-extensions-core-tests=true" >> $GITHUB_OUTPUT
-            echo "run-extensions-tests=true" >> $GITHUB_OUTPUT
-            echo "run-test-framework-tests=true" >> $GITHUB_OUTPUT
-            echo "run-tooling-tests=true" >> $GITHUB_OUTPUT
-            echo "run-catalog-tests=true" >> $GITHUB_OUTPUT
-          fi
+          echo "alternate-jvm-matrix=$ALT_MATRIX" >> $GITHUB_OUTPUT
       - name: Setup Examples Matrix
         id: set-examples-matrix
         run: |
@@ -659,6 +501,10 @@ jobs:
     if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
     env:
       MAVEN_OPTS: -Xmx3000m
+      SCALPEL_ENABLED: "-Dscalpel.enabled=true"
+      SCALPEL_FULL_BUILD_TRIGGERS: "-Dscalpel.fullBuildTriggers=poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml"
+      SCALPEL_ALSO_MAKE: "-Dscalpel.alsoMake=true"
+      SCALPEL_ALSO_MAKE_DEPENDENTS: "-Dscalpel.alsoMakeDependents=false"
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -688,11 +534,11 @@ jobs:
           cd extensions-core
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
-            -Dscalpel.enabled=true \
+            ${SCALPEL_ENABLED} \
             -Dscalpel.mode=trim \
-            -Dscalpel.alsoMake=true \
-            -Dscalpel.alsoMakeDependents=false \
-            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
+            ${SCALPEL_ALSO_MAKE} \
+            ${SCALPEL_ALSO_MAKE_DEPENDENTS} \
+            ${SCALPEL_FULL_BUILD_TRIGGERS} \
             --fail-at-end \
             test
       - name: Report test failures
@@ -706,11 +552,11 @@ jobs:
           cd extensions
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
-            -Dscalpel.enabled=true \
+            ${SCALPEL_ENABLED} \
             -Dscalpel.mode=trim \
-            -Dscalpel.alsoMake=true \
-            -Dscalpel.alsoMakeDependents=false \
-            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
+            ${SCALPEL_ALSO_MAKE} \
+            ${SCALPEL_ALSO_MAKE_DEPENDENTS} \
+            ${SCALPEL_FULL_BUILD_TRIGGERS} \
             --fail-at-end \
             test
       - name: Report test failures
@@ -724,11 +570,11 @@ jobs:
           cd test-framework
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
-              -Dscalpel.enabled=true \
-              -Dscalpel.mode=trim \
-              -Dscalpel.alsoMake=true \
-              -Dscalpel.alsoMakeDependents=false \
-              -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
+            ${SCALPEL_ENABLED} \
+            -Dscalpel.mode=trim \
+            ${SCALPEL_ALSO_MAKE} \
+            ${SCALPEL_ALSO_MAKE_DEPENDENTS} \
+            ${SCALPEL_FULL_BUILD_TRIGGERS} \
             --fail-at-end \
             test
       - name: Report test failures
@@ -742,11 +588,11 @@ jobs:
           cd tooling
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-            -Dscalpel.enabled=true \
+            ${SCALPEL_ENABLED} \
             -Dscalpel.mode=trim \
-            -Dscalpel.alsoMake=true \
-            -Dscalpel.alsoMakeDependents=false \
-            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
+            ${SCALPEL_ALSO_MAKE} \
+            ${SCALPEL_ALSO_MAKE_DEPENDENTS} \
+            ${SCALPEL_FULL_BUILD_TRIGGERS} \
             --fail-at-end \
             verify
       - name: Report test failures
@@ -760,11 +606,11 @@ jobs:
           cd catalog
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-            -Dscalpel.enabled=true \
+            ${SCALPEL_ENABLED} \
             -Dscalpel.mode=trim \
-            -Dscalpel.alsoMake=true \
-            -Dscalpel.alsoMakeDependents=false \
-            -Dscalpel.fullBuildTriggers="poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml" \
+            ${SCALPEL_ALSO_MAKE} \
+            ${SCALPEL_ALSO_MAKE_DEPENDENTS} \
+            ${SCALPEL_FULL_BUILD_TRIGGERS} \
             test
       - name: Report test failures
         uses: ./.github/actions/test-summary-report
