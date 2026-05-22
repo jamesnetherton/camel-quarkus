@@ -254,6 +254,7 @@ jobs:
             -Dcq.integrationTestDirs="integration-tests/,integration-tests-jvm/" \
             -Dcq.nativeTestsPrefix="integration-tests/" \
             -Dcq.jvmTestsPrefix="integration-tests-jvm/" \
+            -Dcq.integrationTestGroupsPrefix="integration-test-groups/" \
             -Dcq.functionalScopeDirs="extensions-core/:runExtensionsCoreTests,extensions/:runExtensionsTests,test-framework/:runTestFrameworkTests,tooling/:runToolingTests,catalog/:runCatalogTests" \
             -N ${CQ_MAVEN_ARGS}
 
