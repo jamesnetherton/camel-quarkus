@@ -125,6 +125,42 @@ public class IncrementalBuildMojo extends AbstractMojo {
     @Parameter(property = "cq.outputCompact", defaultValue = "true")
     boolean outputCompact;
 
+    /**
+     * Comma-separated list of extension directory prefixes to detect extension changes.
+     * Default: extensions/,extensions-jvm/,extensions-core/
+     */
+    @Parameter(property = "cq.extensionDirs", defaultValue = "extensions/,extensions-jvm/,extensions-core/")
+    String extensionDirs;
+
+    /**
+     * Comma-separated list of integration test directory prefixes.
+     * Default: integration-tests/,integration-tests-jvm/
+     */
+    @Parameter(property = "cq.integrationTestDirs", defaultValue = "integration-tests/,integration-tests-jvm/")
+    String integrationTestDirs;
+
+    /**
+     * Prefix for native-supported integration tests (used for filtering).
+     * Default: integration-tests/
+     */
+    @Parameter(property = "cq.nativeTestsPrefix", defaultValue = "integration-tests/")
+    String nativeTestsPrefix;
+
+    /**
+     * Prefix for JVM-only integration tests.
+     * Default: integration-tests-jvm/
+     */
+    @Parameter(property = "cq.jvmTestsPrefix", defaultValue = "integration-tests-jvm/")
+    String jvmTestsPrefix;
+
+    /**
+     * Comma-separated list of directory prefixes for functional test scope detection.
+     * Format: prefix:scopeName
+     * Default: extensions-core/:runExtensionsCoreTests,extensions/:runExtensionsTests,test-framework/:runTestFrameworkTests,tooling/:runToolingTests,catalog/:runCatalogTests
+     */
+    @Parameter(property = "cq.functionalScopeDirs", defaultValue = "extensions-core/:runExtensionsCoreTests,extensions/:runExtensionsTests,test-framework/:runTestFrameworkTests,tooling/:runToolingTests,catalog/:runCatalogTests")
+    String functionalScopeDirs;
+
     private final ObjectMapper jsonMapper = new ObjectMapper();
 
     @Override
@@ -254,18 +290,24 @@ public class IncrementalBuildMojo extends AbstractMojo {
     private Set<String> extractAffectedTests(List<Map<String, Object>> affectedModules) {
         Set<String> affectedTests = new LinkedHashSet<>();
 
-        // First pass: Check if any extensions or extensions-jvm were directly changed
+        // Parse extension directories from parameter
+        String[] extDirs = extensionDirs.split(",");
+
+        // First pass: Check if any extensions were directly changed
         boolean extensionChanged = false;
         for (Map<String, Object> module : affectedModules) {
             String category = (String) module.get("category");
             String path = (String) module.get("path");
 
             if ("DIRECT".equals(category) && path != null) {
-                if (path.startsWith("extensions/") ||
-                        path.startsWith("extensions-jvm/") ||
-                        path.startsWith("extensions-core/")) {
-                    extensionChanged = true;
-                    getLog().debug("Extension change detected: " + path);
+                for (String extDir : extDirs) {
+                    if (path.startsWith(extDir.trim())) {
+                        extensionChanged = true;
+                        getLog().debug("Extension change detected: " + path);
+                        break;
+                    }
+                }
+                if (extensionChanged) {
                     break;
                 }
             }
@@ -276,7 +318,7 @@ public class IncrementalBuildMojo extends AbstractMojo {
             String path = (String) module.get("path");
             String category = (String) module.get("category");
 
-            if (path != null && path.startsWith("integration-tests/")) {
+            if (path != null && path.startsWith(nativeTestsPrefix)) {
                 boolean shouldInclude = false;
 
                 // Always include DIRECT changes to integration tests
@@ -296,7 +338,7 @@ public class IncrementalBuildMojo extends AbstractMojo {
 
                 if (shouldInclude) {
                     // Extract test name: integration-tests/box -> box
-                    String testName = path.substring("integration-tests/".length());
+                    String testName = path.substring(nativeTestsPrefix.length());
                     // Remove any trailing path components
                     if (testName.contains("/")) {
                         testName = testName.substring(0, testName.indexOf("/"));
@@ -409,12 +451,19 @@ public class IncrementalBuildMojo extends AbstractMojo {
      * Detects which functional test scopes are affected by analyzing DIRECT changes.
      */
     private Map<String, Object> detectFunctionalScope() throws IOException {
+        // Parse functional scope configuration: prefix:scopeName,prefix:scopeName,...
+        Map<String, String> prefixToScope = new LinkedHashMap<>();
         Map<String, Boolean> scope = new LinkedHashMap<>();
-        scope.put("runExtensionsCoreTests", false);
-        scope.put("runExtensionsTests", false);
-        scope.put("runTestFrameworkTests", false);
-        scope.put("runToolingTests", false);
-        scope.put("runCatalogTests", false);
+
+        for (String entry : functionalScopeDirs.split(",")) {
+            String[] parts = entry.trim().split(":");
+            if (parts.length == 2) {
+                String prefix = parts[0].trim();
+                String scopeName = parts[1].trim();
+                prefixToScope.put(prefix, scopeName);
+                scope.put(scopeName, false);
+            }
+        }
 
         if (!useIncrementalBuild || !Files.exists(scalpelReportJson)) {
             // Full build - run all tests
@@ -442,25 +491,15 @@ public class IncrementalBuildMojo extends AbstractMojo {
                 continue;
             }
 
-            // Categorize by path prefix
-            if (path.startsWith("extensions-core/")) {
-                scope.put("runExtensionsCoreTests", true);
-            } else if (path.startsWith("extensions/") || path.startsWith("extensions-jvm/")) {
-                scope.put("runExtensionsTests", true);
-            } else if (path.startsWith("test-framework/")) {
-                scope.put("runTestFrameworkTests", true);
-            } else if (path.startsWith("tooling/")) {
-                scope.put("runToolingTests", true);
-            } else if (path.startsWith("catalog/")) {
-                scope.put("runCatalogTests", true);
+            // Check each prefix and set corresponding scope flag
+            for (Map.Entry<String, String> entry : prefixToScope.entrySet()) {
+                if (path.startsWith(entry.getKey())) {
+                    scope.put(entry.getValue(), true);
+                }
             }
         }
 
-        getLog().info("Functional test scope: extensions-core=" + scope.get("runExtensionsCoreTests")
-                + ", extensions=" + scope.get("runExtensionsTests")
-                + ", test-framework=" + scope.get("runTestFrameworkTests")
-                + ", tooling=" + scope.get("runToolingTests")
-                + ", catalog=" + scope.get("runCatalogTests"));
+        getLog().info("Functional test scope: " + scope);
 
         return new LinkedHashMap<>(scope);
     }
@@ -491,8 +530,8 @@ public class IncrementalBuildMojo extends AbstractMojo {
         List<String> jvmModules = new ArrayList<>();
         for (Map<String, Object> module : affectedModules) {
             String path = (String) module.get("path");
-            if (path != null && path.startsWith("integration-tests-jvm/")) {
-                String moduleName = path.substring("integration-tests-jvm/".length());
+            if (path != null && path.startsWith(jvmTestsPrefix)) {
+                String moduleName = path.substring(jvmTestsPrefix.length());
                 // Remove any trailing path components
                 if (moduleName.contains("/")) {
                     moduleName = moduleName.substring(0, moduleName.indexOf("/"));
