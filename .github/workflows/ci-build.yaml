@@ -453,27 +453,22 @@ jobs:
         shell: bash
         run: |
           if [ "${{ steps.filter-categories.outputs.use-filtered-matrix }}" == "true" ]; then
-            # Incremental build - check if any JVM-only integration tests are affected
-            cd integration-tests-jvm
-            JVM_MODULES=$(mvn help:evaluate -Dexpression=project.modules -N -q -DforceStdout | sed -e 's/<[^>]*>//g' -e 's/^[[:space:]]*//' -e '/^$/d')
+            # Incremental build - check Scalpel report for affected integration-tests-jvm modules
+            if [ -f target/scalpel-report.json ]; then
+              # Check if any module path starts with integration-tests-jvm/
+              JVM_AFFECTED=$(cat target/scalpel-report.json | jq -r '.affectedModules[] | select(.path | startswith("integration-tests-jvm/")) | .path' | head -1)
 
-            # Get affected modules from filtered matrix
-            AFFECTED_MODULES=$(echo '${{ steps.filter-categories.outputs.filtered-matrix }}' | jq -r '.modules[]')
-
-            # Check if any affected module is in JVM modules
-            SHOULD_RUN=false
-            for MODULE in $AFFECTED_MODULES; do
-              if echo "$JVM_MODULES" | grep -q "^${MODULE}$"; then
-                SHOULD_RUN=true
-                break
+              if [ -n "$JVM_AFFECTED" ]; then
+                echo "run-jvm-tests=true" >> $GITHUB_OUTPUT
+                echo "JVM-only integration tests will run (affected modules: $JVM_AFFECTED)"
+              else
+                echo "run-jvm-tests=false" >> $GITHUB_OUTPUT
+                echo "JVM-only integration tests will be skipped (no JVM-only modules affected)"
               fi
-            done
-
-            echo "run-jvm-tests=$SHOULD_RUN" >> $GITHUB_OUTPUT
-            if [ "$SHOULD_RUN" == "true" ]; then
-              echo "JVM-only integration tests will run (affected modules found)"
             else
-              echo "JVM-only integration tests will be skipped (no JVM-only modules affected)"
+              # No Scalpel report - run JVM tests for safety
+              echo "run-jvm-tests=true" >> $GITHUB_OUTPUT
+              echo "JVM-only integration tests will run (no Scalpel report found)"
             fi
           else
             # Full build - always run JVM tests
