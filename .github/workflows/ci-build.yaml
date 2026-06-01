@@ -174,7 +174,8 @@ jobs:
       MAVEN_OPTS: -Xmx4600m
       SCALPEL_ENABLED: "-Dscalpel.enabled=true"
       SCALPEL_FULL_BUILD_TRIGGERS: "-Dscalpel.fullBuildTriggers=poms/**,extensions-core/core/**,tooling/maven-plugin/**,.mvn/**,pom.xml"
-      SCALPEL_EXCLUDE_PATHS: "-Dscalpel.excludePaths=**.adoc,**.md,docs/**,Jenkinsfile*,LICENSE.txt,NOTICE.txt,KEYS,camel-quarkus-sbom/**,.github/*.sh"
+      # Exclude docs/** which is not covered by workflow paths-ignore
+      SCALPEL_EXCLUDE_PATHS: "-Dscalpel.excludePaths=docs/**"
     steps:
       - name: Check free space on disk
         run: |
