@@ -206,6 +206,12 @@ jobs:
         with:
           ref: ${{ env.CHECKOUT_REF }}
           fetch-depth: 0
+      # ============================================================================
+      # INCREMENTAL BUILD: Detect affected modules and run only necessary tests
+      # ============================================================================
+      # For PRs, use Scalpel to analyze git diff and determine which modules changed.
+      # This allows running only affected tests instead of the full test suite,
+      # significantly reducing CI time (full build: ~4-5 hours, incremental: ~30-60 min).
       - name: Detect PR Incremental Build
         id: detect-incremental
         if: github.event_name == 'pull_request'
@@ -217,6 +223,10 @@ jobs:
       - name: mvn clean install -DskipTests
         run: |
           eval ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} clean install -DskipTests -Dquarkus.build.skip -Pformat -T1C
+      # Step 1: Run Scalpel to analyze git diff and identify affected modules
+      # Scalpel produces a JSON report with:
+      # - fullBuildTriggered: true if critical paths changed (poms, core, maven-plugin)
+      # - affectedModules: list of modules with DIRECT or DOWNSTREAM changes
       - name: Scalpel Analysis
         id: scalpel-analysis
         if: steps.detect-incremental.outputs.incremental-build == 'true'
@@ -236,6 +246,12 @@ jobs:
             echo "Scalpel report not found"
             exit 1
           fi
+      # Step 2: Run IncrementalBuildMojo to process Scalpel report and generate:
+      # - Filtered list of affected integration test modules
+      # - Native test matrix with balanced distribution across groups
+      # - Alternate JVM test matrix
+      # - Functional test scope flags (which test suites to run)
+      # - JVM-only test modules list
       - name: Incremental Build Analysis
         id: incremental-build
         if: steps.detect-incremental.outputs.incremental-build == 'true'
@@ -269,6 +285,8 @@ jobs:
             # Output empty JSON structure for fallback
             echo "data={\"incrementalBuild\":false}" >> $GITHUB_OUTPUT
           fi
+      # Step 3: Parse the comprehensive JSON output and set individual step outputs
+      # This avoids complex fromJson expressions in job-level outputs (which caused YAML syntax errors)
       - name: Process Incremental Build Data
         id: process-incremental
         run: |
