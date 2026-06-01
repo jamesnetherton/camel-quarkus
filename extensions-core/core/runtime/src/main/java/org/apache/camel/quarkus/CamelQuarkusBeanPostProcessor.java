@@ -14,6 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/**
+ * Test change for full build trigger: extensions-core/core
+ */
 package org.apache.camel.quarkus;
 
 import io.quarkus.arc.ClientProxy;
