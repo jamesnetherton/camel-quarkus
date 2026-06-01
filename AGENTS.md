@@ -265,6 +265,10 @@ Edit `quarkus.version` in the project root `pom.xml`.
 ./mvnw -N cq:promote -Dcq.artifactIdBase=kafka
 ```
 
+## Incremental Build System
+
+PRs use incremental builds to run only affected tests, reducing CI time from 4-5 hours to 30-60 minutes. The system automatically detects which tests need to run based on changed files. Changes to core infrastructure (`poms/**`, `extensions-core/core/**`, etc.) trigger full builds.
+
 ## Commit Messages
 Reference GitHub issues when applicable.
 ```
