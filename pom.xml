@@ -26,6 +26,7 @@
         <version>4.20.0</version>
     </parent>
 
+    <!-- Test change for full build trigger: root pom.xml -->
     <groupId>org.apache.camel.quarkus</groupId>
     <artifactId>camel-quarkus</artifactId>
     <version>3.37.0-SNAPSHOT</version>
