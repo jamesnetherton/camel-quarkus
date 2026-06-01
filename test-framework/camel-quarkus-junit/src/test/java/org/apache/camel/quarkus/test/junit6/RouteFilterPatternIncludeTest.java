@@ -14,6 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/**
+ * Test change for infrastructure-only: should NOT trigger downstream tests
+ */
 package org.apache.camel.quarkus.test.junit6;
 
 import io.quarkus.test.junit.QuarkusTest;
