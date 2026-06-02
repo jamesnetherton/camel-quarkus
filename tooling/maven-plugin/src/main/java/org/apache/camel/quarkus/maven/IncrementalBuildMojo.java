@@ -280,7 +280,12 @@ public class IncrementalBuildMojo extends AbstractMojo {
             return result;
         }
 
-        // Extract affected integration tests with two-pass filtering
+        getLog().info("Scalpel reported " + affectedModules.size() + " affected modules");
+        for (Map<String, Object> module : affectedModules) {
+            getLog().info("  - " + module.get("path") + " (category: " + module.get("category") + ")");
+        }
+
+        // Extract affected integration tests
         Set<String> affectedTests = extractAffectedTests(affectedModules);
 
         result.put("incrementalBuild", true);
