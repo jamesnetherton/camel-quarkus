@@ -705,7 +705,9 @@ jobs:
     name: Integration Tests Alternative JDK 21 ${{ needs.initial-mvn-install.outputs.use-filtered-matrix == 'true' && '(incremental)' || matrix.name }}
     runs-on: ubuntu-latest
     needs: initial-mvn-install
-    if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
+    if: |
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM'))
+      && (needs.initial-mvn-install.outputs.use-filtered-matrix != 'true' || fromJson(needs.initial-mvn-install.outputs.filtered-matrix).totalModules > 0)
     strategy:
       fail-fast: false
       matrix: ${{ needs.initial-mvn-install.outputs.use-filtered-matrix == 'true' && fromJson('{"include":[{"name":"incremental"}]}') || fromJson(needs.initial-mvn-install.outputs.alternate-jvm-matrix) }}
@@ -772,7 +774,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [ 'windows-latest' ]
-    if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
+    if: |
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM'))
+      && (needs.initial-mvn-install.outputs.use-filtered-matrix != 'true' || fromJson(needs.initial-mvn-install.outputs.filtered-matrix).totalModules > 0)
     env:
       MAVEN_OPTS: -Xmx3000m -Xms3000m
     steps:
@@ -834,7 +838,9 @@ jobs:
     name: Examples Tests - ${{matrix.name}}
     needs: initial-mvn-install
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
+    if: |
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM'))
+      && (needs.initial-mvn-install.outputs.use-filtered-matrix != 'true' || fromJson(needs.initial-mvn-install.outputs.filtered-matrix).totalModules > 0)
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.initial-mvn-install.outputs.examples-matrix) }}
