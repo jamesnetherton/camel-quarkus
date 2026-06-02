@@ -175,6 +175,7 @@ jobs:
       run-test-framework-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-test-framework-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
       run-tooling-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-tooling-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
       run-catalog-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-catalog-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
+      run-examples: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-examples == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
     env:
       MAVEN_OPTS: -Xmx4600m
       SCALPEL_ENABLED: "-Dscalpel.enabled=true"
@@ -316,6 +317,7 @@ jobs:
             echo "jvm-modules=$(echo "$DATA" | jq -r '.jvmOnlyTests.jvmModules')" >> $GITHUB_OUTPUT
             echo "run-extensions-core-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runExtensionsCoreTests')" >> $GITHUB_OUTPUT
             echo "run-extensions-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runExtensionsTests')" >> $GITHUB_OUTPUT
+            echo "run-examples=$(echo "$DATA" | jq -r '.runExamples')" >> $GITHUB_OUTPUT
             echo "run-test-framework-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runTestFrameworkTests')" >> $GITHUB_OUTPUT
             echo "run-tooling-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runToolingTests')" >> $GITHUB_OUTPUT
             echo "run-catalog-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runCatalogTests')" >> $GITHUB_OUTPUT
@@ -846,7 +848,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM'))
-      && (needs.initial-mvn-install.outputs.use-filtered-matrix != 'true' || fromJson(needs.initial-mvn-install.outputs.filtered-matrix).totalModules > 0)
+      && needs.initial-mvn-install.outputs.run-examples == 'true'
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.initial-mvn-install.outputs.examples-matrix) }}
