@@ -291,37 +291,13 @@ public class IncrementalBuildMojo extends AbstractMojo {
     }
 
     /**
-     * Extracts affected integration test modules using two-pass filtering.
-     * Pass 1: Check if any extensions were directly changed.
-     * Pass 2: Include integration tests based on category and extension changes.
+     * Extracts affected integration test modules from Scalpel report.
+     * Includes both DIRECT and DOWNSTREAM changes - if Scalpel reports it as affected,
+     * we should test it.
      */
     private Set<String> extractAffectedTests(List<Map<String, Object>> affectedModules) {
         Set<String> affectedTests = new LinkedHashSet<>();
 
-        // Parse extension directories from parameter
-        String[] extDirs = extensionDirs.split(",");
-
-        // First pass: Check if any extensions were directly changed
-        boolean extensionChanged = false;
-        for (Map<String, Object> module : affectedModules) {
-            String category = (String) module.get("category");
-            String path = (String) module.get("path");
-
-            if ("DIRECT".equals(category) && path != null) {
-                for (String extDir : extDirs) {
-                    if (path.startsWith(extDir.trim())) {
-                        extensionChanged = true;
-                        getLog().debug("Extension change detected: " + path);
-                        break;
-                    }
-                }
-                if (extensionChanged) {
-                    break;
-                }
-            }
-        }
-
-        // Second pass: Include integration tests based on category and source of change
         for (Map<String, Object> module : affectedModules) {
             String path = (String) module.get("path");
             String category = (String) module.get("category");
@@ -335,31 +311,15 @@ public class IncrementalBuildMojo extends AbstractMojo {
                     String groupName = parts[0]; // Get the group name
                     String groupedModuleName = groupName + "-grouped";
                     affectedTests.add(groupedModuleName);
-                    getLog().debug("Including grouped test from integration-test-groups: " + groupedModuleName + " (path: " + path + ")");
+                    getLog().debug("Including grouped test: " + groupedModuleName + " (category: " + category + ")");
                 }
                 continue;
             }
 
             // Handle regular integration-tests
             if (path != null && path.startsWith(nativeTestsPrefix)) {
-                boolean shouldInclude = false;
-
-                // Always include DIRECT changes to integration tests
-                if ("DIRECT".equals(category)) {
-                    shouldInclude = true;
-                    getLog().debug("Including test (direct change): " + path);
-                }
-                // Include DOWNSTREAM if an extension was changed
-                else if ("DOWNSTREAM".equals(category) && extensionChanged) {
-                    shouldInclude = true;
-                    getLog().debug("Including test (downstream from extension): " + path);
-                }
-                // Otherwise skip (e.g., downstream from test-framework changes)
-                else {
-                    getLog().debug("Skipping test (downstream from infrastructure): " + path);
-                }
-
-                if (shouldInclude) {
+                // Include both DIRECT and DOWNSTREAM - if Scalpel detected it, test it
+                if ("DIRECT".equals(category) || "DOWNSTREAM".equals(category)) {
                     // Extract test name: integration-tests/box -> box
                     String testName = path.substring(nativeTestsPrefix.length());
                     // Remove any trailing path components
@@ -367,6 +327,7 @@ public class IncrementalBuildMojo extends AbstractMojo {
                         testName = testName.substring(0, testName.indexOf("/"));
                     }
                     affectedTests.add(testName);
+                    getLog().debug("Including test: " + testName + " (category: " + category + ")");
                 }
             }
         }
