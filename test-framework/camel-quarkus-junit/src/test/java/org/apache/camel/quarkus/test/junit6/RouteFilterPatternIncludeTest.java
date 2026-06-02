@@ -63,3 +63,4 @@ public class RouteFilterPatternIncludeTest extends CamelQuarkusTestSupport {
 
 }
 // Fresh test change
+// Force CI trigger
