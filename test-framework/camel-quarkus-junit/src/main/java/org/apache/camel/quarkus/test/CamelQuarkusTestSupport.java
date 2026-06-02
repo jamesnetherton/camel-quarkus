@@ -708,3 +708,4 @@ public class CamelQuarkusTestSupport extends AbstractTestSupport
         //to be overridden of child, if needed
     }
 }
+// Test change to main source
