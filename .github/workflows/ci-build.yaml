@@ -264,7 +264,8 @@ jobs:
         run: |
           # Run unified incremental build analysis
           # All directory patterns are explicitly configured here for visibility and maintainability
-          ./mvnw org.apache.camel.quarkus:camel-quarkus-maven-plugin:3.36.0-SNAPSHOT:incremental-build \
+          # Use short form 'cq:incremental-build' to automatically use current project version
+          ./mvnw cq:incremental-build \
             -Dcq.action=analyze \
             -Dcq.useIncrementalBuild=true \
             -Dcq.extensionDirs="extensions/,extensions-jvm/,extensions-core/" \
