@@ -62,3 +62,4 @@ public class RouteFilterPatternIncludeTest extends CamelQuarkusTestSupport {
     }
 
 }
+// Fresh test change

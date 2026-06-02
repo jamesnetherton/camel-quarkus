@@ -264,8 +264,11 @@ jobs:
         run: |
           # Run unified incremental build analysis
           # All directory patterns are explicitly configured here for visibility and maintainability
-          # Use short form 'cq:incremental-build' to automatically use current project version
-          ./mvnw cq:incremental-build \
+          # Extract project version dynamically to avoid hardcoding
+          PROJECT_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout -N)
+          echo "Using camel-quarkus-maven-plugin version: $PROJECT_VERSION"
+
+          ./mvnw org.apache.camel.quarkus:camel-quarkus-maven-plugin:${PROJECT_VERSION}:incremental-build \
             -Dcq.action=analyze \
             -Dcq.useIncrementalBuild=true \
             -Dcq.extensionDirs="extensions/,extensions-jvm/,extensions-core/" \
