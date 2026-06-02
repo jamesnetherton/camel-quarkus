@@ -168,13 +168,13 @@ jobs:
       alternate-jvm-matrix: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.alternate-jvm-matrix || steps.set-alternate-jvm-matrix-full.outputs.alternate-jvm-matrix }}
       use-filtered-matrix: ${{ steps.process-incremental.outputs.use-incremental == 'true' }}
       filtered-matrix: ${{ steps.incremental-build.outputs.filtered-matrix }}
-      run-jvm-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-jvm-tests || 'true' }}
+      run-jvm-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-jvm-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
       jvm-modules: ${{ steps.process-incremental.outputs.jvm-modules || '' }}
-      run-extensions-core-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-extensions-core-tests || 'true' }}
-      run-extensions-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-extensions-tests || 'true' }}
-      run-test-framework-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-test-framework-tests || 'true' }}
-      run-tooling-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-tooling-tests || 'true' }}
-      run-catalog-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-catalog-tests || 'true' }}
+      run-extensions-core-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-extensions-core-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
+      run-extensions-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-extensions-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
+      run-test-framework-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-test-framework-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
+      run-tooling-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-tooling-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
+      run-catalog-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-catalog-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
     env:
       MAVEN_OPTS: -Xmx4600m
       SCALPEL_ENABLED: "-Dscalpel.enabled=true"
