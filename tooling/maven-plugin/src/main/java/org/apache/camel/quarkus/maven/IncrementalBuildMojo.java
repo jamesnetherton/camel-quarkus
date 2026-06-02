@@ -238,6 +238,10 @@ public class IncrementalBuildMojo extends AbstractMojo {
         Map<String, Object> jvmTests = detectJvmTests();
         result.put("jvmOnlyTests", jvmTests);
 
+        // Detect if examples should run (only when extensions change, not integration tests)
+        boolean runExamples = shouldRunExamples();
+        result.put("runExamples", runExamples);
+
         return result;
     }
 
@@ -539,6 +543,54 @@ public class IncrementalBuildMojo extends AbstractMojo {
         }
 
         return result;
+    }
+
+    /**
+     * Determines if examples should run based on affected modules.
+     * Examples should only run when extensions change, NOT when integration tests change.
+     *
+     * @return true if any extension (runtime or deployment) is affected
+     */
+    private boolean shouldRunExamples() throws IOException, MojoExecutionException {
+        if (!useIncrementalBuild || !Files.exists(scalpelReportJson)) {
+            // Full build - run examples
+            return true;
+        }
+
+        Map<String, Object> scalpelReport = jsonMapper.readValue(scalpelReportJson.toFile(), JSON_TYPE_REF);
+        Boolean fullBuildTriggered = (Boolean) scalpelReport.get("fullBuildTriggered");
+        if (Boolean.TRUE.equals(fullBuildTriggered)) {
+            // Full build - run examples
+            return true;
+        }
+
+        List<Map<String, Object>> affectedModules = (List<Map<String, Object>>) scalpelReport.get("affectedModules");
+        if (affectedModules == null || affectedModules.isEmpty()) {
+            // Full build for safety - run examples
+            return true;
+        }
+
+        // Check if any affected module is an extension (not an integration test)
+        for (Map<String, Object> module : affectedModules) {
+            String path = (String) module.get("path");
+            String category = (String) module.get("category");
+
+            // Only consider DIRECT changes
+            if (!"DIRECT".equals(category)) {
+                continue;
+            }
+
+            // Check if this is an extension change
+            if (path != null && (path.startsWith("extensions/") ||
+                                 path.startsWith("extensions-core/") ||
+                                 path.startsWith("extensions-jvm/"))) {
+                getLog().info("Examples should run - extension affected: " + path);
+                return true;
+            }
+        }
+
+        getLog().info("Examples will be skipped - only integration tests affected");
+        return false;
     }
 
     /**
