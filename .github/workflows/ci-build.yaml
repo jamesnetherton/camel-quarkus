@@ -295,7 +295,7 @@ jobs:
       - name: Process Incremental Build Data
         id: process-incremental
         run: |
-          # Parse JSON and set individual outputs to avoid complex expressions in job outputs
+          # Parse JSON and set individual outputs
           if [ -f target/incremental-build.json ]; then
             DATA=$(cat target/incremental-build.json)
 
@@ -303,20 +303,18 @@ jobs:
             INCREMENTAL=$(echo "$DATA" | jq -r '.incrementalBuild // false')
             echo "use-incremental=$INCREMENTAL" >> $GITHUB_OUTPUT
 
+            # Always extract matrices and flags from JSON (job outputs handle the conditional logic)
+            echo "native-matrix=$(echo "$DATA" | jq -c '.nativeTestMatrix')" >> $GITHUB_OUTPUT
+            echo "alternate-jvm-matrix=$(echo "$DATA" | jq -c '.alternateJvmMatrix')" >> $GITHUB_OUTPUT
+            echo "run-jvm-tests=$(echo "$DATA" | jq -r '.jvmOnlyTests.runJvmTests')" >> $GITHUB_OUTPUT
+            echo "jvm-modules=$(echo "$DATA" | jq -r '.jvmOnlyTests.jvmModules')" >> $GITHUB_OUTPUT
+            echo "run-extensions-core-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runExtensionsCoreTests')" >> $GITHUB_OUTPUT
+            echo "run-extensions-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runExtensionsTests')" >> $GITHUB_OUTPUT
+            echo "run-test-framework-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runTestFrameworkTests')" >> $GITHUB_OUTPUT
+            echo "run-tooling-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runToolingTests')" >> $GITHUB_OUTPUT
+            echo "run-catalog-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runCatalogTests')" >> $GITHUB_OUTPUT
+
             if [ "$INCREMENTAL" == "true" ]; then
-              # Extract matrices
-              echo "native-matrix=$(echo "$DATA" | jq -c '.nativeTestMatrix')" >> $GITHUB_OUTPUT
-              echo "alternate-jvm-matrix=$(echo "$DATA" | jq -c '.alternateJvmMatrix')" >> $GITHUB_OUTPUT
-
-              # Extract flags
-              echo "run-jvm-tests=$(echo "$DATA" | jq -r '.jvmOnlyTests.runJvmTests')" >> $GITHUB_OUTPUT
-              echo "jvm-modules=$(echo "$DATA" | jq -r '.jvmOnlyTests.jvmModules')" >> $GITHUB_OUTPUT
-              echo "run-extensions-core-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runExtensionsCoreTests')" >> $GITHUB_OUTPUT
-              echo "run-extensions-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runExtensionsTests')" >> $GITHUB_OUTPUT
-              echo "run-test-framework-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runTestFrameworkTests')" >> $GITHUB_OUTPUT
-              echo "run-tooling-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runToolingTests')" >> $GITHUB_OUTPUT
-              echo "run-catalog-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runCatalogTests')" >> $GITHUB_OUTPUT
-
               echo "Incremental build will be used"
             else
               echo "Full build will be used"
