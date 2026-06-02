@@ -164,7 +164,8 @@ public class IncrementalBuildMojo extends AbstractMojo {
     /**
      * Comma-separated list of directory prefixes for functional test scope detection.
      * Format: prefix:scopeName
-     * Default: extensions-core/:runExtensionsCoreTests,extensions/:runExtensionsTests,test-framework/:runTestFrameworkTests,tooling/:runToolingTests,catalog/:runCatalogTests
+     * Default:
+     * extensions-core/:runExtensionsCoreTests,extensions/:runExtensionsTests,test-framework/:runTestFrameworkTests,tooling/:runToolingTests,catalog/:runCatalogTests
      */
     @Parameter(property = "cq.functionalScopeDirs", defaultValue = "extensions-core/:runExtensionsCoreTests,extensions/:runExtensionsTests,test-framework/:runTestFrameworkTests,tooling/:runToolingTests,catalog/:runCatalogTests")
     String functionalScopeDirs;

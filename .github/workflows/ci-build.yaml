@@ -178,10 +178,11 @@ jobs:
     env:
       MAVEN_OPTS: -Xmx4600m
       SCALPEL_ENABLED: "-Dscalpel.enabled=true"
-      SCALPEL_FULL_BUILD_TRIGGERS: "-Dscalpel.fullBuildTriggers=poms/**,extensions-core/core/**,tooling/maven-plugin/**,.mvn/**,pom.xml"
+      # TEMPORARY: Removed tooling/maven-plugin/** to allow testing plugin changes without full builds
+      SCALPEL_FULL_BUILD_TRIGGERS: "-Dscalpel.fullBuildTriggers=poms/**,extensions-core/core/**,.mvn/**,pom.xml"
       # Exclude docs/** which is not covered by workflow paths-ignore
-      # TEMPORARY: Exclude ci-build.yaml for testing to avoid triggering full builds
-      SCALPEL_EXCLUDE_PATHS: "-Dscalpel.excludePaths=docs/**,.github/workflows/ci-build.yaml"
+      # TEMPORARY: Exclude ci-build.yaml and tooling/maven-plugin for testing
+      SCALPEL_EXCLUDE_PATHS: "-Dscalpel.excludePaths=docs/**,.github/workflows/ci-build.yaml,tooling/maven-plugin/**"
     steps:
       - name: Check free space on disk
         run: |
