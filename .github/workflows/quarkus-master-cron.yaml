@@ -88,14 +88,22 @@ jobs:
       - name: Tar Maven Repo
         shell: bash
         run: |
-          tar -czf ${{ runner.temp }}/maven-repo.tgz -C ~ build-data .m2/repository
-          ls -lh ${{ runner.temp }}/maven-repo.tgz
+          cd ~/.m2/repository/org/apache/camel/quarkus
+          EXCLUDE_ARGS=""
+          for dir in camel-quarkus-integration-test-* camel-quarkus-integration-tests-*; do
+            if [[ ! "$dir" =~ -support($|-) ]]; then
+              EXCLUDE_ARGS="$EXCLUDE_ARGS --exclude=.m2/repository/org/apache/camel/quarkus/$dir"
+            fi
+          done
+          cd ~
+          tar -I 'zstd -T0' -cf ${{ runner.temp }}/maven-repo.tar.zst $EXCLUDE_ARGS build-data .m2/repository
+          ls -lh ${{ runner.temp }}/maven-repo.tar.zst
           df -h /
       - name: Persist Maven Repo
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: maven-repo
-          path: ${{ runner.temp }}/maven-repo.tgz
+          path: ${{ runner.temp }}/maven-repo.tar.zst
           retention-days: 1
       - name: Setup Native Test Matrix
         id: set-native-matrix
@@ -154,8 +162,8 @@ jobs:
         shell: bash
         run: |
           df -h /
-          tar -xzf ../maven-repo.tgz -C ~
-          rm -f ../maven-repo.tgz
+          tar -I 'zstd -d' -xf ../maven-repo.tar.zst -C ~
+          rm -f ../maven-repo.tar.zst
           df -h /
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -241,8 +249,8 @@ jobs:
         shell: bash
         run: |
           df -h /
-          tar -xzf ../maven-repo.tgz -C ~
-          rm -f ../maven-repo.tgz
+          tar -I 'zstd -d' -xf ../maven-repo.tar.zst -C ~
+          rm -f ../maven-repo.tar.zst
           df -h /
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -343,8 +351,8 @@ jobs:
         shell: bash
         run: |
           df -h /
-          tar -xzf ../maven-repo.tgz -C ~
-          rm -f ../maven-repo.tgz
+          tar -I 'zstd -d' -xf ../maven-repo.tar.zst -C ~
+          rm -f ../maven-repo.tar.zst
           df -h /
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -397,8 +405,8 @@ jobs:
         shell: bash
         run: |
           df -h /
-          tar -xzf ../maven-repo.tgz -C ~
-          rm -f ../maven-repo.tgz
+          tar -I 'zstd -d' -xf ../maven-repo.tar.zst -C ~
+          rm -f ../maven-repo.tar.zst
           df -h /
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -453,8 +461,8 @@ jobs:
       - name: Extract Maven Repo
         shell: bash
         run: |
-          tar -xzf ../maven-repo.tgz -C ~
-          rm -f ../maven-repo.tgz
+          tar -I 'zstd -d' -xf ../maven-repo.tar.zst -C ~
+          rm -f ../maven-repo.tar.zst
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
@@ -512,8 +520,8 @@ jobs:
         shell: bash
         run: |
           df -h /
-          tar -xzf ../maven-repo.tgz -C ~
-          rm -f ../maven-repo.tgz
+          tar -I 'zstd -d' -xf ../maven-repo.tar.zst -C ~
+          rm -f ../maven-repo.tar.zst
           df -h /
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -597,8 +605,8 @@ jobs:
         shell: bash
         run: |
           df -h /
-          tar -xzf ../maven-repo.tgz -C ~
-          rm -f ../maven-repo.tgz
+          tar -I 'zstd -d' -xf ../maven-repo.tar.zst -C ~
+          rm -f ../maven-repo.tar.zst
           df -h /
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
