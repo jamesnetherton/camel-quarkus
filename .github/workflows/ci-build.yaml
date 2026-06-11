@@ -788,6 +788,7 @@ jobs:
               echo "Core extension affected - building all examples"
             else
               # Filter examples based on dependency analysis
+              echo "Affected modules for filtering: $AFFECTED_MODULES"
               FILTERED_MODULES=()
 
               for MODULE in ${EXAMPLE_MODULES//,/ }; do
@@ -795,9 +796,11 @@ jobs:
                 cd ${MODULE}
 
                 # Use quarkus:dependency-list which works per-module (root pom.xml is just an aggregator)
-                ../mvnw ${CQ_MAVEN_ARGS} quarkus:dependency-list -DoutputFile=target/deps.txt -q 2>/dev/null || true
+                echo "  Running: ../mvnw quarkus:dependency-list -DoutputFile=target/deps.txt -q"
+                ../mvnw ${CQ_MAVEN_ARGS} quarkus:dependency-list -DoutputFile=target/deps.txt -q 2>&1 || true
 
                 if [ -f target/deps.txt ]; then
+                  echo "  ✓ deps.txt created ($(wc -l < target/deps.txt) lines)"
                   # Check if any affected extension appears in dependencies
                   SHOULD_BUILD=false
                   for AFFECTED in $AFFECTED_MODULES; do
