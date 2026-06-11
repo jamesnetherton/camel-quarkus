@@ -44,3 +44,4 @@ class Asn1Processor {
         recorder.warnJvmInNative(FEATURE); // warn at runtime
     }
 }
+// Test: JVM-only extension change
