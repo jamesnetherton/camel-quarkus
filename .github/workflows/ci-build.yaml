@@ -533,9 +533,7 @@ jobs:
     env:
       MAVEN_OPTS: -Xmx3000m
       SCALPEL_ENABLED: "-Dscalpel.enabled=true"
-      # TEMPORARY: Removed tooling/maven-plugin/** to allow testing plugin changes without full builds
-      SCALPEL_FULL_BUILD_TRIGGERS: "-Dscalpel.fullBuildTriggers=poms/**,extensions-core/core/**,.mvn/**,pom.xml"
-      SCALPEL_EXCLUDE_PATHS: "-Dscalpel.excludePaths=docs/**,.github/workflows/ci-build.yaml,tooling/maven-plugin/**"
+      SCALPEL_FULL_BUILD_TRIGGERS: "-Dscalpel.fullBuildTriggers=poms/**,extensions-core/core/**,tooling/maven-plugin/**,.mvn/**,pom.xml"
       SCALPEL_ALSO_MAKE: "-Dscalpel.alsoMake=true"
       SCALPEL_ALSO_MAKE_DEPENDENTS: "-Dscalpel.alsoMakeDependents=false"
     steps:
@@ -564,7 +562,6 @@ jobs:
             ${SCALPEL_ALSO_MAKE} \
             ${SCALPEL_ALSO_MAKE_DEPENDENTS} \
             ${SCALPEL_FULL_BUILD_TRIGGERS} \
-            ${SCALPEL_EXCLUDE_PATHS} \
             --fail-at-end \
             test
       - name: Report test failures
