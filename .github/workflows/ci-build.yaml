@@ -808,8 +808,8 @@ jobs:
                 echo "Analyzing dependencies for example: $MODULE"
                 cd ${MODULE}
 
-                # Use root pom.xml approach to list dependencies
-                ./mvnw ${CQ_MAVEN_ARGS} dependency:list -DoutputFile=target/deps.txt -DincludeGroupIds=org.apache.camel.quarkus -q 2>/dev/null || true
+                # Use quarkus:dependency-list which works per-module (root pom.xml is just an aggregator)
+                ../mvnw ${CQ_MAVEN_ARGS} quarkus:dependency-list -DoutputFile=target/deps.txt -q 2>/dev/null || true
 
                 if [ -f target/deps.txt ]; then
                   # Check if any affected extension appears in dependencies
