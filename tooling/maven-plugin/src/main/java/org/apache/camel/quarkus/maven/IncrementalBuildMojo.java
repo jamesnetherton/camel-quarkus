@@ -108,12 +108,6 @@ public class IncrementalBuildMojo extends AbstractMojo {
     int maxGroups;
 
     /**
-     * Number of groups for alternate JVM matrix
-     */
-    @Parameter(property = "cq.numGroups", defaultValue = "2")
-    int numGroups;
-
-    /**
      * Maximum allowed matrix size (validation)
      */
     @Parameter(property = "cq.maxMatrixSize", defaultValue = "20")
@@ -187,9 +181,6 @@ public class IncrementalBuildMojo extends AbstractMojo {
             case "native-matrix":
                 result = generateNativeMatrix();
                 break;
-            case "alternate-jvm-matrix":
-                result = generateAlternateJvmMatrix();
-                break;
             case "functional-scope":
                 result = detectFunctionalScope();
                 break;
@@ -225,10 +216,6 @@ public class IncrementalBuildMojo extends AbstractMojo {
         // Generate native test matrix
         Map<String, Object> nativeMatrix = generateNativeMatrix();
         result.put("nativeTestMatrix", nativeMatrix);
-
-        // Generate alternate JVM matrix
-        Map<String, Object> altJvmMatrix = generateAlternateJvmMatrix();
-        result.put("alternateJvmMatrix", altJvmMatrix);
 
         // Detect functional test scope
         Map<String, Object> functionalScope = detectFunctionalScope();
@@ -394,48 +381,6 @@ public class IncrementalBuildMojo extends AbstractMojo {
     /**
      * Generates alternate JVM matrix by splitting modules into N groups.
      */
-    private Map<String, Object> generateAlternateJvmMatrix() throws IOException, MojoExecutionException {
-        Map<String, Object> result = new LinkedHashMap<>();
-
-        if (!useIncrementalBuild) {
-            // Full build - return empty matrix (workflow will use all modules)
-            result.put("include", new ArrayList<>());
-            return result;
-        }
-
-        // Get affected modules
-        Map<String, Object> moduleData = filterModules();
-        List<String> modules = (List<String>) moduleData.get("modules");
-
-        if (modules == null || modules.isEmpty()) {
-            result.put("include", new ArrayList<>());
-            return result;
-        }
-
-        // Split modules into numGroups
-        int moduleCount = modules.size();
-        int actualGroups = Math.min(moduleCount, numGroups);
-        int modulesPerGroup = (int) Math.ceil((double) moduleCount / actualGroups);
-
-        List<Map<String, String>> include = new ArrayList<>();
-        for (int i = 0; i < actualGroups; i++) {
-            int start = i * modulesPerGroup;
-            int end = Math.min(start + modulesPerGroup, moduleCount);
-
-            if (start < moduleCount) {
-                List<String> groupModules = modules.subList(start, end);
-                Map<String, String> group = new LinkedHashMap<>();
-                group.put("name", "group-" + String.format("%02d", i + 1));
-                group.put("modules", String.join(",", groupModules));
-                include.add(group);
-            }
-        }
-
-        result.put("include", include);
-        getLog().info("Alternate JVM matrix: " + include.size() + " groups for " + moduleCount + " modules");
-        return result;
-    }
-
     /**
      * Detects which functional test scopes are affected by analyzing DIRECT changes.
      */
