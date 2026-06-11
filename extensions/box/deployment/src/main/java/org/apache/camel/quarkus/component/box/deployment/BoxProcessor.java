@@ -51,3 +51,4 @@ class BoxProcessor {
         runtimeClasses.produce(new RuntimeInitializedClassBuildItem(BoxAPIRequest.class.getCanonicalName()));
     }
 }
+// Test change for incremental build validation - single extension change
