@@ -737,6 +737,7 @@ jobs:
     if: |
       (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM'))
       && needs.initial-mvn-install.outputs.run-examples == 'true'
+      && needs.initial-mvn-install.outputs.run-examples == 'true'
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.initial-mvn-install.outputs.examples-matrix) }}
