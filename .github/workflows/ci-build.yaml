@@ -265,7 +265,7 @@ jobs:
       # significantly reducing CI time (full build: ~4-5 hours, incremental: ~30-60 min).
       - name: Detect PR Incremental Build
         id: detect-incremental
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'ci/disable-incremental')
         run: |
           echo "incremental-build=true" >> $GITHUB_OUTPUT
       - name: Update extension metadata
@@ -669,26 +669,21 @@ jobs:
       - name: cd integration-tests-jvm && mvn clean test
         run: |
           cd integration-tests-jvm
-
           JVM_MODULES="${{ needs.initial-mvn-install.outputs.jvm-modules }}"
 
-          # For incremental builds with specific modules
           if [ -n "$JVM_MODULES" ]; then
             echo "Running incremental JVM tests for: $JVM_MODULES"
-            ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-              -pl "$JVM_MODULES" \
-              -am \
-              -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-              --fail-at-end \
-              clean test
+            PL_ARGS="-pl $JVM_MODULES"
           else
-            # Full build - run all JVM tests
             echo "Running all JVM tests"
-            ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-              -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-              --fail-at-end \
-              clean test
+            PL_ARGS=""
           fi
+
+          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
+            $PL_ARGS \
+            -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
+            --fail-at-end \
+            clean test
       - name: Report test failures
         uses: ./.github/actions/test-summary-report
         if: ${{ failure() }}
