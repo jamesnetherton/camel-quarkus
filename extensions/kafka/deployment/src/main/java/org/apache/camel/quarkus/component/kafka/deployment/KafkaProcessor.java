@@ -83,3 +83,4 @@ class KafkaProcessor {
                         .fields().build());
     }
 }
+// Test: mixed changes

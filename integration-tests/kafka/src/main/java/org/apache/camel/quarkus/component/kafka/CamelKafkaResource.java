@@ -199,3 +199,4 @@ public class CamelKafkaResource {
     }
 
 }
+// Test: mixed changes
