@@ -802,16 +802,19 @@ jobs:
               echo "Core extension affected - building all examples"
             else
               # Filter examples based on dependency analysis
+              echo "Affected modules for filtering: $AFFECTED_MODULES"
               FILTERED_MODULES=()
 
               for MODULE in ${EXAMPLE_MODULES//,/ }; do
                 echo "Analyzing dependencies for example: $MODULE"
                 cd ${MODULE}
 
-                # Use root pom.xml approach to list dependencies
-                ./mvnw ${CQ_MAVEN_ARGS} dependency:list -DoutputFile=target/deps.txt -DincludeGroupIds=org.apache.camel.quarkus -q 2>/dev/null || true
+                # Use quarkus:dependency-list which works per-module (root pom.xml is just an aggregator)
+                echo "  Running: ../mvnw quarkus:dependency-list -DoutputFile=target/deps.txt -q"
+                ../mvnw ${CQ_MAVEN_ARGS} quarkus:dependency-list -DoutputFile=target/deps.txt -q 2>&1 || true
 
                 if [ -f target/deps.txt ]; then
+                  echo "  ✓ deps.txt created ($(wc -l < target/deps.txt) lines)"
                   # Check if any affected extension appears in dependencies
                   SHOULD_BUILD=false
                   for AFFECTED in $AFFECTED_MODULES; do
