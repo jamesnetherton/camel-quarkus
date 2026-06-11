@@ -51,3 +51,4 @@ class BoxProcessor {
         runtimeClasses.produce(new RuntimeInitializedClassBuildItem(BoxAPIRequest.class.getCanonicalName()));
     }
 }
+// Test: verify Scalpel trim mode behavior in functional tests
