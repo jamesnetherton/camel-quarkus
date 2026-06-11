@@ -533,7 +533,8 @@ jobs:
     env:
       MAVEN_OPTS: -Xmx3000m
       SCALPEL_ENABLED: "-Dscalpel.enabled=true"
-      SCALPEL_FULL_BUILD_TRIGGERS: "-Dscalpel.fullBuildTriggers=poms/**,extensions-core/core/**,tooling/maven-plugin/**,.mvn/**,pom.xml"
+      # TEMPORARY: Removed tooling/maven-plugin/** to allow testing plugin changes without full builds
+      SCALPEL_FULL_BUILD_TRIGGERS: "-Dscalpel.fullBuildTriggers=poms/**,extensions-core/core/**,.mvn/**,pom.xml"
       SCALPEL_ALSO_MAKE: "-Dscalpel.alsoMake=true"
       SCALPEL_ALSO_MAKE_DEPENDENTS: "-Dscalpel.alsoMakeDependents=false"
     steps:
