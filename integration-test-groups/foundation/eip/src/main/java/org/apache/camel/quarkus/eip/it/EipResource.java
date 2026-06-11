@@ -126,3 +126,4 @@ public class EipResource {
     }
 
 }
+// Test: grouped integration test
