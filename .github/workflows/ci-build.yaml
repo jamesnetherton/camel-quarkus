@@ -185,16 +185,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: pre-build-checks
     outputs:
+      # Miscellaneous job outputs. Keep sorted alphabetically.
       atlassian-version: ${{ steps.atlassian-version.outputs.version }}
-      incremental-modules: ${{ steps.incremental-build.outputs.incremental-modules }}
+      # Incremental build job outputs. Keep sorted alphabetically.
       examples-matrix: ${{ steps.set-examples-matrix.outputs.examples-matrix }}
-      jvm-modules: ${{ steps.process-incremental.outputs.jvm-modules || '' }}
-      native-matrix: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.native-matrix || steps.set-native-matrix-full.outputs.matrix }}
+      integration-tests-jvm-modules: ${{ steps.process-incremental.outputs.integration-tests-jvm-modules || '' }}
+      integration-tests-matrix: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.integration-tests-matrix || steps.set-native-matrix-full.outputs.matrix }}
+      integration-tests-modules: ${{ steps.incremental-build.outputs.integration-tests-modules }}
       run-catalog-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-catalog-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
       run-examples: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-examples == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
       run-extensions-core-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-extensions-core-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
       run-extensions-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-extensions-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
-      run-jvm-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-jvm-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
+      run-integration-tests-jvm: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-integration-tests-jvm == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
       run-test-framework-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-test-framework-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
       run-tooling-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-tooling-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
     env:
@@ -330,9 +332,9 @@ jobs:
             # Output entire JSON as single output (compact for GitHub Actions)
             echo "data=$(cat target/incremental-build.json | jq -c '.')" >> $GITHUB_OUTPUT
 
-            # Also create incremental-modules output for filtering
-            INCREMENTAL_MODULES=$(cat target/incremental-build.json | jq -c '{modules: .affectedModules, fullBuild: false, totalModules: .affectedModulesCount}')
-            echo "incremental-modules=$INCREMENTAL_MODULES" >> $GITHUB_OUTPUT
+            # Also create integration-tests-modules output for filtering
+            INTEGRATION_TESTS_MODULES=$(cat target/incremental-build.json | jq -c '{modules: .affectedModules, fullBuild: false, totalModules: .affectedModulesCount}')
+            echo "integration-tests-modules=$INTEGRATION_TESTS_MODULES" >> $GITHUB_OUTPUT
           else
             echo "Incremental build analysis failed - falling back to full build"
             # Output empty JSON structure for fallback
@@ -352,9 +354,9 @@ jobs:
             echo "use-incremental=$INCREMENTAL" >> $GITHUB_OUTPUT
 
             # Always extract matrices and flags from JSON (job outputs handle the conditional logic)
-            echo "native-matrix=$(echo "$DATA" | jq -c '.nativeTestMatrix')" >> $GITHUB_OUTPUT
-            echo "run-jvm-tests=$(echo "$DATA" | jq -r '.jvmOnlyTests.runJvmTests')" >> $GITHUB_OUTPUT
-            echo "jvm-modules=$(echo "$DATA" | jq -r '.jvmOnlyTests.jvmModules')" >> $GITHUB_OUTPUT
+            echo "integration-tests-matrix=$(echo "$DATA" | jq -c '.nativeTestMatrix')" >> $GITHUB_OUTPUT
+            echo "run-integration-tests-jvm=$(echo "$DATA" | jq -r '.integrationTestsJvm.runTests')" >> $GITHUB_OUTPUT
+            echo "integration-tests-jvm-modules=$(echo "$DATA" | jq -r '.integrationTestsJvm.modules')" >> $GITHUB_OUTPUT
             echo "run-extensions-core-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runExtensionsCoreTests')" >> $GITHUB_OUTPUT
             echo "run-extensions-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runExtensionsTests')" >> $GITHUB_OUTPUT
             echo "run-examples=$(echo "$DATA" | jq -r '.runExamples')" >> $GITHUB_OUTPUT
@@ -438,10 +440,10 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM'))
-      && (fromJson(needs.initial-mvn-install.outputs.native-matrix).include[0] != null || fromJson(needs.initial-mvn-install.outputs.native-matrix).category[0] != null)
+      && (fromJson(needs.initial-mvn-install.outputs.integration-tests-matrix).include[0] != null || fromJson(needs.initial-mvn-install.outputs.integration-tests-matrix).category[0] != null)
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.initial-mvn-install.outputs.native-matrix) }}
+      matrix: ${{ fromJson(needs.initial-mvn-install.outputs.integration-tests-matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -644,7 +646,7 @@ jobs:
   integration-tests-jvm:
     runs-on: ubuntu-latest
     needs: initial-mvn-install
-    if: needs.initial-mvn-install.outputs.run-jvm-tests == 'true'
+    if: needs.initial-mvn-install.outputs.run-integration-tests-jvm == 'true'
     env:
       MAVEN_OPTS: -Xmx3000m
     steps:
@@ -665,7 +667,7 @@ jobs:
       - name: cd integration-tests-jvm && mvn clean test
         run: |
           cd integration-tests-jvm
-          JVM_MODULES="${{ needs.initial-mvn-install.outputs.jvm-modules }}"
+          JVM_MODULES="${{ needs.initial-mvn-install.outputs.integration-tests-jvm-modules }}"
 
           if [ -n "$JVM_MODULES" ]; then
             echo "Running incremental JVM tests for: $JVM_MODULES"
@@ -695,7 +697,7 @@ jobs:
         os: [ 'windows-latest' ]
     if: |
       (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM'))
-      && (needs.initial-mvn-install.outputs.incremental-modules == '' || fromJson(needs.initial-mvn-install.outputs.incremental-modules).totalModules > 0)
+      && (needs.initial-mvn-install.outputs.integration-tests-modules == '' || fromJson(needs.initial-mvn-install.outputs.integration-tests-modules).totalModules > 0)
     env:
       MAVEN_OPTS: -Xmx3000m -Xms3000m
     steps:
@@ -717,9 +719,9 @@ jobs:
         shell: bash
         run: |
           cd integration-tests
-          if [ -n "${{ needs.initial-mvn-install.outputs.incremental-modules }}" ]; then
+          if [ -n "${{ needs.initial-mvn-install.outputs.integration-tests-modules }}" ]; then
             # Incremental build - use affected modules from filtered matrix
-            AFFECTED_MODULES=$(echo '${{ needs.initial-mvn-install.outputs.incremental-modules }}' | jq -r '.modules | join(",")')
+            AFFECTED_MODULES=$(echo '${{ needs.initial-mvn-install.outputs.integration-tests-modules }}' | jq -r '.modules | join(",")')
             echo "Running incremental build with affected modules: $AFFECTED_MODULES"
             ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
               -pl "$AFFECTED_MODULES" \
@@ -786,11 +788,11 @@ jobs:
           # Filter examples for incremental builds
           MODULES_TO_BUILD="${EXAMPLE_MODULES//,/ }"
 
-          if [ -n "${{ needs.initial-mvn-install.outputs.incremental-modules }}" ]; then
+          if [ -n "${{ needs.initial-mvn-install.outputs.integration-tests-modules }}" ]; then
             echo "Incremental build detected - filtering examples based on affected extensions"
 
             # Get affected modules from filtered matrix
-            AFFECTED_MODULES=$(echo '${{ needs.initial-mvn-install.outputs.incremental-modules }}' | jq -r '.modules[]')
+            AFFECTED_MODULES=$(echo '${{ needs.initial-mvn-install.outputs.integration-tests-modules }}' | jq -r '.modules[]')
             echo "Affected modules: $AFFECTED_MODULES"
 
             # Check if extensions-core/core is affected (build all examples if so)
