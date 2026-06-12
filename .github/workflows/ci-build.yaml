@@ -182,19 +182,23 @@ jobs:
     runs-on: ubuntu-latest
     needs: pre-build-checks
     outputs:
-      matrix: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.native-matrix || steps.set-native-matrix-full.outputs.matrix }}
-      examples-matrix: ${{ steps.set-examples-matrix.outputs.examples-matrix }}
       cache-key: ${{ steps.maven-cache.outputs.cache-key }}
-      use-filtered-matrix: ${{ steps.process-incremental.outputs.use-incremental == 'true' }}
-      filtered-matrix: ${{ steps.incremental-build.outputs.filtered-matrix }}
+      examples-filtered-matrix: ${{ steps.incremental-build.outputs.filtered-matrix }}
+      examples-matrix: ${{ steps.set-examples-matrix.outputs.examples-matrix }}
+      integration-tests-jvm-modules: ${{ steps.process-incremental.outputs.jvm-modules || '' }}
+      matrix: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.native-matrix || steps.set-native-matrix-full.outputs.matrix }}
       run-jvm-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-jvm-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
-      jvm-modules: ${{ steps.process-incremental.outputs.jvm-modules || '' }}
-      run-extensions-core-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-extensions-core-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
-      run-extensions-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-extensions-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
       run-test-framework-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-test-framework-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
       run-tooling-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-tooling-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
+      use-filtered-matrix: ${{ steps.process-incremental.outputs.use-incremental == 'true' }}
       run-catalog-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-catalog-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
       run-examples: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-examples == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
+      run-extensions-core-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-extensions-core-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
+      run-extensions-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-extensions-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
+      run-integration-tests-jvm: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-jvm-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
+      run-test-framework-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-test-framework-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
+      run-tooling-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-tooling-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
+      use-filtered-matrix: ${{ steps.process-incremental.outputs.use-incremental == 'true' }}
     env:
       MAVEN_OPTS: -Xmx4600m
       SCALPEL_ENABLED: "-Dscalpel.enabled=true"
@@ -628,7 +632,7 @@ jobs:
   integration-tests-jvm:
     runs-on: ubuntu-latest
     needs: initial-mvn-install
-    if: needs.initial-mvn-install.outputs.run-jvm-tests == 'true'
+    if: needs.initial-mvn-install.outputs.run-integration-tests-jvm == 'true'
     env:
       MAVEN_OPTS: -Xmx3000m
     steps:
@@ -650,7 +654,7 @@ jobs:
       - name: cd integration-tests-jvm && mvn clean test
         run: |
           cd integration-tests-jvm
-          JVM_MODULES="${{ needs.initial-mvn-install.outputs.jvm-modules }}"
+          JVM_MODULES="${{ needs.initial-mvn-install.outputs.integration-tests-jvm-modules }}"
 
           if [ -n "$JVM_MODULES" ]; then
             echo "Running incremental JVM tests for: $JVM_MODULES"
@@ -680,7 +684,7 @@ jobs:
         os: [ 'windows-latest' ]
     if: |
       (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM'))
-      && (needs.initial-mvn-install.outputs.use-filtered-matrix != 'true' || fromJson(needs.initial-mvn-install.outputs.filtered-matrix).totalModules > 0)
+      && (needs.initial-mvn-install.outputs.use-filtered-matrix != 'true' || fromJson(needs.initial-mvn-install.outputs.examples-filtered-matrix).totalModules > 0)
     env:
       MAVEN_OPTS: -Xmx3000m -Xms3000m
     steps:
@@ -705,7 +709,7 @@ jobs:
           cd integration-tests
           if [ "${{ needs.initial-mvn-install.outputs.use-filtered-matrix }}" == "true" ]; then
             # Incremental build - use affected modules from filtered matrix
-            AFFECTED_MODULES=$(echo '${{ needs.initial-mvn-install.outputs.filtered-matrix }}' | jq -r '.modules | join(",")')
+            AFFECTED_MODULES=$(echo '${{ needs.initial-mvn-install.outputs.examples-filtered-matrix }}' | jq -r '.modules | join(",")')
             echo "Running incremental build with affected modules: $AFFECTED_MODULES"
             ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
               -pl "$AFFECTED_MODULES" \
@@ -777,7 +781,7 @@ jobs:
             echo "Incremental build detected - filtering examples based on affected extensions"
 
             # Get affected modules from filtered matrix
-            AFFECTED_MODULES=$(echo '${{ needs.initial-mvn-install.outputs.filtered-matrix }}' | jq -r '.modules[]')
+            AFFECTED_MODULES=$(echo '${{ needs.initial-mvn-install.outputs.examples-filtered-matrix }}' | jq -r '.modules[]')
             echo "Affected modules: $AFFECTED_MODULES"
 
             # Check if extensions-core/core is affected (build all examples if so)
