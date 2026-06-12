@@ -186,7 +186,7 @@ jobs:
       examples-filtered-matrix: ${{ steps.incremental-build.outputs.filtered-matrix }}
       examples-matrix: ${{ steps.set-examples-matrix.outputs.examples-matrix }}
       integration-tests-jvm-modules: ${{ steps.process-incremental.outputs.jvm-modules || '' }}
-      native-tests-matrix: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.native-matrix || steps.set-native-matrix-full.outputs.matrix }}
+      integration-tests-matrix: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.native-matrix || steps.set-native-matrix-full.outputs.matrix }}
       run-jvm-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-jvm-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
       run-test-framework-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-test-framework-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
       run-tooling-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-tooling-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
@@ -422,10 +422,10 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM'))
-      && (fromJson(needs.initial-mvn-install.outputs.native-tests-matrix).include[0] != null || fromJson(needs.initial-mvn-install.outputs.native-tests-matrix).category[0] != null)
+      && (fromJson(needs.initial-mvn-install.outputs.integration-tests-matrix).include[0] != null || fromJson(needs.initial-mvn-install.outputs.integration-tests-matrix).category[0] != null)
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.initial-mvn-install.outputs.native-tests-matrix) }}
+      matrix: ${{ fromJson(needs.initial-mvn-install.outputs.integration-tests-matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
