@@ -189,7 +189,7 @@ jobs:
       examples-filtered-matrix: ${{ steps.incremental-build.outputs.filtered-matrix }}
       examples-matrix: ${{ steps.set-examples-matrix.outputs.examples-matrix }}
       integration-tests-jvm-modules: ${{ steps.process-incremental.outputs.jvm-modules || '' }}
-      matrix: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.native-matrix || steps.set-native-matrix-full.outputs.matrix }}
+      native-tests-matrix: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.native-matrix || steps.set-native-matrix-full.outputs.matrix }}
       run-catalog-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-catalog-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
       run-examples: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-examples == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
       run-extensions-core-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-extensions-core-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
@@ -197,7 +197,6 @@ jobs:
       run-integration-tests-jvm: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-jvm-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
       run-test-framework-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-test-framework-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
       run-tooling-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-tooling-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
-      use-filtered-matrix: ${{ steps.process-incremental.outputs.use-incremental == 'true' }}
     env:
       MAVEN_OPTS: -Xmx4600m
       SCALPEL_ENABLED: "-Dscalpel.enabled=true"
@@ -439,10 +438,10 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM'))
-      && (fromJson(needs.initial-mvn-install.outputs.matrix).include[0] != null || fromJson(needs.initial-mvn-install.outputs.matrix).category[0] != null)
+      && (fromJson(needs.initial-mvn-install.outputs.native-tests-matrix).include[0] != null || fromJson(needs.initial-mvn-install.outputs.native-tests-matrix).category[0] != null)
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.initial-mvn-install.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.initial-mvn-install.outputs.native-tests-matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -696,7 +695,7 @@ jobs:
         os: [ 'windows-latest' ]
     if: |
       (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM'))
-      && (needs.initial-mvn-install.outputs.use-filtered-matrix != 'true' || fromJson(needs.initial-mvn-install.outputs.examples-filtered-matrix).totalModules > 0)
+      && (needs.initial-mvn-install.outputs.examples-filtered-matrix == '' || fromJson(needs.initial-mvn-install.outputs.examples-filtered-matrix).totalModules > 0)
     env:
       MAVEN_OPTS: -Xmx3000m -Xms3000m
     steps:
@@ -718,7 +717,7 @@ jobs:
         shell: bash
         run: |
           cd integration-tests
-          if [ "${{ needs.initial-mvn-install.outputs.use-filtered-matrix }}" == "true" ]; then
+          if [ -n "${{ needs.initial-mvn-install.outputs.examples-filtered-matrix }}" ]; then
             # Incremental build - use affected modules from filtered matrix
             AFFECTED_MODULES=$(echo '${{ needs.initial-mvn-install.outputs.examples-filtered-matrix }}' | jq -r '.modules | join(",")')
             echo "Running incremental build with affected modules: $AFFECTED_MODULES"
@@ -787,7 +786,7 @@ jobs:
           # Filter examples for incremental builds
           MODULES_TO_BUILD="${EXAMPLE_MODULES//,/ }"
 
-          if [ "${{ needs.initial-mvn-install.outputs.use-filtered-matrix }}" == "true" ]; then
+          if [ -n "${{ needs.initial-mvn-install.outputs.examples-filtered-matrix }}" ]; then
             echo "Incremental build detected - filtering examples based on affected extensions"
 
             # Get affected modules from filtered matrix
