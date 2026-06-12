@@ -223,7 +223,7 @@ public class IncrementalBuildMojo extends AbstractMojo {
 
         // Detect JVM-only tests
         Map<String, Object> jvmTests = detectJvmTests();
-        result.put("jvmOnlyTests", jvmTests);
+        result.put("integrationTestsJvm", jvmTests);
 
         // Detect if examples should run (only when extensions change, not integration tests)
         boolean runExamples = shouldRunExamples();
@@ -361,7 +361,7 @@ public class IncrementalBuildMojo extends AbstractMojo {
             if (start < moduleCount) {
                 List<String> groupModules = modules.subList(start, end);
                 Map<String, String> group = new LinkedHashMap<>();
-                group.put("name", "group-" + (i + 1));
+                group.put("name", String.format("group-%02d", i + 1));
                 group.put("modules", String.join(",", groupModules));
                 include.add(group);
             }
@@ -443,12 +443,12 @@ public class IncrementalBuildMojo extends AbstractMojo {
      */
     private Map<String, Object> detectJvmTests() throws IOException {
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("runJvmTests", false);
-        result.put("jvmModules", "");
+        result.put("runTests", false);
+        result.put("modules", "");
 
         if (!useIncrementalBuild || !Files.exists(scalpelReportJson)) {
             // Full build - run all JVM tests
-            result.put("runJvmTests", true);
+            result.put("runTests", true);
             return result;
         }
 
@@ -477,8 +477,8 @@ public class IncrementalBuildMojo extends AbstractMojo {
         }
 
         if (!jvmModules.isEmpty()) {
-            result.put("runJvmTests", true);
-            result.put("jvmModules", String.join(",", jvmModules));
+            result.put("runTests", true);
+            result.put("modules", String.join(",", jvmModules));
             getLog().info("JVM-only tests: " + jvmModules.size() + " modules affected");
         }
 
