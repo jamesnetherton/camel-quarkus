@@ -25,6 +25,7 @@ import org.apache.camel.quarkus.core.JvmOnlyRecorder;
 import org.jboss.logging.Logger;
 
 class EhcacheProcessor {
+    // Test change: verify JVM-only extension triggers JVM tests only
 
     private static final Logger LOG = Logger.getLogger(EhcacheProcessor.class);
     private static final String FEATURE = "camel-ehcache";
