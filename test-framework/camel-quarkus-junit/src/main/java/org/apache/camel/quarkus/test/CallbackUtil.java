@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.camel.quarkus.test;
+// Test change: verify test-framework triggers downstream tests only
 
 import java.util.Optional;
 import java.util.Set;
