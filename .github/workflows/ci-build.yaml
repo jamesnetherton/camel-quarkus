@@ -300,7 +300,6 @@ jobs:
       # Step 2: Run IncrementalBuildMojo to process Scalpel report and generate:
       # - Filtered list of affected integration test modules
       # - Native test matrix with balanced distribution across groups
-      # - Alternate JVM test matrix
       # - Functional test scope flags (which test suites to run)
       # - JVM-only test modules list
       - name: Incremental Build Analysis
