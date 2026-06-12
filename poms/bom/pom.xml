@@ -28,6 +28,7 @@
     <artifactId>camel-quarkus-bom</artifactId>
     <packaging>pom</packaging>
     <name>Camel Quarkus :: BOM</name>
+    <!-- Test change: verify poms/** triggers full build -->
     <properties>
         <!-- This property is kept in sync with project.version by the release plugin -->
         <!-- Do not change to project.version because otherwise the end user apps having our BOM as parent (rather than importing it) will stop working -->
