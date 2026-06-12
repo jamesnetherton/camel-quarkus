@@ -421,7 +421,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM'))
-      && fromJson(needs.initial-mvn-install.outputs.matrix).include[0] != null
+      && (fromJson(needs.initial-mvn-install.outputs.matrix).include[0] != null || fromJson(needs.initial-mvn-install.outputs.matrix).category[0] != null)
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.initial-mvn-install.outputs.matrix) }}
