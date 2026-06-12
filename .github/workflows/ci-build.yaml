@@ -186,7 +186,7 @@ jobs:
     needs: pre-build-checks
     outputs:
       atlassian-version: ${{ steps.atlassian-version.outputs.version }}
-      incremental-modules: ${{ steps.incremental-build.outputs.filtered-matrix }}
+      incremental-modules: ${{ steps.incremental-build.outputs.incremental-modules }}
       examples-matrix: ${{ steps.set-examples-matrix.outputs.examples-matrix }}
       jvm-modules: ${{ steps.process-incremental.outputs.jvm-modules || '' }}
       native-matrix: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.native-matrix || steps.set-native-matrix-full.outputs.matrix }}
@@ -330,9 +330,9 @@ jobs:
             # Output entire JSON as single output (compact for GitHub Actions)
             echo "data=$(cat target/incremental-build.json | jq -c '.')" >> $GITHUB_OUTPUT
 
-            # Also create filtered-matrix format for examples filtering
-            FILTERED_MATRIX=$(cat target/incremental-build.json | jq -c '{modules: .affectedModules, fullBuild: false, totalModules: .affectedModulesCount}')
-            echo "filtered-matrix=$FILTERED_MATRIX" >> $GITHUB_OUTPUT
+            # Also create incremental-modules output for filtering
+            INCREMENTAL_MODULES=$(cat target/incremental-build.json | jq -c '{modules: .affectedModules, fullBuild: false, totalModules: .affectedModulesCount}')
+            echo "incremental-modules=$INCREMENTAL_MODULES" >> $GITHUB_OUTPUT
           else
             echo "Incremental build analysis failed - falling back to full build"
             # Output empty JSON structure for fallback
