@@ -26,6 +26,7 @@ import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.RuntimeInitializedClassBuildItem;
 
 class BoxProcessor {
+    // Test change: verify incremental build handles multiple extensions
 
     private static final String FEATURE = "camel-box";
 

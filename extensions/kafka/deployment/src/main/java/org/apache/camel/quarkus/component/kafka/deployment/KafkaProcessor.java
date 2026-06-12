@@ -37,6 +37,7 @@ import org.jboss.jandex.DotName;
 import org.jboss.jandex.IndexView;
 
 class KafkaProcessor {
+    // Test change: verify incremental build handles multiple extensions
     private static final String FEATURE = "camel-kafka";
     private static final DotName[] KAFKA_CLIENTS_TYPES = {
             DotName.createSimple("org.apache.kafka.clients.producer.Producer"),
