@@ -38,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CamelSerializationProcessor {
+    // Test change: verify extensions-core/core triggers full build
     private static final Logger LOGGER = LoggerFactory.getLogger(CamelSerializationProcessor.class);
     private static final String[] BASE_SERIALIZATION_CLASSES = {
             // JDK classes
