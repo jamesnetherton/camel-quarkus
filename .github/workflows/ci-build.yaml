@@ -108,6 +108,9 @@ env:
   CQ_MAVEN_ARGS: -V -ntp -e -Daether.connector.http.connectionMaxTtl=120
   TESTCONTAINERS_RYUK_DISABLED: true
   CHECKOUT_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]' && github.head_ref || '' }}
+  # Scalpel configuration (shared across jobs that use Scalpel)
+  SCALPEL_FULL_BUILD_TRIGGERS: "-Dscalpel.fullBuildTriggers=poms/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml"
+  SCALPEL_EXCLUDE_PATHS: "-Dscalpel.excludePaths=**.adoc,**.md,docs/**,Jenkinsfile*,LICENSE.txt,NOTICE.txt,KEYS,camel-quarkus-sbom/**,.github/*.sh"
 
 jobs:
   pre-build-checks:
@@ -201,6 +204,7 @@ jobs:
       run-tooling-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-tooling-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
     env:
       MAVEN_OPTS: -Xmx4600m
+      SCALPEL_ENABLED: "-Dscalpel.enabled=true"
       SCALPEL_ENABLED: "-Dscalpel.enabled=true"
       # TEMPORARY: Removed tooling/maven-plugin/** to allow testing plugin changes without full builds
       SCALPEL_FULL_BUILD_TRIGGERS: "-Dscalpel.fullBuildTriggers=poms/**,extensions-core/core/**,.mvn/**,pom.xml"
@@ -520,7 +524,6 @@ jobs:
     env:
       MAVEN_OPTS: -Xmx3000m
       SCALPEL_ENABLED: "-Dscalpel.enabled=true"
-      SCALPEL_FULL_BUILD_TRIGGERS: "-Dscalpel.fullBuildTriggers=poms/**,extensions-core/core/**,tooling/maven-plugin/**,.mvn/**,pom.xml"
       SCALPEL_ALSO_MAKE: "-Dscalpel.alsoMake=true"
       SCALPEL_ALSO_MAKE_DEPENDENTS: "-Dscalpel.alsoMakeDependents=false"
     steps:
