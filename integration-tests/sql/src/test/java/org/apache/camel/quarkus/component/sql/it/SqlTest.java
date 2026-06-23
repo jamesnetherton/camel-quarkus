@@ -16,6 +16,7 @@
  */
 package org.apache.camel.quarkus.component.sql.it;
 
+// Test change for incremental build verification
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
