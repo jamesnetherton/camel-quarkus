@@ -266,7 +266,7 @@ jobs:
           ./mvnw -N cq:update-quarkus-metadata ${CQ_MAVEN_ARGS}
       - name: mvn clean install -DskipTests
         run: |
-          eval ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} clean install -DskipTests -Dquarkus.build.skip -Pformat
+          eval ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} -T1C clean install -DskipTests -Dquarkus.build.skip -Pformat
       # Step 1: Run Scalpel to analyze git diff and identify affected modules
       # Scalpel produces a JSON report with:
       # - fullBuildTriggered: true if critical paths changed (poms, core, maven-plugin)
