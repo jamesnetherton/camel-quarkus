@@ -166,6 +166,13 @@ public class IncrementalBuildMojo extends AbstractMojo {
     String functionalScopeDirs;
 
     /**
+     * Prefix for shared integration test support modules.
+     * Default: integration-tests-support/
+     */
+    @Parameter(property = "cq.integrationTestSupportPrefix", defaultValue = "integration-tests-support/")
+    String integrationTestSupportPrefix;
+
+    /**
      * Comma-separated list of changed container image property names (e.g.
      * {@code kafka.container.image,mysql.container.image}).
      * When set, TestResource.java files are scanned to find which test modules reference these
@@ -355,6 +362,13 @@ public class IncrementalBuildMojo extends AbstractMojo {
     /**
      * Scans TestResource.java files for references to changed container image properties
      * and returns the affected module names, split by test type.
+     * <p>
+     * Handles two cases:
+     * <ul>
+     * <li>Direct references in test modules (integration-tests/, integration-tests-jvm/, integration-test-groups/)</li>
+     * <li>References in shared support modules (integration-tests-support/) — resolved by finding which test
+     * modules depend on the affected support module via POM dependency grep</li>
+     * </ul>
      */
     private ContainerAffectedModules detectContainerAffectedModules() throws IOException {
         ContainerAffectedModules result = new ContainerAffectedModules();
@@ -375,9 +389,9 @@ public class IncrementalBuildMojo extends AbstractMojo {
             return result;
         }
 
-        getLog().info("Scanning TestResource files for changed container properties: " + changedProps);
+        getLog().info("Scanning for changed container properties: " + changedProps);
 
-        // Scan integration-tests/ and integration-tests-jvm/
+        // Scan integration-tests/ and integration-tests-jvm/ for direct references
         for (String prefix : integrationTestDirs.split(",")) {
             String trimmedPrefix = prefix.trim();
             Path dir = projectRootDir.resolve(trimmedPrefix);
@@ -386,51 +400,32 @@ public class IncrementalBuildMojo extends AbstractMojo {
             }
 
             boolean isJvm = trimmedPrefix.equals(jvmTestsPrefix.trim());
-
-            try (Stream<Path> paths = Files.walk(dir)) {
-                paths.filter(p -> p.getFileName().toString().endsWith("TestResource.java"))
-                        .forEach(file -> {
-                            try {
-                                String content = Files.readString(file, StandardCharsets.UTF_8);
-                                for (String prop : changedProps) {
-                                    if (content.contains("\"" + prop + "\"")) {
-                                        Path relative = dir.relativize(file);
-                                        String moduleName = relative.getName(0).toString();
-                                        if (isJvm) {
-                                            result.jvmModules.add(moduleName);
-                                        } else {
-                                            result.nativeModules.add(moduleName);
-                                        }
-                                        break;
-                                    }
-                                }
-                            } catch (IOException e) {
-                                getLog().warn("Failed to read " + file + ": " + e.getMessage());
-                            }
-                        });
-            }
+            scanTestResourceFiles(dir, changedProps, (moduleName) -> {
+                if (isJvm) {
+                    result.jvmModules.add(moduleName);
+                } else {
+                    result.nativeModules.add(moduleName);
+                }
+            });
         }
 
-        // Scan integration-test-groups/
+        // Scan integration-test-groups/ for direct references
         Path groupsDir = projectRootDir.resolve(integrationTestGroupsPrefix.trim());
         if (Files.isDirectory(groupsDir)) {
-            try (Stream<Path> paths = Files.walk(groupsDir)) {
-                paths.filter(p -> p.getFileName().toString().endsWith("TestResource.java"))
-                        .forEach(file -> {
-                            try {
-                                String content = Files.readString(file, StandardCharsets.UTF_8);
-                                for (String prop : changedProps) {
-                                    if (content.contains("\"" + prop + "\"")) {
-                                        Path relative = groupsDir.relativize(file);
-                                        String groupName = relative.getName(0).toString();
-                                        result.nativeModules.add(groupName + "-grouped");
-                                        break;
-                                    }
-                                }
-                            } catch (IOException e) {
-                                getLog().warn("Failed to read " + file + ": " + e.getMessage());
-                            }
-                        });
+            scanTestResourceFiles(groupsDir, changedProps, (moduleName) -> {
+                result.nativeModules.add(moduleName + "-grouped");
+            });
+        }
+
+        // Scan integration-tests-support/ for references in shared modules
+        Path supportDir = projectRootDir.resolve(integrationTestSupportPrefix.trim());
+        if (Files.isDirectory(supportDir)) {
+            Set<String> affectedSupportModules = new LinkedHashSet<>();
+            scanTestResourceFiles(supportDir, changedProps, affectedSupportModules::add);
+
+            if (!affectedSupportModules.isEmpty()) {
+                getLog().info("Container properties referenced in support modules: " + affectedSupportModules);
+                resolveSupportModuleDependents(affectedSupportModules, result);
             }
         }
 
@@ -442,6 +437,97 @@ public class IncrementalBuildMojo extends AbstractMojo {
         }
 
         return result;
+    }
+
+    @FunctionalInterface
+    private interface ModuleConsumer {
+        void accept(String moduleName);
+    }
+
+    /**
+     * Walks a directory for TestResource.java files containing any of the given property names.
+     * For each match, extracts the top-level module name and passes it to the consumer.
+     */
+    private void scanTestResourceFiles(Path dir, Set<String> changedProps, ModuleConsumer consumer) throws IOException {
+        try (Stream<Path> paths = Files.walk(dir)) {
+            paths.filter(p -> p.getFileName().toString().endsWith("TestResource.java"))
+                    .forEach(file -> {
+                        try {
+                            String content = Files.readString(file, StandardCharsets.UTF_8);
+                            for (String prop : changedProps) {
+                                if (content.contains("\"" + prop + "\"")) {
+                                    Path relative = dir.relativize(file);
+                                    String moduleName = relative.getName(0).toString();
+                                    consumer.accept(moduleName);
+                                    break;
+                                }
+                            }
+                        } catch (IOException e) {
+                            getLog().warn("Failed to read " + file + ": " + e.getMessage());
+                        }
+                    });
+        }
+    }
+
+    /**
+     * For each affected support module, finds test modules that depend on it by grepping
+     * their pom.xml files for the support module's artifactId.
+     */
+    private void resolveSupportModuleDependents(Set<String> supportModules, ContainerAffectedModules result)
+            throws IOException {
+
+        for (String supportModule : supportModules) {
+            String artifactId = "camel-quarkus-integration-tests-support-" + supportModule;
+            getLog().info("Resolving dependents of " + artifactId);
+
+            // Search integration-tests/*/pom.xml
+            for (String prefix : integrationTestDirs.split(",")) {
+                String trimmedPrefix = prefix.trim();
+                Path dir = projectRootDir.resolve(trimmedPrefix);
+                if (!Files.isDirectory(dir)) {
+                    continue;
+                }
+
+                boolean isJvm = trimmedPrefix.equals(jvmTestsPrefix.trim());
+                findDependentModules(dir, artifactId, (moduleName) -> {
+                    if (isJvm) {
+                        result.jvmModules.add(moduleName);
+                    } else {
+                        result.nativeModules.add(moduleName);
+                    }
+                });
+            }
+
+            // Search integration-test-groups/*/*/pom.xml
+            Path groupsDir = projectRootDir.resolve(integrationTestGroupsPrefix.trim());
+            if (Files.isDirectory(groupsDir)) {
+                findDependentModules(groupsDir, artifactId, (moduleName) -> {
+                    result.nativeModules.add(moduleName + "-grouped");
+                });
+            }
+        }
+    }
+
+    /**
+     * Finds modules under a directory whose pom.xml contains a dependency on the given artifactId.
+     */
+    private void findDependentModules(Path dir, String artifactId, ModuleConsumer consumer) throws IOException {
+        try (Stream<Path> paths = Files.walk(dir)) {
+            paths.filter(p -> p.getFileName().toString().equals("pom.xml"))
+                    .forEach(pomFile -> {
+                        try {
+                            String content = Files.readString(pomFile, StandardCharsets.UTF_8);
+                            if (content.contains(artifactId)) {
+                                Path relative = dir.relativize(pomFile);
+                                String moduleName = relative.getName(0).toString();
+                                consumer.accept(moduleName);
+                                getLog().debug("  " + moduleName + " depends on " + artifactId);
+                            }
+                        } catch (IOException e) {
+                            getLog().warn("Failed to read " + pomFile + ": " + e.getMessage());
+                        }
+                    });
+        }
     }
 
     private Map<String, Object> generateNativeMatrix(List<String> modules) throws MojoExecutionException {
