@@ -16,6 +16,7 @@
  */
 package org.apache.camel.quarkus.core;
 
+// Test change for full build trigger verification
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
