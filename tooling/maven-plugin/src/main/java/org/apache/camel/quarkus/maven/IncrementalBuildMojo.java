@@ -26,6 +26,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -164,6 +165,21 @@ public class IncrementalBuildMojo extends AbstractMojo {
     @Parameter(property = "cq.functionalScopeDirs", defaultValue = "extensions-core/:runExtensionsCoreTests,extensions/:runExtensionsTests,test-framework/:runTestFrameworkTests,tooling/:runToolingTests,catalog/:runCatalogTests")
     String functionalScopeDirs;
 
+    /**
+     * Comma-separated list of changed container image property names (e.g.
+     * {@code kafka.container.image,mysql.container.image}).
+     * When set, TestResource.java files are scanned to find which test modules reference these
+     * properties, and those modules are added to the affected set.
+     */
+    @Parameter(property = "cq.changedContainerProperties")
+    String changedContainerProperties;
+
+    /**
+     * Project root directory used for scanning TestResource files.
+     */
+    @Parameter(defaultValue = "${maven.multiModuleProjectDirectory}", property = "cq.projectRootDir")
+    Path projectRootDir;
+
     private final ObjectMapper jsonMapper = new ObjectMapper();
 
     @Override
@@ -178,14 +194,18 @@ public class IncrementalBuildMojo extends AbstractMojo {
             case "filter-modules":
                 result = filterModules();
                 break;
-            case "native-matrix":
-                result = generateNativeMatrix();
+            case "native-matrix": {
+                ScalpelReport report = readScalpelReport();
+                ContainerAffectedModules containerModules = detectContainerAffectedModules();
+                List<String> modules = (List<String>) filterModules(report, containerModules).get("modules");
+                result = generateNativeMatrix(modules);
                 break;
+            }
             case "functional-scope":
-                result = detectFunctionalScope();
+                result = detectFunctionalScope(readScalpelReport());
                 break;
             case "jvm-tests":
-                result = detectJvmTests();
+                result = detectJvmTests(readScalpelReport(), detectContainerAffectedModules());
                 break;
             default:
                 throw new MojoExecutionException("Unknown action: " + action + ". Supported: analyze, filter-modules, "
@@ -200,47 +220,54 @@ public class IncrementalBuildMojo extends AbstractMojo {
         }
     }
 
-    /**
-     * Performs full analysis - all operations in one call.
-     * Returns comprehensive JSON with all incremental build data.
-     */
     private Map<String, Object> performFullAnalysis() throws IOException, MojoExecutionException {
         Map<String, Object> result = new LinkedHashMap<>();
 
-        // Filter modules
-        Map<String, Object> moduleData = filterModules();
+        ScalpelReport report = readScalpelReport();
+        ContainerAffectedModules containerModules = detectContainerAffectedModules();
+
+        Map<String, Object> moduleData = filterModules(report, containerModules);
         result.put("incrementalBuild", moduleData.get("incrementalBuild"));
         result.put("affectedModulesCount", moduleData.get("totalModules"));
         result.put("affectedModules", moduleData.get("modules"));
 
-        // Generate native test matrix
-        Map<String, Object> nativeMatrix = generateNativeMatrix();
-        result.put("nativeTestMatrix", nativeMatrix);
-
-        // Detect functional test scope
-        Map<String, Object> functionalScope = detectFunctionalScope();
-        result.put("functionalTestScope", functionalScope);
-
-        // Detect JVM-only tests
-        Map<String, Object> jvmTests = detectJvmTests();
-        result.put("integrationTestsJvm", jvmTests);
-
-        // Detect if examples should run (only when extensions change, not integration tests)
-        boolean runExamples = shouldRunExamples();
-        result.put("runExamples", runExamples);
+        List<String> modules = (List<String>) moduleData.get("modules");
+        result.put("nativeTestMatrix", generateNativeMatrix(modules));
+        result.put("functionalTestScope", detectFunctionalScope(report));
+        result.put("integrationTestsJvm", detectJvmTests(report, containerModules));
+        result.put("runExamples", shouldRunExamples(report));
 
         return result;
     }
 
-    /**
-     * Extracts affected modules from Scalpel report.
-     * Implements two-pass filtering logic from FilterCategoriesMojo.
-     */
-    private Map<String, Object> filterModules() throws IOException, MojoExecutionException {
+    private ScalpelReport readScalpelReport() throws IOException {
+        if (!useIncrementalBuild || !Files.exists(scalpelReportJson)) {
+            return null;
+        }
+        Map<String, Object> raw = jsonMapper.readValue(scalpelReportJson.toFile(), JSON_TYPE_REF);
+        return new ScalpelReport(
+                Boolean.TRUE.equals(raw.get("fullBuildTriggered")),
+                (List<Map<String, Object>>) raw.get("affectedModules"));
+    }
+
+    private static class ScalpelReport {
+        final boolean fullBuildTriggered;
+        final List<Map<String, Object>> affectedModules;
+
+        ScalpelReport(boolean fullBuildTriggered, List<Map<String, Object>> affectedModules) {
+            this.fullBuildTriggered = fullBuildTriggered;
+            this.affectedModules = affectedModules != null ? affectedModules : List.of();
+        }
+    }
+
+    private Map<String, Object> filterModules() throws IOException {
+        return filterModules(readScalpelReport(), detectContainerAffectedModules());
+    }
+
+    private Map<String, Object> filterModules(ScalpelReport report, ContainerAffectedModules containerModules) {
         Map<String, Object> result = new LinkedHashMap<>();
 
-        // Check if we should do incremental build
-        if (!useIncrementalBuild || !Files.exists(scalpelReportJson)) {
+        if (report == null) {
             getLog().info("Full build mode (useIncrementalBuild=" + useIncrementalBuild + ")");
             result.put("incrementalBuild", false);
             result.put("modules", new ArrayList<>());
@@ -248,12 +275,7 @@ public class IncrementalBuildMojo extends AbstractMojo {
             return result;
         }
 
-        // Read Scalpel report
-        Map<String, Object> scalpelReport = jsonMapper.readValue(scalpelReportJson.toFile(), JSON_TYPE_REF);
-
-        // Check if Scalpel triggered full build
-        Boolean fullBuildTriggered = (Boolean) scalpelReport.get("fullBuildTriggered");
-        if (Boolean.TRUE.equals(fullBuildTriggered)) {
+        if (report.fullBuildTriggered) {
             getLog().info("Full build triggered by Scalpel");
             result.put("incrementalBuild", false);
             result.put("modules", new ArrayList<>());
@@ -261,9 +283,7 @@ public class IncrementalBuildMojo extends AbstractMojo {
             return result;
         }
 
-        // Extract affected modules
-        List<Map<String, Object>> affectedModules = (List<Map<String, Object>>) scalpelReport.get("affectedModules");
-        if (affectedModules == null || affectedModules.isEmpty()) {
+        if (report.affectedModules.isEmpty()) {
             getLog().info("No affected modules - using full build for safety");
             result.put("incrementalBuild", false);
             result.put("modules", new ArrayList<>());
@@ -271,8 +291,8 @@ public class IncrementalBuildMojo extends AbstractMojo {
             return result;
         }
 
-        // Extract affected integration tests with two-pass filtering
-        Set<String> affectedTests = extractAffectedTests(affectedModules);
+        Set<String> affectedTests = extractAffectedTests(report.affectedModules);
+        affectedTests.addAll(containerModules.nativeModules);
 
         result.put("incrementalBuild", true);
         result.put("modules", new ArrayList<>(affectedTests));
@@ -327,21 +347,105 @@ public class IncrementalBuildMojo extends AbstractMojo {
         return affectedTests;
     }
 
-    /**
-     * Generates native test matrix with balanced distribution across groups.
-     */
-    private Map<String, Object> generateNativeMatrix() throws IOException, MojoExecutionException {
-        Map<String, Object> result = new LinkedHashMap<>();
+    private static class ContainerAffectedModules {
+        final Set<String> nativeModules = new LinkedHashSet<>();
+        final Set<String> jvmModules = new LinkedHashSet<>();
+    }
 
-        if (!useIncrementalBuild) {
-            // Full build - return empty matrix (workflow will use categories from YAML)
-            result.put("include", new ArrayList<>());
+    /**
+     * Scans TestResource.java files for references to changed container image properties
+     * and returns the affected module names, split by test type.
+     */
+    private ContainerAffectedModules detectContainerAffectedModules() throws IOException {
+        ContainerAffectedModules result = new ContainerAffectedModules();
+
+        if (changedContainerProperties == null || changedContainerProperties.isBlank()) {
             return result;
         }
 
-        // Get affected modules
-        Map<String, Object> moduleData = filterModules();
-        List<String> modules = (List<String>) moduleData.get("modules");
+        Set<String> changedProps = new LinkedHashSet<>();
+        for (String prop : changedContainerProperties.split(",")) {
+            String trimmed = prop.trim();
+            if (!trimmed.isEmpty()) {
+                changedProps.add(trimmed);
+            }
+        }
+
+        if (changedProps.isEmpty()) {
+            return result;
+        }
+
+        getLog().info("Scanning TestResource files for changed container properties: " + changedProps);
+
+        // Scan integration-tests/ and integration-tests-jvm/
+        for (String prefix : integrationTestDirs.split(",")) {
+            String trimmedPrefix = prefix.trim();
+            Path dir = projectRootDir.resolve(trimmedPrefix);
+            if (!Files.isDirectory(dir)) {
+                continue;
+            }
+
+            boolean isJvm = trimmedPrefix.equals(jvmTestsPrefix.trim());
+
+            try (Stream<Path> paths = Files.walk(dir)) {
+                paths.filter(p -> p.getFileName().toString().endsWith("TestResource.java"))
+                        .forEach(file -> {
+                            try {
+                                String content = Files.readString(file, StandardCharsets.UTF_8);
+                                for (String prop : changedProps) {
+                                    if (content.contains("\"" + prop + "\"")) {
+                                        Path relative = dir.relativize(file);
+                                        String moduleName = relative.getName(0).toString();
+                                        if (isJvm) {
+                                            result.jvmModules.add(moduleName);
+                                        } else {
+                                            result.nativeModules.add(moduleName);
+                                        }
+                                        break;
+                                    }
+                                }
+                            } catch (IOException e) {
+                                getLog().warn("Failed to read " + file + ": " + e.getMessage());
+                            }
+                        });
+            }
+        }
+
+        // Scan integration-test-groups/
+        Path groupsDir = projectRootDir.resolve(integrationTestGroupsPrefix.trim());
+        if (Files.isDirectory(groupsDir)) {
+            try (Stream<Path> paths = Files.walk(groupsDir)) {
+                paths.filter(p -> p.getFileName().toString().endsWith("TestResource.java"))
+                        .forEach(file -> {
+                            try {
+                                String content = Files.readString(file, StandardCharsets.UTF_8);
+                                for (String prop : changedProps) {
+                                    if (content.contains("\"" + prop + "\"")) {
+                                        Path relative = groupsDir.relativize(file);
+                                        String groupName = relative.getName(0).toString();
+                                        result.nativeModules.add(groupName + "-grouped");
+                                        break;
+                                    }
+                                }
+                            } catch (IOException e) {
+                                getLog().warn("Failed to read " + file + ": " + e.getMessage());
+                            }
+                        });
+            }
+        }
+
+        if (!result.nativeModules.isEmpty()) {
+            getLog().info("Container property changes affect native test modules: " + result.nativeModules);
+        }
+        if (!result.jvmModules.isEmpty()) {
+            getLog().info("Container property changes affect JVM test modules: " + result.jvmModules);
+        }
+
+        return result;
+    }
+
+    private Map<String, Object> generateNativeMatrix(List<String> modules) throws MojoExecutionException {
+        Map<String, Object> result = new LinkedHashMap<>();
 
         if (modules == null || modules.isEmpty()) {
             result.put("include", new ArrayList<>());
@@ -378,14 +482,7 @@ public class IncrementalBuildMojo extends AbstractMojo {
         return result;
     }
 
-    /**
-     * Generates alternate JVM matrix by splitting modules into N groups.
-     */
-    /**
-     * Detects which functional test scopes are affected by analyzing DIRECT changes.
-     */
-    private Map<String, Object> detectFunctionalScope() throws IOException {
-        // Parse functional scope configuration: prefix:scopeName,prefix:scopeName,...
+    private Map<String, Object> detectFunctionalScope(ScalpelReport report) {
         Map<String, String> prefixToScope = new LinkedHashMap<>();
         Map<String, Boolean> scope = new LinkedHashMap<>();
 
@@ -399,22 +496,12 @@ public class IncrementalBuildMojo extends AbstractMojo {
             }
         }
 
-        if (!useIncrementalBuild || !Files.exists(scalpelReportJson)) {
-            // Full build - run all tests
+        if (report == null) {
             scope.replaceAll((k, v) -> true);
             return new LinkedHashMap<>(scope);
         }
 
-        // Read Scalpel report
-        Map<String, Object> scalpelReport = jsonMapper.readValue(scalpelReportJson.toFile(), JSON_TYPE_REF);
-        List<Map<String, Object>> affectedModules = (List<Map<String, Object>>) scalpelReport.get("affectedModules");
-
-        if (affectedModules == null) {
-            return new LinkedHashMap<>(scope);
-        }
-
-        // Filter to DIRECT changes only
-        for (Map<String, Object> module : affectedModules) {
+        for (Map<String, Object> module : report.affectedModules) {
             String category = (String) module.get("category");
             if (!"DIRECT".equals(category)) {
                 continue;
@@ -438,43 +525,33 @@ public class IncrementalBuildMojo extends AbstractMojo {
         return new LinkedHashMap<>(scope);
     }
 
-    /**
-     * Detects affected JVM-only test modules.
-     */
-    private Map<String, Object> detectJvmTests() throws IOException {
+    private Map<String, Object> detectJvmTests(ScalpelReport report, ContainerAffectedModules containerModules) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("runTests", false);
         result.put("modules", "");
 
-        if (!useIncrementalBuild || !Files.exists(scalpelReportJson)) {
-            // Full build - run all JVM tests
+        if (report == null) {
             result.put("runTests", true);
             return result;
         }
 
-        // Read Scalpel report
-        Map<String, Object> scalpelReport = jsonMapper.readValue(scalpelReportJson.toFile(), JSON_TYPE_REF);
-        List<Map<String, Object>> affectedModules = (List<Map<String, Object>>) scalpelReport.get("affectedModules");
-
-        if (affectedModules == null || affectedModules.isEmpty()) {
+        if (report.affectedModules.isEmpty()) {
             return result;
         }
 
-        // Extract JVM-only test modules
-        List<String> jvmModules = new ArrayList<>();
-        for (Map<String, Object> module : affectedModules) {
+        Set<String> jvmModules = new LinkedHashSet<>();
+        for (Map<String, Object> module : report.affectedModules) {
             String path = (String) module.get("path");
             if (path != null && path.startsWith(jvmTestsPrefix)) {
                 String moduleName = path.substring(jvmTestsPrefix.length());
-                // Remove any trailing path components
                 if (moduleName.contains("/")) {
                     moduleName = moduleName.substring(0, moduleName.indexOf("/"));
                 }
-                if (!jvmModules.contains(moduleName)) {
-                    jvmModules.add(moduleName);
-                }
+                jvmModules.add(moduleName);
             }
         }
+
+        jvmModules.addAll(containerModules.jvmModules);
 
         if (!jvmModules.isEmpty()) {
             result.put("runTests", true);
@@ -485,33 +562,12 @@ public class IncrementalBuildMojo extends AbstractMojo {
         return result;
     }
 
-    /**
-     * Determines if examples should run based on affected modules.
-     * Examples should only run when extensions change, NOT when integration tests change.
-     *
-     * @return true if any extension (runtime or deployment) is affected
-     */
-    private boolean shouldRunExamples() throws IOException, MojoExecutionException {
-        if (!useIncrementalBuild || !Files.exists(scalpelReportJson)) {
-            // Full build - run examples
+    private boolean shouldRunExamples(ScalpelReport report) {
+        if (report == null || report.fullBuildTriggered || report.affectedModules.isEmpty()) {
             return true;
         }
 
-        Map<String, Object> scalpelReport = jsonMapper.readValue(scalpelReportJson.toFile(), JSON_TYPE_REF);
-        Boolean fullBuildTriggered = (Boolean) scalpelReport.get("fullBuildTriggered");
-        if (Boolean.TRUE.equals(fullBuildTriggered)) {
-            // Full build - run examples
-            return true;
-        }
-
-        List<Map<String, Object>> affectedModules = (List<Map<String, Object>>) scalpelReport.get("affectedModules");
-        if (affectedModules == null || affectedModules.isEmpty()) {
-            // Full build for safety - run examples
-            return true;
-        }
-
-        // Check if any affected module is an extension (not an integration test)
-        for (Map<String, Object> module : affectedModules) {
+        for (Map<String, Object> module : report.affectedModules) {
             String path = (String) module.get("path");
             String category = (String) module.get("category");
 
@@ -520,16 +576,31 @@ public class IncrementalBuildMojo extends AbstractMojo {
                 continue;
             }
 
-            // Check if this is an extension change
-            if (path != null && (path.startsWith("extensions/") ||
-                    path.startsWith("extensions-core/") ||
-                    path.startsWith("extensions-jvm/"))) {
+            if (path != null && isExtensionPath(path)) {
                 getLog().info("Examples should run - extension affected: " + path);
                 return true;
             }
         }
 
         getLog().info("Examples will be skipped - only integration tests affected");
+        return false;
+    }
+
+    private String[] extensionDirPrefixes;
+
+    private boolean isExtensionPath(String path) {
+        if (extensionDirPrefixes == null) {
+            String[] parts = extensionDirs.split(",");
+            for (int i = 0; i < parts.length; i++) {
+                parts[i] = parts[i].trim();
+            }
+            extensionDirPrefixes = parts;
+        }
+        for (String prefix : extensionDirPrefixes) {
+            if (path.startsWith(prefix)) {
+                return true;
+            }
+        }
         return false;
     }
 

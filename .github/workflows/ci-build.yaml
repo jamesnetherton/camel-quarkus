@@ -108,8 +108,10 @@ env:
   CQ_MAVEN_ARGS: -V -ntp -e -Daether.connector.http.connectionMaxTtl=120
   TESTCONTAINERS_RYUK_DISABLED: true
   CHECKOUT_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]' && github.head_ref || '' }}
-  # Scalpel configuration (shared across jobs that use Scalpel)
-  SCALPEL_FULL_BUILD_TRIGGERS: "-Dscalpel.fullBuildTriggers=poms/build-parent/**,poms/build-parent-it/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**,pom.xml"
+  # Scalpel configuration (defaults for all jobs; initial-mvn-install overrides SCALPEL_FULL_BUILD_TRIGGERS).
+  # Broad extensions-core/** trigger here is intentional: functional-extension-tests uses trim mode,
+  # which actively excludes modules from the build, so any extensions-core change should run full tests.
+  SCALPEL_FULL_BUILD_TRIGGERS: "-Dscalpel.fullBuildTriggers=poms/build-parent/**,poms/build-parent-it/**,extensions-core/**,tooling/maven-plugin/**,.mvn/**"
   SCALPEL_EXCLUDE_PATHS: "-Dscalpel.excludePaths=**.adoc,**.md,docs/**,Jenkinsfile*,LICENSE.txt,NOTICE.txt,KEYS,camel-quarkus-sbom/**,.github/*.sh"
 
 jobs:
@@ -190,24 +192,23 @@ jobs:
       # Incremental build job outputs. Keep sorted alphabetically.
       examples-matrix: ${{ steps.set-examples-matrix.outputs.examples-matrix }}
       integration-tests-jvm-modules: ${{ steps.process-incremental.outputs.integration-tests-jvm-modules || '' }}
-      integration-tests-matrix: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.integration-tests-matrix || steps.set-native-matrix-full.outputs.matrix }}
+      # Conditional: incremental matrix from process-incremental, full matrix from set-native-matrix-full.
+      # Cannot be simplified to a pass-through (unlike run-* flags) because the two paths use different steps.
+      integration-tests-matrix: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.integration-tests-matrix || steps.set-native-matrix-full.outputs.matrix || '{"include":[]}' }}
       integration-tests-modules: ${{ steps.incremental-build.outputs.integration-tests-modules }}
-      run-jvm-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-jvm-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
-      run-test-framework-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-test-framework-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
-      run-tooling-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-tooling-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
-      run-catalog-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-catalog-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
-      run-examples: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-examples == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
-      run-extensions-core-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-extensions-core-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
-      run-extensions-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-extensions-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
-      run-integration-tests-jvm: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-integration-tests-jvm == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
-      run-test-framework-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-test-framework-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
-      run-tooling-tests: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.run-tooling-tests == 'true' || steps.process-incremental.outputs.use-incremental != 'true' }}
+      run-catalog-tests: ${{ steps.process-incremental.outputs.run-catalog-tests }}
+      run-examples: ${{ steps.process-incremental.outputs.run-examples }}
+      run-extensions-core-tests: ${{ steps.process-incremental.outputs.run-extensions-core-tests }}
+      run-extensions-tests: ${{ steps.process-incremental.outputs.run-extensions-tests }}
+      run-integration-tests-jvm: ${{ steps.process-incremental.outputs.run-integration-tests-jvm }}
+      run-test-framework-tests: ${{ steps.process-incremental.outputs.run-test-framework-tests }}
+      run-tooling-tests: ${{ steps.process-incremental.outputs.run-tooling-tests }}
     env:
       MAVEN_OPTS: -Xmx4600m
       SCALPEL_ENABLED: "-Dscalpel.enabled=true"
-      SCALPEL_ENABLED: "-Dscalpel.enabled=true"
-      # TEMPORARY: Removed tooling/maven-plugin/** to allow testing plugin changes without full builds
-      SCALPEL_FULL_BUILD_TRIGGERS: "-Dscalpel.fullBuildTriggers=poms/build-parent/**,poms/build-parent-it/**,extensions-core/core/**,.mvn/**,pom.xml"
+      # Narrower than workflow-level: report mode tracks dependencies properly, so only extensions-core/core/**
+      # (the foundational module all extensions depend on) needs to trigger a full build here.
+      SCALPEL_FULL_BUILD_TRIGGERS: "-Dscalpel.fullBuildTriggers=poms/build-parent/**,poms/build-parent-it/**,extensions-core/core/**,tooling/maven-plugin/**,.mvn/**"
       # Exclude docs/** which is not covered by workflow paths-ignore
       # TEMPORARY: Exclude ci-build.yaml and tooling/maven-plugin for testing
       SCALPEL_EXCLUDE_PATHS: "-Dscalpel.excludePaths=docs/**,.github/workflows/ci-build.yaml,tooling/maven-plugin/**"
@@ -288,14 +289,30 @@ jobs:
             echo "Scalpel report not found"
             exit 1
           fi
-      # Step 2: Run IncrementalBuildMojo to process Scalpel report and generate:
-      # - Filtered list of affected integration test modules
-      # - Native test matrix with balanced distribution across groups
-      # - Functional test scope flags (which test suites to run)
-      # - JVM-only test modules list
+      - name: Warn on Scalpel failure
+        if: steps.scalpel-analysis.outcome == 'failure'
+        run: echo "::warning::Scalpel analysis failed, falling back to full build"
+      - name: Detect Changed Container Properties
+        id: detect-container-props
+        if: steps.detect-incremental.outputs.incremental-build == 'true' && steps.scalpel-analysis.outcome != 'failure'
+        run: |
+          CHANGED_CONTAINER_PROPS=""
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+          fi
+          if [ -n "$BASE_SHA" ] && git diff "$BASE_SHA" -- pom.xml | grep -qE '[+-].*\.container\.image>'; then
+            CHANGED_CONTAINER_PROPS=$(git diff "$BASE_SHA" -- pom.xml \
+              | grep -E '^\+.*\.container\.image>' \
+              | sed -E 's/.*<(.+\.container\.image)>.*/\1/' \
+              | paste -sd,)
+            echo "Changed container properties: $CHANGED_CONTAINER_PROPS"
+          fi
+          echo "props=$CHANGED_CONTAINER_PROPS" >> $GITHUB_OUTPUT
       - name: Incremental Build Analysis
         id: incremental-build
-        if: steps.detect-incremental.outputs.incremental-build == 'true'
+        if: steps.detect-incremental.outputs.incremental-build == 'true' && steps.scalpel-analysis.outcome != 'failure'
         continue-on-error: true
         run: |
           # Run unified incremental build analysis
@@ -303,6 +320,8 @@ jobs:
           # Extract project version dynamically to avoid hardcoding
           PROJECT_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout -N)
           echo "Using camel-quarkus-maven-plugin version: $PROJECT_VERSION"
+
+          CONTAINER_PROPS="${{ steps.detect-container-props.outputs.props }}"
 
           ./mvnw org.apache.camel.quarkus:camel-quarkus-maven-plugin:${PROJECT_VERSION}:incremental-build \
             -Dcq.action=analyze \
@@ -313,6 +332,7 @@ jobs:
             -Dcq.jvmTestsPrefix="integration-tests-jvm/" \
             -Dcq.integrationTestGroupsPrefix="integration-test-groups/" \
             -Dcq.functionalScopeDirs="extensions-core/:runExtensionsCoreTests,extensions/:runExtensionsTests,test-framework/:runTestFrameworkTests,tooling/:runToolingTests,catalog/:runCatalogTests" \
+            ${CONTAINER_PROPS:+-Dcq.changedContainerProperties="$CONTAINER_PROPS"} \
             -N ${CQ_MAVEN_ARGS}
 
           if [ -f target/incremental-build.json ]; then
@@ -322,8 +342,9 @@ jobs:
             # Output entire JSON as single output (compact for GitHub Actions)
             echo "data=$(cat target/incremental-build.json | jq -c '.')" >> $GITHUB_OUTPUT
 
-            # Also create integration-tests-modules output for filtering
-            INTEGRATION_TESTS_MODULES=$(cat target/incremental-build.json | jq -c '{modules: .affectedModules, fullBuild: false, totalModules: .affectedModulesCount}')
+            # Also create integration-tests-modules output for downstream filtering.
+            # Includes modulesCsv for direct use in Maven -pl and loop iteration.
+            INTEGRATION_TESTS_MODULES=$(cat target/incremental-build.json | jq -c '{modules: .affectedModules, modulesCsv: (.affectedModules | join(",")), fullBuild: false, totalModules: .affectedModulesCount}')
             echo "integration-tests-modules=$INTEGRATION_TESTS_MODULES" >> $GITHUB_OUTPUT
           else
             echo "Incremental build analysis failed - falling back to full build"
@@ -335,15 +356,18 @@ jobs:
       - name: Process Incremental Build Data
         id: process-incremental
         run: |
-          # Parse JSON and set individual outputs
+          # Parse JSON and resolve all outputs.
+          # For full builds, all run-* flags resolve to true so job outputs are simple pass-throughs.
+          INCREMENTAL=false
           if [ -f target/incremental-build.json ]; then
             DATA=$(cat target/incremental-build.json)
-
-            # Check if incremental build is enabled
             INCREMENTAL=$(echo "$DATA" | jq -r '.incrementalBuild // false')
-            echo "use-incremental=$INCREMENTAL" >> $GITHUB_OUTPUT
+          fi
 
-            # Always extract matrices and flags from JSON (job outputs handle the conditional logic)
+          echo "use-incremental=$INCREMENTAL" >> $GITHUB_OUTPUT
+
+          if [ "$INCREMENTAL" == "true" ]; then
+            echo "Incremental build will be used"
             echo "integration-tests-matrix=$(echo "$DATA" | jq -c '.nativeTestMatrix')" >> $GITHUB_OUTPUT
             echo "run-integration-tests-jvm=$(echo "$DATA" | jq -r '.integrationTestsJvm.runTests')" >> $GITHUB_OUTPUT
             echo "integration-tests-jvm-modules=$(echo "$DATA" | jq -r '.integrationTestsJvm.modules')" >> $GITHUB_OUTPUT
@@ -353,15 +377,15 @@ jobs:
             echo "run-test-framework-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runTestFrameworkTests')" >> $GITHUB_OUTPUT
             echo "run-tooling-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runToolingTests')" >> $GITHUB_OUTPUT
             echo "run-catalog-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runCatalogTests')" >> $GITHUB_OUTPUT
-
-            if [ "$INCREMENTAL" == "true" ]; then
-              echo "Incremental build will be used"
-            else
-              echo "Full build will be used"
-            fi
           else
-            echo "use-incremental=false" >> $GITHUB_OUTPUT
-            echo "Full build will be used (no data file)"
+            echo "Full build will be used"
+            echo "run-integration-tests-jvm=true" >> $GITHUB_OUTPUT
+            echo "run-extensions-core-tests=true" >> $GITHUB_OUTPUT
+            echo "run-extensions-tests=true" >> $GITHUB_OUTPUT
+            echo "run-examples=true" >> $GITHUB_OUTPUT
+            echo "run-test-framework-tests=true" >> $GITHUB_OUTPUT
+            echo "run-tooling-tests=true" >> $GITHUB_OUTPUT
+            echo "run-catalog-tests=true" >> $GITHUB_OUTPUT
           fi
       - name: Sync Maven properties
         run: |
@@ -520,12 +544,16 @@ jobs:
   functional-extension-tests:
     runs-on: ubuntu-latest
     needs: initial-mvn-install
-    if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM')
+    if: >-
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM'))
+      && (needs.initial-mvn-install.outputs.run-extensions-core-tests == 'true'
+      || needs.initial-mvn-install.outputs.run-extensions-tests == 'true'
+      || needs.initial-mvn-install.outputs.run-test-framework-tests == 'true'
+      || needs.initial-mvn-install.outputs.run-tooling-tests == 'true'
+      || needs.initial-mvn-install.outputs.run-catalog-tests == 'true')
     env:
       MAVEN_OPTS: -Xmx3000m
-      SCALPEL_ENABLED: "-Dscalpel.enabled=true"
-      SCALPEL_ALSO_MAKE: "-Dscalpel.alsoMake=true"
-      SCALPEL_ALSO_MAKE_DEPENDENTS: "-Dscalpel.alsoMakeDependents=false"
+      SCALPEL_TRIM_ARGS: "-Dscalpel.enabled=true -Dscalpel.mode=trim -Dscalpel.alsoMake=true -Dscalpel.alsoMakeDependents=false"
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -548,11 +576,9 @@ jobs:
           cd extensions-core
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
-            ${SCALPEL_ENABLED} \
-            -Dscalpel.mode=trim \
-            ${SCALPEL_ALSO_MAKE} \
-            ${SCALPEL_ALSO_MAKE_DEPENDENTS} \
+            ${SCALPEL_TRIM_ARGS} \
             ${SCALPEL_FULL_BUILD_TRIGGERS} \
+            ${SCALPEL_EXCLUDE_PATHS} \
             --fail-at-end \
             test
       - name: Report test failures
@@ -566,11 +592,9 @@ jobs:
           cd extensions
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
-            ${SCALPEL_ENABLED} \
-            -Dscalpel.mode=trim \
-            ${SCALPEL_ALSO_MAKE} \
-            ${SCALPEL_ALSO_MAKE_DEPENDENTS} \
+            ${SCALPEL_TRIM_ARGS} \
             ${SCALPEL_FULL_BUILD_TRIGGERS} \
+            ${SCALPEL_EXCLUDE_PATHS} \
             --fail-at-end \
             test
       - name: Report test failures
@@ -584,11 +608,9 @@ jobs:
           cd test-framework
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip \
-            ${SCALPEL_ENABLED} \
-            -Dscalpel.mode=trim \
-            ${SCALPEL_ALSO_MAKE} \
-            ${SCALPEL_ALSO_MAKE_DEPENDENTS} \
+            ${SCALPEL_TRIM_ARGS} \
             ${SCALPEL_FULL_BUILD_TRIGGERS} \
+            ${SCALPEL_EXCLUDE_PATHS} \
             --fail-at-end \
             test
       - name: Report test failures
@@ -602,11 +624,9 @@ jobs:
           cd tooling
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-            ${SCALPEL_ENABLED} \
-            -Dscalpel.mode=trim \
-            ${SCALPEL_ALSO_MAKE} \
-            ${SCALPEL_ALSO_MAKE_DEPENDENTS} \
+            ${SCALPEL_TRIM_ARGS} \
             ${SCALPEL_FULL_BUILD_TRIGGERS} \
+            ${SCALPEL_EXCLUDE_PATHS} \
             --fail-at-end \
             verify
       - name: Report test failures
@@ -620,11 +640,9 @@ jobs:
           cd catalog
           ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
             -Dformatter.skip -Dimpsort.skip -Denforcer.skip \
-            ${SCALPEL_ENABLED} \
-            -Dscalpel.mode=trim \
-            ${SCALPEL_ALSO_MAKE} \
-            ${SCALPEL_ALSO_MAKE_DEPENDENTS} \
+            ${SCALPEL_TRIM_ARGS} \
             ${SCALPEL_FULL_BUILD_TRIGGERS} \
+            ${SCALPEL_EXCLUDE_PATHS} \
             test
       - name: Report test failures
         uses: ./.github/actions/test-summary-report
@@ -712,7 +730,7 @@ jobs:
           cd integration-tests
           if [ -n "${{ needs.initial-mvn-install.outputs.integration-tests-modules }}" ]; then
             # Incremental build - use affected modules from filtered matrix
-            AFFECTED_MODULES=$(echo '${{ needs.initial-mvn-install.outputs.integration-tests-modules }}' | jq -r '.modules | join(",")')
+            AFFECTED_MODULES=$(echo '${{ needs.initial-mvn-install.outputs.integration-tests-modules }}' | jq -r '.modulesCsv')
             echo "Running incremental build with affected modules: $AFFECTED_MODULES"
             ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
               -pl "$AFFECTED_MODULES" \
@@ -784,7 +802,8 @@ jobs:
             echo "Incremental build detected - filtering examples based on affected extensions"
 
             # Get affected modules from filtered matrix
-            AFFECTED_MODULES=$(echo '${{ needs.initial-mvn-install.outputs.integration-tests-modules }}' | jq -r '.modules[]')
+            # Get affected modules as space-separated list for iteration
+            AFFECTED_MODULES=$(echo '${{ needs.initial-mvn-install.outputs.integration-tests-modules }}' | jq -r '.modulesCsv' | tr ',' ' ')
             echo "Affected modules: $AFFECTED_MODULES"
 
             # Check if extensions-core/core is affected (build all examples if so)
