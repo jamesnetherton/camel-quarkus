@@ -16,6 +16,7 @@
  */
 package org.apache.camel.quarkus.component.barcode.it;
 
+// Test change for JVM test detection verification
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
 import org.junit.jupiter.api.Test;
