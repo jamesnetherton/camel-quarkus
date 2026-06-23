@@ -290,7 +290,8 @@ public class IncrementalBuildMojo extends AbstractMojo {
             return result;
         }
 
-        if (report.affectedModules.isEmpty()) {
+        if (report.affectedModules.isEmpty() && containerModules.nativeModules.isEmpty()
+                && containerModules.jvmModules.isEmpty()) {
             getLog().info("No affected modules - using full build for safety");
             result.put("incrementalBuild", false);
             result.put("modules", new ArrayList<>());

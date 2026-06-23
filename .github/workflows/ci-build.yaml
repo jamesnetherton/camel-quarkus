@@ -309,7 +309,7 @@ jobs:
           if [ -n "$BASE_SHA" ] && git diff "$BASE_SHA" -- pom.xml | grep -qE '[+-].*\.container\.image>'; then
             CHANGED_CONTAINER_PROPS=$(git diff "$BASE_SHA" -- pom.xml \
               | grep -E '^\+.*\.container\.image>' \
-              | sed -E 's/.*<(.+\.container\.image)>.*/\1/' \
+              | sed -E 's/.*<([^<\/]+\.container\.image)>.*/\1/' \
               | paste -sd,)
             echo "Changed container properties: $CHANGED_CONTAINER_PROPS"
           fi
