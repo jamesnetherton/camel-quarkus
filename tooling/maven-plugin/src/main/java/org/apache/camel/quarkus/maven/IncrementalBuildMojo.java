@@ -61,7 +61,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 @Mojo(name = "incremental-build", threadSafe = true, requiresProject = false)
 public class IncrementalBuildMojo extends AbstractMojo {
 
-    private static final TypeReference<Map<String, Object>> JSON_TYPE_REF = new TypeReference<Map<String, Object>>() {
+    private static final TypeReference<Map<String, Object>> JSON_TYPE_REF = new TypeReference<>() {
     };
 
     /**
@@ -673,18 +673,9 @@ public class IncrementalBuildMojo extends AbstractMojo {
         return false;
     }
 
-    private String[] extensionDirPrefixes;
-
     private boolean isExtensionPath(String path) {
-        if (extensionDirPrefixes == null) {
-            String[] parts = extensionDirs.split(",");
-            for (int i = 0; i < parts.length; i++) {
-                parts[i] = parts[i].trim();
-            }
-            extensionDirPrefixes = parts;
-        }
-        for (String prefix : extensionDirPrefixes) {
-            if (path.startsWith(prefix)) {
+        for (String prefix : extensionDirs.split(",")) {
+            if (path.startsWith(prefix.trim())) {
                 return true;
             }
         }
@@ -704,7 +695,7 @@ public class IncrementalBuildMojo extends AbstractMojo {
             json = jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(data);
         }
 
-        Files.write(outputFile, json.getBytes(StandardCharsets.UTF_8));
+        Files.writeString(outputFile, json);
         getLog().debug("Written output to: " + outputFile);
     }
 }
