@@ -346,10 +346,13 @@ jobs:
             # Output entire JSON as single output (compact for GitHub Actions)
             echo "data=$(cat target/incremental-build.json | jq -c '.')" >> $GITHUB_OUTPUT
 
-            # Also create integration-tests-modules output for downstream filtering.
-            # Includes modulesCsv for direct use in Maven -pl and loop iteration.
-            INTEGRATION_TESTS_MODULES=$(cat target/incremental-build.json | jq -c '{modules: .affectedModules, modulesCsv: (.affectedModules | join(",")), fullBuild: false, totalModules: .affectedModulesCount}')
-            echo "integration-tests-modules=$INTEGRATION_TESTS_MODULES" >> $GITHUB_OUTPUT
+            # Only set integration-tests-modules for actual incremental builds.
+            # For full builds (incrementalBuild=false), leave it empty so downstream jobs run all modules.
+            IS_INCREMENTAL=$(cat target/incremental-build.json | jq -r '.incrementalBuild // false')
+            if [ "$IS_INCREMENTAL" == "true" ]; then
+              INTEGRATION_TESTS_MODULES=$(cat target/incremental-build.json | jq -c '{modules: .affectedModules, modulesCsv: (.affectedModules | join(",")), fullBuild: false, totalModules: .affectedModulesCount}')
+              echo "integration-tests-modules=$INTEGRATION_TESTS_MODULES" >> $GITHUB_OUTPUT
+            fi
           else
             echo "Incremental build analysis failed - falling back to full build"
             # Output empty JSON structure for fallback
