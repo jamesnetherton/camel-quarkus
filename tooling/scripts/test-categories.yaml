@@ -242,6 +242,7 @@ group-12:
   - rest
   - rest-openapi
   - vertx-websocket
+  - micrometer-observability
   - opentelemetry2
 group-13:
   - fhir
