@@ -21,11 +21,9 @@ import java.nio.file.Files;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import io.quarkus.arc.deployment.SyntheticBeanBuildItem;
-import io.quarkus.deployment.IsDevelopment;
-import io.quarkus.deployment.IsProduction;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.BuildSteps;
@@ -35,33 +33,34 @@ import io.quarkus.deployment.builditem.ApplicationInfoBuildItem;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.IndexDependencyBuildItem;
-import io.quarkus.deployment.builditem.LaunchModeBuildItem;
 import io.quarkus.deployment.builditem.NativeMonitoringBuildItem;
 import io.quarkus.deployment.builditem.ShutdownContextBuildItem;
-import io.quarkus.deployment.builditem.ShutdownListenerBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.NativeImageResourceBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ServiceProviderBuildItem;
 import io.quarkus.deployment.pkg.NativeConfig;
 import io.quarkus.deployment.pkg.builditem.CurateOutcomeBuildItem;
 import io.quarkus.deployment.pkg.steps.NativeOrNativeSourcesBuild;
-import io.quarkus.kubernetes.spi.KubernetesPortBuildItem;
 import io.quarkus.maven.dependency.ResolvedDependency;
 import io.quarkus.paths.PathFilter;
 import io.quarkus.paths.PathVisit;
 import io.quarkus.paths.PathVisitor;
-import io.quarkus.runtime.LaunchMode;
-import jakarta.enterprise.context.ApplicationScoped;
-import org.apache.camel.quarkus.jolokia.CamelQuarkusJolokiaServer;
+import io.quarkus.runtime.RuntimeValue;
+import io.quarkus.vertx.http.deployment.NonApplicationRootPathBuildItem;
+import io.quarkus.vertx.http.deployment.RequireBodyHandlerBuildItem;
+import io.quarkus.vertx.http.deployment.RouteBuildItem;
+import io.vertx.core.Handler;
+import io.vertx.ext.web.Route;
+import io.vertx.ext.web.RoutingContext;
 import org.apache.camel.quarkus.jolokia.JolokiaRecorder;
 import org.apache.camel.quarkus.jolokia.config.JolokiaBuildTimeConfig;
-import org.apache.camel.quarkus.jolokia.devmode.DevModeJolokiaServerShutdownListener;
 import org.apache.camel.quarkus.jolokia.restrictor.CamelJolokiaRestrictor;
 import org.apache.camel.util.ObjectHelper;
 import org.apache.camel.util.StringHelper;
 import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
 import org.jolokia.core.api.LogHandler;
+import org.jolokia.server.core.http.HttpRequestHandler;
 import org.jolokia.server.core.service.api.Restrictor;
 import org.jolokia.server.core.service.impl.QuietLogHandler;
 import org.jolokia.server.core.service.serializer.Serializer;
@@ -71,6 +70,7 @@ import org.jolokia.service.history.HistoryMBean;
 @BuildSteps(onlyIf = JolokiaProcessor.JolokiaEnabled.class)
 public class JolokiaProcessor {
     private static final String FEATURE = "camel-jolokia";
+    private static final String MANAGEMENT_CONFIG_KEY = "quarkus.camel.jolokia.management-enabled";
 
     @BuildStep
     FeatureBuildItem feature() {
@@ -78,61 +78,44 @@ public class JolokiaProcessor {
     }
 
     @BuildStep
+    RequireBodyHandlerBuildItem requireBodyHandler() {
+        return new RequireBodyHandlerBuildItem();
+    }
+
+    @BuildStep
     @Record(ExecutionTime.RUNTIME_INIT)
-    JolokiaServerConfigBuildItem createJolokiaServerConfig(
+    void createJolokiaRoute(
             ApplicationInfoBuildItem applicationInfo,
+            NonApplicationRootPathBuildItem nonApplicationRootPath,
+            ShutdownContextBuildItem shutdownContext,
+            BuildProducer<RouteBuildItem> routes,
+            JolokiaBuildTimeConfig buildTimeConfig,
             JolokiaRecorder recorder) {
-        return new JolokiaServerConfigBuildItem(recorder.createJolokiaServerConfig(applicationInfo.getName()));
-    }
 
-    @BuildStep
-    @Record(ExecutionTime.RUNTIME_INIT)
-    JolokiaServerBuildItem createJolokiaServer(
-            JolokiaServerConfigBuildItem jolokiaServerConfig,
-            JolokiaRecorder recorder) {
-        return new JolokiaServerBuildItem(recorder.createJolokiaServer(jolokiaServerConfig.getRuntimeValue()));
-    }
+        RuntimeValue<HttpRequestHandler> handler = recorder.createJolokiaHttpHandler(
+                applicationInfo.getName(), shutdownContext);
 
-    @BuildStep
-    @Record(ExecutionTime.RUNTIME_INIT)
-    void startJolokiaServer(
-            LaunchModeBuildItem launchMode,
-            JolokiaServerBuildItem jolokiaServer,
-            BuildProducer<SyntheticBeanBuildItem> syntheticBean,
-            JolokiaRecorder recorder) {
-        recorder.startJolokiaServer(jolokiaServer.getRuntimeValue());
+        String path = buildTimeConfig.path();
+        // Compute the full resolved base path so the handler can strip it from request paths to get pathInfo.
+        // resolvePath() returns the build-time path (e.g. /q/jolokia). On the management interface this
+        // would differ, but management routes are served on a separate port so the path prefix is just /{path}.
+        String resolvedBasePath = nonApplicationRootPath.resolvePath(path);
+        Consumer<Route> routeFunction = recorder.routeFunction();
+        Handler<RoutingContext> routeHandler = recorder.createHandler(handler, resolvedBasePath);
 
-        SyntheticBeanBuildItem.ExtendedBeanConfigurator beanConfigurator = SyntheticBeanBuildItem
-                .configure(CamelQuarkusJolokiaServer.class)
-                .scope(ApplicationScoped.class)
-                .runtimeValue(recorder.createJolokiaServerBean(jolokiaServer.getRuntimeValue()))
-                .setRuntimeInit();
+        routes.produce(nonApplicationRootPath.routeBuilder()
+                .management(MANAGEMENT_CONFIG_KEY)
+                .routeFunction(path, routeFunction)
+                .handler(routeHandler)
+                .blockingRoute()
+                .build());
 
-        if (launchMode.getLaunchMode().equals(LaunchMode.DEVELOPMENT)) {
-            // Unremovable in dev mode so it can be used in DevModeJolokiaServerShutdownListener
-            beanConfigurator.unremovable();
-        }
-
-        syntheticBean.produce(beanConfigurator.done());
-    }
-
-    @BuildStep(onlyIfNot = { IsProduction.class, IsDevelopment.class })
-    @Record(ExecutionTime.RUNTIME_INIT)
-    void registerJolokiaServerShutdownHook(
-            JolokiaServerBuildItem jolokiaServer,
-            ShutdownContextBuildItem shutdownContextBuildItem,
-            JolokiaRecorder recorder) {
-        recorder.registerJolokiaServerShutdownHook(jolokiaServer.getRuntimeValue(), shutdownContextBuildItem);
-    }
-
-    @BuildStep(onlyIf = IsDevelopment.class)
-    ShutdownListenerBuildItem devModeJolokiaServerShutdownListener() {
-        return new ShutdownListenerBuildItem(new DevModeJolokiaServerShutdownListener());
-    }
-
-    @BuildStep(onlyIf = { IsProduction.class, ExposeContainerPortEnabled.class })
-    KubernetesPortBuildItem configureJolokiaKubernetesPort() {
-        return KubernetesPortBuildItem.fromRuntimeConfiguration("jolokia", "quarkus.camel.jolokia.server.port", 8778, true);
+        routes.produce(nonApplicationRootPath.routeBuilder()
+                .management(MANAGEMENT_CONFIG_KEY)
+                .routeFunction(path + "/*", routeFunction)
+                .handler(routeHandler)
+                .blockingRoute()
+                .build());
     }
 
     @BuildStep
@@ -250,15 +233,6 @@ public class JolokiaProcessor {
         @Override
         public boolean getAsBoolean() {
             return config.enabled();
-        }
-    }
-
-    static final class ExposeContainerPortEnabled implements BooleanSupplier {
-        JolokiaBuildTimeConfig config;
-
-        @Override
-        public boolean getAsBoolean() {
-            return config.kubernetes().exposeContainerPort();
         }
     }
 }

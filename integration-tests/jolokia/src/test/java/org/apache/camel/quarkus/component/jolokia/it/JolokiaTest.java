@@ -19,44 +19,25 @@ package org.apache.camel.quarkus.component.jolokia.it;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
-import io.restassured.path.json.JsonPath;
 import org.apache.camel.quarkus.jolokia.restrictor.CamelJolokiaRestrictor;
-import org.eclipse.microprofile.config.ConfigProvider;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 class JolokiaTest {
-    @BeforeEach
-    public void beforeEach() {
-        RestAssured.port = 8778;
-    }
-
     @Test
     void defaultConfiguration() {
-        // Read the configured discovery mode to determine expected discoveryEnabled value
-        // Some machines don't support IPV4 multicast
-        String discoveryMode = ConfigProvider.getConfig()
-                .getOptionalValue("quarkus.camel.jolokia.server.discovery-enabled-mode", String.class)
-                .orElse("all");
-
-        boolean discoveryExpected = !"none".equals(discoveryMode);
-
         RestAssured.given()
-                .get("/jolokia/")
+                .get("/q/jolokia/")
                 .then()
                 .statusCode(200)
                 .body(
                         "status", equalTo(200),
-                        "value.config.discoveryEnabled", equalTo(String.valueOf(discoveryExpected)),
                         "value.config.restrictorClass", equalTo(CamelJolokiaRestrictor.class.getName()),
-                        "value.config.agentDescription", equalTo("camel-quarkus-integration-test-jolokia"),
-                        "value.details.url", matchesPattern("http://.*:8778/jolokia"));
+                        "value.config.agentDescription", equalTo("camel-quarkus-integration-test-jolokia"));
     }
 
     @Test
@@ -65,12 +46,10 @@ class JolokiaTest {
         RestAssured.given()
                 .contentType(ContentType.JSON)
                 .body(jolokiaPayload)
-                .post("/jolokia/")
+                .post("/q/jolokia/")
                 .then()
                 .statusCode(200)
                 .body("status", equalTo(200));
-
-        RestAssured.port = ConfigProvider.getConfig().getValue("quarkus.http.test-port", Integer.class);
 
         RestAssured.get("/jolokia/message/get")
                 .then()
@@ -82,7 +61,7 @@ class JolokiaTest {
     void additionalAllowedDefaultMBeanDomains() {
         // Verify java.lang domain
         RestAssured.given()
-                .get("/jolokia/read/java.lang:type=ClassLoading/LoadedClassCount")
+                .get("/q/jolokia/read/java.lang:type=ClassLoading/LoadedClassCount")
                 .then()
                 .statusCode(200)
                 .body(
@@ -90,23 +69,29 @@ class JolokiaTest {
                         "value", greaterThanOrEqualTo(0));
 
         // Verify java.nio domain
-        JsonPath response = RestAssured.given()
-                .get("/jolokia/read/java.nio:type=BufferPool,name=direct/MemoryUsed")
+        int status = RestAssured.given()
+                .get("/q/jolokia/read/java.nio:type=BufferPool,name=direct/MemoryUsed")
                 .then()
                 .statusCode(200)
                 .extract()
                 .body()
-                .jsonPath();
+                .jsonPath()
+                .getInt("status");
 
         // java.nio MBeans are not available in native mode so the Jolokia status must be checked
-        int status = response.getInt("status");
         if (status == 200) {
-            assertTrue(response.getInt("value") >= 0);
+            assertTrue(RestAssured.given()
+                    .get("/q/jolokia/read/java.nio:type=BufferPool,name=direct/MemoryUsed")
+                    .then()
+                    .extract()
+                    .body()
+                    .jsonPath()
+                    .getInt("value") >= 0);
         }
 
         // Disallowed domain
         RestAssured.given()
-                .get("/jolokia/read/java.util.logging:type=Logging/LoggerNames")
+                .get("/q/jolokia/read/java.util.logging:type=Logging/LoggerNames")
                 .then()
                 .statusCode(200)
                 .body(

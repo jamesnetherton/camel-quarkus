@@ -31,6 +31,9 @@ import org.junit.jupiter.api.Test;
 class JolokiaCustomLogHandlerTest {
     @Test
     void customLogHandler() {
+        // Make a Jolokia request to trigger the log handler (CustomLogHandler.isDebug()=true causes debug logging)
+        RestAssured.get("/q/jolokia/").then().statusCode(200);
+
         Awaitility.await().pollInterval(Duration.ofMillis(250)).atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
             RestAssured.get("/jolokia/custom/logger/activated")
                     .then()

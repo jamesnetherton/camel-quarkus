@@ -43,8 +43,7 @@ class JolokiaEnabledTest {
 
     @Test
     void getCamelContextMBean() {
-        RestAssured.port = 8778;
-        RestAssured.get("/jolokia/read/org.apache.camel:context=camel-1,type=context,name=\"camel-1\"")
+        RestAssured.get("/q/jolokia/read/org.apache.camel:context=camel-1,type=context,name=\"camel-1\"")
                 .then()
                 .statusCode(200)
                 .body(
@@ -55,11 +54,10 @@ class JolokiaEnabledTest {
     @Test
     void sendMessageToRoute() {
         String jolokiaPayload = "{\"type\":\"exec\",\"mbean\":\"org.apache.camel:context=camel-1,type=context,name=\\\"camel-1\\\"\",\"operation\":\"sendStringBody(java.lang.String, java.lang.String)\",\"arguments\":[\"direct://start\",\"Hello World\"]}";
-        RestAssured.port = 8778;
         RestAssured.given()
                 .contentType(ContentType.JSON)
                 .body(jolokiaPayload)
-                .post("/jolokia/")
+                .post("/q/jolokia/")
                 .then()
                 .statusCode(200)
                 .body("status", equalTo(200));

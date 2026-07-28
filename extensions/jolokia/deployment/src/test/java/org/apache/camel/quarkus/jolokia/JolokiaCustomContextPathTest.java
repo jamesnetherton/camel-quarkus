@@ -29,8 +29,7 @@ class JolokiaCustomContextPathTest {
 
     @Test
     void contextPathAccessible() {
-        RestAssured.port = 8778;
-        RestAssured.get("/test/")
+        RestAssured.get("/q/test/")
                 .then()
                 .statusCode(200);
     }

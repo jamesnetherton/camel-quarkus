@@ -16,9 +16,7 @@
  */
 package org.apache.camel.quarkus.jolokia.config;
 
-import java.io.File;
 import java.util.Map;
-import java.util.Optional;
 
 import io.quarkus.runtime.annotations.ConfigPhase;
 import io.quarkus.runtime.annotations.ConfigRoot;
@@ -28,16 +26,6 @@ import io.smallrye.config.WithDefault;
 @ConfigMapping(prefix = "quarkus.camel.jolokia")
 @ConfigRoot(phase = ConfigPhase.RUN_TIME)
 public interface JolokiaRuntimeConfig {
-    /**
-     * Jolokia agent HTTP server configuration.
-     */
-    Server server();
-
-    /**
-     * Kubernetes runtime configuration.
-     */
-    Kubernetes kubernetes();
-
     /**
      * Arbitrary Jolokia configuration options. These are described at the
      * https://jolokia.org/reference/html/manual/agents.html[Jolokia documentation].
@@ -57,62 +45,4 @@ public interface JolokiaRuntimeConfig {
      */
     @WithDefault("true")
     boolean registerCamelRestrictor();
-
-    interface Server {
-        /**
-         * Whether the Jolokia agent HTTP server should be started automatically.
-         * When set to `false`, it is the user responsibility to start the server.
-         * This can be done via `@Inject CamelQuarkusJolokiaServer` and then invoking the `start()` method.
-         */
-        @WithDefault("true")
-        boolean autoStart();
-
-        /**
-         * The host address to which the Jolokia agent HTTP server should bind.
-         * When unspecified, the default is localhost for dev and test mode.
-         * In prod mode the default is to bind to all interfaces at 0.0.0.0.
-         */
-        Optional<String> host();
-
-        /**
-         * The port on which the Jolokia agent HTTP server should listen.
-         */
-        @WithDefault("8778")
-        int port();
-
-        /**
-         * The mode in which Jolokia agent discovery is enabled. The default `dev-test`, enables discovery only in dev and
-         * test modes.
-         * A value of `all` enables agent discovery in dev, test and prod modes. Setting the value to `none` will
-         * disable agent discovery in all modes.
-         */
-        @WithDefault("DEV_TEST")
-        DiscoveryEnabledMode discoveryEnabledMode();
-    }
-
-    enum DiscoveryEnabledMode {
-        ALL,
-        DEV_TEST,
-        NONE,
-    }
-
-    interface Kubernetes {
-        /**
-         * Whether to enable Jolokia SSL client authentication in Kubernetes environments.
-         * Useful for tools such as hawtio to be able to connect with your application.
-         */
-        @WithDefault("true")
-        boolean clientAuthenticationEnabled();
-
-        /**
-         * Absolute path of the CA certificate Jolokia should use for SSL client authentication.
-         */
-        @WithDefault("/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt")
-        File serviceCaCert();
-
-        /**
-         * The principal which must be given in a client certificate to allow access to Jolokia.
-         */
-        Optional<String> clientPrincipal();
-    }
 }

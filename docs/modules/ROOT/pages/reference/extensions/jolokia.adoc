@@ -194,62 +194,13 @@ Comma separated list of allowed MBean domains used by `CamelJolokiaRestrictor`.
 | List of `string`
 | `org.apache.camel,java.lang,java.nio`
 
-a|icon:lock[title=Fixed at build time] [[quarkus-camel-jolokia-kubernetes-expose-container-port]]`link:#quarkus-camel-jolokia-kubernetes-expose-container-port[quarkus.camel.jolokia.kubernetes.expose-container-port]`
+a|icon:lock[title=Fixed at build time] [[quarkus-camel-jolokia-management-enabled]]`link:#quarkus-camel-jolokia-management-enabled[quarkus.camel.jolokia.management-enabled]`
 
-When `true` and the quarkus-kubernetes extension is present, a container port named jolokia will
-be added to the generated Kubernetes manifests within the container spec ports definition.
+When `true`, Jolokia is served on the Quarkus management interface (separate port when
+`quarkus.management.enabled=true`). When `false`, served under the non-application root
+of the main HTTP server (e.g. `/q/jolokia`).
 | `boolean`
 | `true`
-
-a| [[quarkus-camel-jolokia-server-auto-start]]`link:#quarkus-camel-jolokia-server-auto-start[quarkus.camel.jolokia.server.auto-start]`
-
-Whether the Jolokia agent HTTP server should be started automatically.
-When set to `false`, it is the user responsibility to start the server.
-This can be done via `@Inject CamelQuarkusJolokiaServer` and then invoking the `start()` method.
-| `boolean`
-| `true`
-
-a| [[quarkus-camel-jolokia-server-host]]`link:#quarkus-camel-jolokia-server-host[quarkus.camel.jolokia.server.host]`
-
-The host address to which the Jolokia agent HTTP server should bind.
-When unspecified, the default is localhost for dev and test mode.
-In prod mode the default is to bind to all interfaces at 0.0.0.0.
-| `string`
-| 
-
-a| [[quarkus-camel-jolokia-server-port]]`link:#quarkus-camel-jolokia-server-port[quarkus.camel.jolokia.server.port]`
-
-The port on which the Jolokia agent HTTP server should listen.
-| `int`
-| `8778`
-
-a| [[quarkus-camel-jolokia-server-discovery-enabled-mode]]`link:#quarkus-camel-jolokia-server-discovery-enabled-mode[quarkus.camel.jolokia.server.discovery-enabled-mode]`
-
-The mode in which Jolokia agent discovery is enabled. The default `dev-test`, enables discovery only in dev and
-test modes.
-A value of `all` enables agent discovery in dev, test and prod modes. Setting the value to `none` will
-disable agent discovery in all modes.
-| `all`, `dev-test`, `none`
-| `dev-test`
-
-a| [[quarkus-camel-jolokia-kubernetes-client-authentication-enabled]]`link:#quarkus-camel-jolokia-kubernetes-client-authentication-enabled[quarkus.camel.jolokia.kubernetes.client-authentication-enabled]`
-
-Whether to enable Jolokia SSL client authentication in Kubernetes environments.
-Useful for tools such as hawtio to be able to connect with your application.
-| `boolean`
-| `true`
-
-a| [[quarkus-camel-jolokia-kubernetes-service-ca-cert]]`link:#quarkus-camel-jolokia-kubernetes-service-ca-cert[quarkus.camel.jolokia.kubernetes.service-ca-cert]`
-
-Absolute path of the CA certificate Jolokia should use for SSL client authentication.
-| link:https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/io/File.html[`File`]
-| `/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt`
-
-a| [[quarkus-camel-jolokia-kubernetes-client-principal]]`link:#quarkus-camel-jolokia-kubernetes-client-principal[quarkus.camel.jolokia.kubernetes.client-principal]`
-
-The principal which must be given in a client certificate to allow access to Jolokia.
-| `string`
-| 
 
 a| [[quarkus-camel-jolokia-additional-properties-additional-properties]]`link:#quarkus-camel-jolokia-additional-properties-additional-properties[quarkus.camel.jolokia.additional-properties."additional-properties"]`
 

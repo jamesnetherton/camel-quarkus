@@ -22,7 +22,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -30,15 +29,10 @@ import static org.hamcrest.Matchers.equalTo;
 @TestProfile(JolokiaAdditionalPropertiesTest.JolokiaAdditionalPropertiesProfile.class)
 @QuarkusTest
 class JolokiaAdditionalPropertiesTest {
-    @BeforeEach
-    public void beforeEach() {
-        RestAssured.port = 8778;
-    }
-
     @Test
     void additionalProperties() {
         RestAssured.given()
-                .get("/jolokia/")
+                .get("/q/jolokia/")
                 .then()
                 .statusCode(200)
                 .body("value.config.maxDepth", equalTo("10"));

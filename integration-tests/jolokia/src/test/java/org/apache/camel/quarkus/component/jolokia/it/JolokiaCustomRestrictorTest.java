@@ -23,20 +23,13 @@ import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.apache.camel.builder.Builder.body;
 import static org.hamcrest.Matchers.equalTo;
 
 @TestProfile(JolokiaCustomRestrictorTest.JolokiaCustomRestrictorProfile.class)
 @QuarkusTest
 class JolokiaCustomRestrictorTest {
-    @BeforeEach
-    public void beforeEach() {
-        RestAssured.port = 8778;
-    }
-
     @Test
     void customRestrictorDeniesOperationAccess() {
         // sendStringBody operations should be allowed
@@ -44,7 +37,7 @@ class JolokiaCustomRestrictorTest {
         RestAssured.given()
                 .contentType(ContentType.JSON)
                 .body(sendStringBodyPayload)
-                .post("/jolokia/")
+                .post("/q/jolokia/")
                 .then()
                 .statusCode(200)
                 .body("status", equalTo(200));
@@ -54,7 +47,7 @@ class JolokiaCustomRestrictorTest {
         RestAssured.given()
                 .contentType(ContentType.JSON)
                 .body(dumpRoutesAsXmlPayload)
-                .post("/jolokia/")
+                .post("/q/jolokia/")
                 .then()
                 .statusCode(200)
                 .body("status", equalTo(403));

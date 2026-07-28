@@ -45,16 +45,10 @@ public interface JolokiaBuildTimeConfig {
     Set<String> camelRestrictorAllowedMbeanDomains();
 
     /**
-     * Jolokia Kubernetes build time configuration.
+     * When `true`, Jolokia is served on the Quarkus management interface (separate port when
+     * `quarkus.management.enabled=true`). When `false`, served under the non-application root
+     * of the main HTTP server (e.g. `/q/jolokia`).
      */
-    Kubernetes kubernetes();
-
-    interface Kubernetes {
-        /**
-         * When `true` and the quarkus-kubernetes extension is present, a container port named jolokia will
-         * be added to the generated Kubernetes manifests within the container spec ports definition.
-         */
-        @WithDefault("true")
-        boolean exposeContainerPort();
-    }
+    @WithDefault("true")
+    boolean managementEnabled();
 }

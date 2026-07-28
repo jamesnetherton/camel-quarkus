@@ -22,7 +22,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.Matchers.emptyOrNullString;
@@ -30,15 +29,10 @@ import static org.hamcrest.Matchers.emptyOrNullString;
 @TestProfile(JolokiaDisableRestrictorTest.JolokiaAdditionalPropertiesProfile.class)
 @QuarkusTest
 class JolokiaDisableRestrictorTest {
-    @BeforeEach
-    public void beforeEach() {
-        RestAssured.port = 8778;
-    }
-
     @Test
     void restrictorClassUnconfigured() {
         RestAssured.given()
-                .get("/jolokia/")
+                .get("/q/jolokia/")
                 .then()
                 .statusCode(200)
                 .body("value.config.restrictorClass", emptyOrNullString());

@@ -1,14 +1,17 @@
-This extension adds https://jolokia.org/[Jolokia] support to your application.
+This extension adds https://jolokia.org/[Jolokia] support to your application. Jolokia is served
+as a route on the Quarkus HTTP server (or management interface), inheriting Quarkus HTTP security,
+lifecycle management, and TLS configuration.
 
 === Jolokia HTTP endpoints
 
-In prod mode, Jolokia is accessible at the following URLs.
+By default, Jolokia is accessible at the following URL.
 
-* http://0.0.0.0:8778/jolokia/
+* http://localhost:8080/q/jolokia/
 
-In dev and test modes Jolokia is bound only to `localhost`.
+When the Quarkus management interface is enabled (`quarkus.management.enabled=true`), Jolokia moves
+to the management server port (default 9000) and is accessible at `/jolokia/`.
 
-If you want to disable Jolokia entirely, then add the following configuration to `application.properties`.
+If you want to disable Jolokia entirely, add the following to `application.properties`.
 
 [source]
 ----
@@ -17,10 +20,8 @@ quarkus.camel.jolokia.enabled=false
 
 === Jolokia configuration
 
-Any of the https://jolokia.org/reference/html/manual/agents.html[Jolokia configuration options] can be configured via the `quarkus.camel.jolokia.additional-properties.<jolokia-property-name>` option.
-Where `<jolokia-property-name>` is the name of the Jolokia configuration option you want to set.
-
-For example, the following configuration added to `application.properties` enables Jolokia debugging and sets the max depth for traversing bean properties.
+Any of the https://jolokia.org/reference/html/manual/agents.html[Jolokia configuration options] can
+be set via `quarkus.camel.jolokia.additional-properties.<property-name>`.
 
 [source]
 ----
@@ -30,17 +31,15 @@ quarkus.camel.jolokia.additional-properties.maxDepth=10
 
 === Jolokia restrictor
 
-By default, a Jolokia restrictor is automatically registered that exposes access to only a specific set of MBean domains.
+By default, a restrictor is registered that limits access to a set of MBean domains.
 
 * `org.apache.camel`
 * `java.lang`
 * `java.nio`
 
-If this is too restrictive, then you can either specify your own MBean domains, disable the default restrictor, or create a custom restrictor.
-
 ==== Default restrictor MBean domains
 
-You can modify the set of MBean domains referenced by the default restrictor by adding configuration like the following to `application.properties`.
+You can change the set of allowed domains.
 
 [source]
 ----
@@ -49,8 +48,6 @@ quarkus.camel.jolokia.camel-restrictor-allowed-mbean-domains=org.apache.camel
 
 ==== Disabling the default restrictor
 
-The following configuration added to `application.properties` disables the default restrictor.
-
 [source]
 ----
 quarkus.camel.jolokia.register-camel-restrictor=false
@@ -58,50 +55,31 @@ quarkus.camel.jolokia.register-camel-restrictor=false
 
 ==== Create a custom restrictor
 
-You can create your own restrictor class and register it with Jolokia.
-
-[source,java]
-----
-public class CustomRestrictor extends AllowAllRestrictor {
-    // Override methods to apply custom restrictions
-}
-----
-
-Register the restrictor with Jolokia by adding the following configuration to `application.properties`.
+Implement `org.jolokia.server.core.service.api.Restrictor` and register it via.
 
 [source]
 ----
 quarkus.camel.jolokia.additional-properties.restrictorClass=org.acme.CustomRestrictor
 ----
 
+=== Security
+
+Because Jolokia is served on the Quarkus HTTP server, it automatically inherits Quarkus HTTP
+security policies. You can restrict access to the Jolokia path using standard Quarkus security
+configuration.
+
+For TLS, configure `quarkus.management.ssl.*` (when using the management interface) or
+`quarkus.http.ssl.*` (when using the main HTTP server).
+
 === Kubernetes & OpenShift support
 
 ==== Generated Kubernetes manifests
 
-If the `quarkus-kubernetes` or `quarkus-openshift` extensions are present, a container port named `jolokia` will be added automatically to the pod configuration within the generated Kubernetes manifest resources.
+When `quarkus.management.enabled=true`, Quarkus automatically exposes the management port in
+the generated Kubernetes manifests. No additional configuration is required.
 
-This can be disabled by adding the following configuration to `application.properties`.
+==== Hawtio Online connectivity
 
-[source]
-----
-quarkus.camel.jolokia.kubernetes.expose-container-port=false
-----
-
-==== Automatic enablement of SSL client authentication
-
-If the application detects that it is running on Kubernetes or OpenShift, then Jolokia is automatically configured for SSL client authentication.
-This is useful if you use tools like https://hawt.io/[Hawtio] to discover and connect to your running application pod.
-
-This functionality can be disabled by adding the following configuration to `application.properties`.
-
-[source]
-----
-quarkus.camel.jolokia.kubernetes.client-authentication-enabled=false
-----
-
-Note that if you choose to use https://github.com/hawtio/hawtio-online[hawtio-online] to connect to your running application, then you must configure the Jolokia client principal.
-
-[source]
-----
-quarkus.camel.jolokia.kubernetes.client-principal=cn=hawtio-online.hawtio.svc
-----
+To connect https://github.com/hawtio/hawtio-online[Hawtio Online] to your application, configure
+Quarkus management interface TLS (`quarkus.management.ssl.*`) with the appropriate certificates.
+Refer to the Quarkus documentation for management interface TLS configuration.

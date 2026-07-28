@@ -46,7 +46,23 @@
         </dependency>
         <dependency>
             <groupId>org.jolokia</groupId>
-            <artifactId>jolokia-agent-jvm</artifactId>
+            <artifactId>jolokia-server-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jolokia</groupId>
+            <artifactId>jolokia-server-detector</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jolokia</groupId>
+            <artifactId>jolokia-service-history</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jolokia</groupId>
+            <artifactId>jolokia-service-jmx</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jolokia</groupId>
+            <artifactId>jolokia-service-serializer</artifactId>
         </dependency>
     </dependencies>
 
@@ -57,17 +73,12 @@
                 <artifactId>quarkus-extension-maven-plugin</artifactId>
                 <configuration>
                     <parentFirstArtifacts>
-                        <parentFirstArtifact>org.jolokia:jolokia-agent-jvm</parentFirstArtifact>
                         <parentFirstArtifact>org.jolokia:jolokia-core</parentFirstArtifact>
                         <parentFirstArtifact>org.jolokia:jolokia-json</parentFirstArtifact>
                         <parentFirstArtifact>org.jolokia:jolokia-server-core</parentFirstArtifact>
                         <parentFirstArtifact>org.jolokia:jolokia-server-detector</parentFirstArtifact>
-                        <parentFirstArtifact>org.jolokia:jolokia-service-discovery</parentFirstArtifact>
                         <parentFirstArtifact>org.jolokia:jolokia-service-history</parentFirstArtifact>
-                        <parentFirstArtifact>org.jolokia:jolokia-service-notif-pull</parentFirstArtifact>
-                        <parentFirstArtifact>org.jolokia:jolokia-service-notif-sse</parentFirstArtifact>
                         <parentFirstArtifact>org.jolokia:jolokia-service-jmx</parentFirstArtifact>
-                        <parentFirstArtifact>org.jolokia:jolokia-service-jsr160</parentFirstArtifact>
                         <parentFirstArtifact>org.jolokia:jolokia-service-serializer</parentFirstArtifact>
                     </parentFirstArtifacts>
                 </configuration>

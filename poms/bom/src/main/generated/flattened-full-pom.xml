@@ -8220,7 +8220,27 @@
       </dependency>
       <dependency>
         <groupId>org.jolokia</groupId>
-        <artifactId>jolokia-agent-jvm</artifactId>
+        <artifactId>jolokia-server-core</artifactId>
+        <version>2.6.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jolokia</groupId>
+        <artifactId>jolokia-server-detector</artifactId>
+        <version>2.6.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jolokia</groupId>
+        <artifactId>jolokia-service-history</artifactId>
+        <version>2.6.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jolokia</groupId>
+        <artifactId>jolokia-service-jmx</artifactId>
+        <version>2.6.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jolokia</groupId>
+        <artifactId>jolokia-service-serializer</artifactId>
         <version>2.6.0</version>
       </dependency>
       <dependency>

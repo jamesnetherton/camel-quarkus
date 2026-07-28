@@ -16,11 +16,8 @@
  */
 package org.apache.camel.quarkus.jolokia;
 
-import java.net.ConnectException;
-import java.net.URI;
-
 import io.quarkus.test.QuarkusUnitTest;
-import org.junit.jupiter.api.Assertions;
+import io.restassured.RestAssured;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
@@ -32,7 +29,8 @@ class JolokiaDisabledTest {
 
     @Test
     void jolokiaUnreachable() {
-        URI uri = URI.create("http://localhost:8778/jolokia");
-        Assertions.assertThrows(ConnectException.class, () -> uri.toURL().openConnection().connect());
+        RestAssured.get("/q/jolokia")
+                .then()
+                .statusCode(404);
     }
 }

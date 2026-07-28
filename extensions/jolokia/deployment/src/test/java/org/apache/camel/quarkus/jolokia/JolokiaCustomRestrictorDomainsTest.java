@@ -31,11 +31,9 @@ class JolokiaCustomRestrictorDomainsTest {
 
     @Test
     void customMBeanAllowDomains() {
-        RestAssured.port = 8778;
-
         // Verify org.apache.camel domain allowed
         RestAssured.given()
-                .get("/jolokia/read/org.apache.camel:context=camel-1,type=context,name=\"camel-1\"/CamelId")
+                .get("/q/jolokia/read/org.apache.camel:context=camel-1,type=context,name=\"camel-1\"/CamelId")
                 .then()
                 .statusCode(200)
                 .body(
@@ -44,7 +42,7 @@ class JolokiaCustomRestrictorDomainsTest {
 
         // Verify java.lang domain disallowed
         RestAssured.given()
-                .get("/jolokia/read/java.lang:type=ClassLoading/LoadedClassCount")
+                .get("/q/jolokia/read/java.lang:type=ClassLoading/LoadedClassCount")
                 .then()
                 .statusCode(200)
                 .body(
@@ -52,7 +50,7 @@ class JolokiaCustomRestrictorDomainsTest {
 
         // Verify java.nio domain disallowed
         RestAssured.given()
-                .get("/jolokia/read/java.nio:type=BufferPool,name=direct/MemoryUsed")
+                .get("/q/jolokia/read/java.nio:type=BufferPool,name=direct/MemoryUsed")
                 .then()
                 .statusCode(200)
                 .body(
