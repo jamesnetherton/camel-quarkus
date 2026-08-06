@@ -21,8 +21,6 @@ import java.io.InputStream;
 
 import com.oracle.svm.core.annotate.Substitute;
 import com.oracle.svm.core.annotate.TargetClass;
-import org.apache.hc.client5.http.entity.BrotliDecompressingEntity;
-import org.apache.hc.client5.http.entity.BrotliInputStreamFactory;
 
 /**
  * Remove references to optional brotli4j dependency.
@@ -30,7 +28,7 @@ import org.apache.hc.client5.http.entity.BrotliInputStreamFactory;
 final class BrotliSubstitutions {
 }
 
-@TargetClass(value = BrotliInputStreamFactory.class, onlyWith = { BrotliAbsentBooleanSupplier.class })
+@TargetClass(className = "org.apache.hc.client5.http.entity.BrotliInputStreamFactory", onlyWith = BrotliAbsentBooleanSupplier.class)
 final class SubstituteBrotliInputStreamFactory {
     @Substitute
     public InputStream create(InputStream inputStream) throws IOException {
@@ -39,7 +37,7 @@ final class SubstituteBrotliInputStreamFactory {
     }
 }
 
-@TargetClass(value = BrotliDecompressingEntity.class, onlyWith = { BrotliAbsentBooleanSupplier.class })
+@TargetClass(className = "org.apache.hc.client5.http.entity.BrotliDecompressingEntity", onlyWith = BrotliAbsentBooleanSupplier.class)
 final class SubstituteBrotliDecompressingEntity {
     @Substitute
     public static boolean isAvailable() {

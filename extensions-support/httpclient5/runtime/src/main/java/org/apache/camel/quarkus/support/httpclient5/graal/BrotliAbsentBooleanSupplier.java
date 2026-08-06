@@ -21,11 +21,18 @@ import java.util.function.BooleanSupplier;
 public class BrotliAbsentBooleanSupplier implements BooleanSupplier {
     @Override
     public boolean getAsBoolean() {
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         try {
-            Thread.currentThread().getContextClassLoader().loadClass("com.aayushatharva.brotli4j.Brotli4jLoader");
+            classLoader.loadClass("com.aayushatharva.brotli4j.Brotli4jLoader");
             return false;
         } catch (ClassNotFoundException e) {
+            // brotli4j is absent, only apply substitution if target class still exists
+        }
+        try {
+            classLoader.loadClass("org.apache.hc.client5.http.entity.BrotliInputStreamFactory");
             return true;
+        } catch (ClassNotFoundException e) {
+            return false;
         }
     }
 }
