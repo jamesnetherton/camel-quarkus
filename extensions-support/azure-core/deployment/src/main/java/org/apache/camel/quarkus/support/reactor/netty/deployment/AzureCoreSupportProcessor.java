@@ -42,6 +42,7 @@ import io.smallrye.common.os.OS;
 import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
 
+// CI test scenario: extensions-support change
 public class AzureCoreSupportProcessor {
     private static final DotName SERVICE_INTERFACE_DOT_NAME = DotName.createSimple(ServiceInterface.class.getName());
 
