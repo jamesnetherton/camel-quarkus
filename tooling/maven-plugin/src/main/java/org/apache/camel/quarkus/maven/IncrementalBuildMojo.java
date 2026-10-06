@@ -174,9 +174,9 @@ public class IncrementalBuildMojo extends AbstractMojo {
      * Comma-separated list of directory prefixes for functional test scope detection.
      * Format: prefix:scopeName
      * Default:
-     * extensions-core/:runExtensionsCoreTests,extensions/:runExtensionsTests,test-framework/:runTestFrameworkTests,tooling/:runToolingTests,catalog/:runCatalogTests
+     * extensions-core/:runExtensionsCoreTests,extensions/:runExtensionsTests,extensions-support/:runExtensionsSupportTests,test-framework/:runTestFrameworkTests,tooling/:runToolingTests,catalog/:runCatalogTests
      */
-    @Parameter(property = "cq.functionalScopeDirs", defaultValue = "extensions-core/:runExtensionsCoreTests,extensions/:runExtensionsTests,test-framework/:runTestFrameworkTests,tooling/:runToolingTests,catalog/:runCatalogTests")
+    @Parameter(property = "cq.functionalScopeDirs", defaultValue = "extensions-core/:runExtensionsCoreTests,extensions/:runExtensionsTests,extensions-support/:runExtensionsSupportTests,test-framework/:runTestFrameworkTests,tooling/:runToolingTests,catalog/:runCatalogTests")
     String functionalScopeDirs;
 
     /**
@@ -257,6 +257,7 @@ public class IncrementalBuildMojo extends AbstractMojo {
         List<String> modules = (List<String>) moduleData.get("modules");
         result.put("nativeTestMatrix", generateNativeMatrix(modules));
         result.put("functionalTestScope", detectFunctionalScope(report));
+        result.put("functionalTestModules", detectFunctionalTestModules(report));
         result.put("integrationTestsJvm", detectJvmTests(report, containerModules));
         result.put("runExamples", shouldRunExamples(report));
 
@@ -809,18 +810,9 @@ public class IncrementalBuildMojo extends AbstractMojo {
     }
 
     private Map<String, Object> detectFunctionalScope(ScalpelReport report) {
-        Map<String, String> prefixToScope = new LinkedHashMap<>();
+        Map<String, String> prefixToScope = functionalScopePrefixes();
         Map<String, Boolean> scope = new LinkedHashMap<>();
-
-        for (String entry : functionalScopeDirs.split(",")) {
-            String[] parts = entry.trim().split(":");
-            if (parts.length == 2) {
-                String prefix = parts[0].trim();
-                String scopeName = parts[1].trim();
-                prefixToScope.put(prefix, scopeName);
-                scope.put(scopeName, false);
-            }
-        }
+        prefixToScope.values().forEach(scopeName -> scope.put(scopeName, false));
 
         if (report == null) {
             scope.replaceAll((k, v) -> true);
@@ -840,7 +832,7 @@ public class IncrementalBuildMojo extends AbstractMojo {
 
             // Check each prefix and set corresponding scope flag
             for (Map.Entry<String, String> entry : prefixToScope.entrySet()) {
-                if (path.startsWith(entry.getKey())) {
+                if (relativeToScopeDir(normalizePath(path), entry.getKey()) != null) {
                     scope.put(entry.getValue(), true);
                 }
             }
@@ -849,6 +841,73 @@ public class IncrementalBuildMojo extends AbstractMojo {
         getLog().info("Functional test scope: " + scope);
 
         return new LinkedHashMap<>(scope);
+    }
+
+    /**
+     * Returns the affected modules of each functional scope directory as a comma-separated list of paths relative to
+     * that directory, suitable for passing to {@code -pl} when building from within it. Directories without affected
+     * modules are omitted. For full builds the result is empty, meaning that each scope must be built in its entirety.
+     * <p>
+     * The affected modules come from the Scalpel report of the whole reactor. Scalpel running within a scope directory
+     * cannot see changes outside of it, such as a dependency version change in the root {@code pom.xml} that reaches
+     * the scope modules via the BOM.
+     */
+    private Map<String, Object> detectFunctionalTestModules(ScalpelReport report) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (report == null || report.fullBuildTriggered) {
+            return result;
+        }
+
+        for (String prefix : functionalScopePrefixes().keySet()) {
+            Set<String> modules = new LinkedHashSet<>();
+            for (Map<String, Object> module : report.affectedModules) {
+                String path = (String) module.get("path");
+                if (path == null || "UPSTREAM".equals(module.get("category"))) {
+                    continue;
+                }
+
+                String relativePath = relativeToScopeDir(normalizePath(path), prefix);
+                if (relativePath != null) {
+                    modules.add(relativePath.isEmpty() ? "." : relativePath);
+                }
+            }
+
+            if (!modules.isEmpty()) {
+                result.put(normalizePath(prefix), String.join(",", modules));
+            }
+        }
+
+        getLog().info("Functional test modules: " + result);
+        return result;
+    }
+
+    /**
+     * Returns the functional scope directory prefixes, mapped to their scope names.
+     */
+    private Map<String, String> functionalScopePrefixes() {
+        Map<String, String> prefixToScope = new LinkedHashMap<>();
+        for (String entry : functionalScopeDirs.split(",")) {
+            String[] parts = entry.trim().split(":");
+            if (parts.length == 2) {
+                prefixToScope.put(parts[0].trim(), parts[1].trim());
+            }
+        }
+        return prefixToScope;
+    }
+
+    /**
+     * Returns {@code path} relative to the scope directory {@code prefix}, an empty string if {@code path} is the scope
+     * directory itself, or {@code null} if it is outside of it.
+     */
+    private static String relativeToScopeDir(String path, String prefix) {
+        String dir = normalizePath(prefix);
+        if (path.equals(dir)) {
+            return "";
+        }
+        if (path.startsWith(dir + "/")) {
+            return path.substring(dir.length() + 1);
+        }
+        return null;
     }
 
     private Map<String, Object> detectJvmTests(ScalpelReport report, ContainerAffectedModules containerModules) {
