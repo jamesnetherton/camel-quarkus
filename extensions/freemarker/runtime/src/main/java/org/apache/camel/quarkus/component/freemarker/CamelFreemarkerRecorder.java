@@ -16,6 +16,8 @@
  */
 package org.apache.camel.quarkus.component.freemarker;
 
+// Scalpel CI test
+
 import freemarker.template.Configuration;
 import io.quarkus.arc.runtime.BeanContainer;
 import io.quarkus.runtime.RuntimeValue;
