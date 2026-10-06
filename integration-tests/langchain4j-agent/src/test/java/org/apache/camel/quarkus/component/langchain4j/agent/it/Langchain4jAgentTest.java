@@ -16,6 +16,8 @@
  */
 package org.apache.camel.quarkus.component.langchain4j.agent.it;
 
+// Scalpel CI test
+
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
