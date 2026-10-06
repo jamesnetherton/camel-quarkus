@@ -42,23 +42,13 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
 /**
- * Unified mojo for incremental build analysis and matrix generation.
- * <p>
- * Supports multiple actions via the {@code -Dcq.action} parameter:
- * <ul>
- * <li>{@code analyze} - Performs all analysis operations and outputs comprehensive JSON (recommended)</li>
- * <li>{@code filter-modules} - Extracts affected modules from Scalpel report</li>
- * <li>{@code native-matrix} - Generates native test matrix with balanced distribution</li>
- * <li>{@code alternate-jvm-matrix} - Generates alternate JVM test matrix</li>
- * <li>{@code functional-scope} - Detects which functional test scopes are affected</li>
- * <li>{@code jvm-tests} - Detects affected JVM-only test modules</li>
- * </ul>
+ * Analyzes the Scalpel report and outputs JSON describing the affected modules, the native test matrix, the functional
+ * test scope and the affected JVM-only tests.
  * <p>
  * Usage:
  *
  * <pre>
  * mvn org.apache.camel.quarkus:camel-quarkus-maven-plugin:incremental-build \
- *   -Dcq.action=analyze \
  *   -Dcq.useIncrementalBuild=true \
  *   -N
  * </pre>
@@ -77,20 +67,6 @@ public class IncrementalBuildMojo extends AbstractMojo {
             .compile("<(copy|group)-tests\\.source\\.dir>([^<]+)</\\1-tests\\.source\\.dir>");
 
     private static final String MULTI_MODULE_DIR_PLACEHOLDER = "${maven.multiModuleProjectDirectory}/";
-
-    /**
-     * Action to perform. Supported values:
-     * <ul>
-     * <li>analyze - Full analysis (all operations)</li>
-     * <li>filter-modules - Extract affected modules</li>
-     * <li>native-matrix - Generate native test matrix</li>
-     * <li>alternate-jvm-matrix - Generate alternate JVM matrix</li>
-     * <li>functional-scope - Detect functional test scope</li>
-     * <li>jvm-tests - Detect JVM-only tests</li>
-     * </ul>
-     */
-    @Parameter(property = "cq.action", required = true)
-    String action;
 
     /**
      * Path to Scalpel's JSON report file
@@ -187,15 +163,6 @@ public class IncrementalBuildMojo extends AbstractMojo {
     String integrationTestSupportPrefix;
 
     /**
-     * Comma-separated list of changed container image property names (e.g.
-     * {@code kafka.container.image,mysql.container.image}).
-     * When set, TestResource.java files are scanned to find which test modules reference these
-     * properties, and those modules are added to the affected set.
-     */
-    @Parameter(property = "cq.changedContainerProperties")
-    String changedContainerProperties;
-
-    /**
      * Project root directory used for scanning TestResource files.
      */
     @Parameter(defaultValue = "${maven.multiModuleProjectDirectory}", property = "cq.projectRootDir")
@@ -208,35 +175,8 @@ public class IncrementalBuildMojo extends AbstractMojo {
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         try {
-            Map<String, Object> result;
-
-            switch (action) {
-            case "analyze":
-                result = performFullAnalysis();
-                break;
-            case "filter-modules":
-                result = filterModules();
-                break;
-            case "native-matrix": {
-                ScalpelReport report = readScalpelReport();
-                ContainerAffectedModules containerModules = detectContainerAffectedModules();
-                List<String> modules = (List<String>) filterModules(report, containerModules).get("modules");
-                result = generateNativeMatrix(modules);
-                break;
-            }
-            case "functional-scope":
-                result = detectFunctionalScope(readScalpelReport());
-                break;
-            case "jvm-tests":
-                result = detectJvmTests(readScalpelReport(), detectContainerAffectedModules());
-                break;
-            default:
-                throw new MojoExecutionException("Unknown action: " + action + ". Supported: analyze, filter-modules, "
-                        + "native-matrix, alternate-jvm-matrix, functional-scope, jvm-tests");
-            }
-
-            writeOutput(result);
-            getLog().info("Incremental build analysis complete (action=" + action + ")");
+            writeOutput(performFullAnalysis());
+            getLog().info("Incremental build analysis complete");
 
         } catch (Exception e) {
             throw new MojoExecutionException("Failed to execute incremental build analysis", e);
@@ -247,7 +187,7 @@ public class IncrementalBuildMojo extends AbstractMojo {
         Map<String, Object> result = new LinkedHashMap<>();
 
         ScalpelReport report = readScalpelReport();
-        ContainerAffectedModules containerModules = detectContainerAffectedModules();
+        ContainerAffectedModules containerModules = detectContainerAffectedModules(report);
 
         Map<String, Object> moduleData = filterModules(report, containerModules);
         result.put("incrementalBuild", moduleData.get("incrementalBuild"));
@@ -269,9 +209,20 @@ public class IncrementalBuildMojo extends AbstractMojo {
             return null;
         }
         Map<String, Object> raw = jsonMapper.readValue(scalpelReportJson.toFile(), JSON_TYPE_REF);
-        return expandGeneratedSourceConsumers(
+        ScalpelReport report = expandGeneratedSourceConsumers(
                 Boolean.TRUE.equals(raw.get("fullBuildTriggered")),
                 (List<Map<String, Object>>) raw.get("affectedModules"));
+
+        // Matches the properties written by tooling/scripts/generate-test-containers-config-properties.groovy
+        List<String> changedProperties = (List<String>) raw.get("changedProperties");
+        if (changedProperties != null) {
+            for (String property : changedProperties) {
+                if (property.endsWith("container.image")) {
+                    report.changedContainerProperties.add(property);
+                }
+            }
+        }
+        return report;
     }
 
     /**
@@ -462,6 +413,11 @@ public class IncrementalBuildMojo extends AbstractMojo {
          * grouped module name heuristic is skipped for these.
          */
         final Set<String> resolvedPaths;
+        /**
+         * Changed container image properties. Test modules read these at runtime via a generated config file rather
+         * than referencing them in their POM, so Scalpel cannot attribute the change to them.
+         */
+        final Set<String> changedContainerProperties = new LinkedHashSet<>();
 
         ScalpelReport(boolean fullBuildTriggered, List<Map<String, Object>> affectedModules,
                 Set<String> resolvedPaths) {
@@ -469,10 +425,6 @@ public class IncrementalBuildMojo extends AbstractMojo {
             this.affectedModules = affectedModules != null ? affectedModules : List.of();
             this.resolvedPaths = resolvedPaths;
         }
-    }
-
-    private Map<String, Object> filterModules() throws IOException {
-        return filterModules(readScalpelReport(), detectContainerAffectedModules());
     }
 
     private Map<String, Object> filterModules(ScalpelReport report, ContainerAffectedModules containerModules) {
@@ -602,24 +554,14 @@ public class IncrementalBuildMojo extends AbstractMojo {
      * modules depend on the affected support module via POM dependency grep</li>
      * </ul>
      */
-    private ContainerAffectedModules detectContainerAffectedModules() throws IOException {
+    private ContainerAffectedModules detectContainerAffectedModules(ScalpelReport report) throws IOException {
         ContainerAffectedModules result = new ContainerAffectedModules();
 
-        if (changedContainerProperties == null || changedContainerProperties.isBlank()) {
+        if (report == null || report.changedContainerProperties.isEmpty()) {
             return result;
         }
 
-        Set<String> changedProps = new LinkedHashSet<>();
-        for (String prop : changedContainerProperties.split(",")) {
-            String trimmed = prop.trim();
-            if (!trimmed.isEmpty()) {
-                changedProps.add(trimmed);
-            }
-        }
-
-        if (changedProps.isEmpty()) {
-            return result;
-        }
+        Set<String> changedProps = report.changedContainerProperties;
 
         getLog().info("Scanning for changed container properties: " + changedProps);
 

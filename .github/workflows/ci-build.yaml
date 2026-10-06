@@ -304,31 +304,6 @@ jobs:
       - name: Warn on Scalpel failure
         if: steps.scalpel-analysis.outcome == 'failure'
         run: echo "::warning::Scalpel analysis failed, falling back to full build"
-      - name: Detect Changed Container Properties
-        id: detect-container-props
-        if: steps.detect-incremental.outputs.incremental-build == 'true' && steps.scalpel-analysis.outcome != 'failure'
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          PUSH_BEFORE_SHA: ${{ github.event.before }}
-        run: |
-          # NOTE: We do this manual checking since the container image properties are not linked to any other pom.xml in the project.
-          # They are queried dynamically via Java code. This logic enables pom.xml to be removed from Scalpel full build triggers.
-
-          CHANGED_CONTAINER_PROPS=""
-          if [ "${EVENT_NAME}" == "pull_request" ]; then
-            BASE_SHA="${PR_BASE_SHA}"
-          else
-            BASE_SHA="${PUSH_BEFORE_SHA}"
-          fi
-          if [ -n "$BASE_SHA" ] && git diff "$BASE_SHA" -- pom.xml | grep -qE '[+-].*\.container\.image>'; then
-            CHANGED_CONTAINER_PROPS=$(git diff "$BASE_SHA" -- pom.xml \
-              | grep -E '^\+.*\.container\.image>' \
-              | sed -E 's/.*<([^<\/]+\.container\.image)>.*/\1/' \
-              | paste -sd,)
-            echo "Changed container properties: $CHANGED_CONTAINER_PROPS"
-          fi
-          echo "props=$CHANGED_CONTAINER_PROPS" >> $GITHUB_OUTPUT
       - name: Incremental Build Analysis
         id: incremental-build
         if: steps.detect-incremental.outputs.incremental-build == 'true' && steps.scalpel-analysis.outcome != 'failure'
@@ -340,10 +315,7 @@ jobs:
           PROJECT_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout -N)
           echo "Using camel-quarkus-maven-plugin version: $PROJECT_VERSION"
 
-          CONTAINER_PROPS="${{ steps.detect-container-props.outputs.props }}"
-
           ./mvnw org.apache.camel.quarkus:camel-quarkus-maven-plugin:${PROJECT_VERSION}:incremental-build \
-            -Dcq.action=analyze \
             -Dcq.useIncrementalBuild=true \
             -Dcq.extensionDirs="extensions/,extensions-jvm/,extensions-core/" \
             -Dcq.integrationTestDirs="integration-tests/,integration-tests-jvm/" \
@@ -351,7 +323,6 @@ jobs:
             -Dcq.jvmTestsPrefix="integration-tests-jvm/" \
             -Dcq.integrationTestGroupsPrefix="integration-test-groups/" \
             -Dcq.functionalScopeDirs="extensions-core/:runExtensionsCoreTests,extensions/:runExtensionsTests,extensions-support/:runExtensionsSupportTests,test-framework/:runTestFrameworkTests,tooling/:runToolingTests,catalog/:runCatalogTests" \
-            ${CONTAINER_PROPS:+-Dcq.changedContainerProperties="$CONTAINER_PROPS"} \
             -N ${CQ_MAVEN_ARGS}
 
           if [ -f target/incremental-build.json ]; then
