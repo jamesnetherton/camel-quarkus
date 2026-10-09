@@ -19,6 +19,7 @@ package org.apache.camel.quarkus.component.base64.deployment;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 
+// Test only: trigger an incremental build affecting base64
 class Base64Processor {
 
     private static final String FEATURE = "camel-base64";

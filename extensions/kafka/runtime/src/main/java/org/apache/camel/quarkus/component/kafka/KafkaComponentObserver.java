@@ -28,7 +28,6 @@ import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.ConfigProvider;
 
 @ApplicationScoped
-// Test only: trigger an incremental build affecting kafka
 public class KafkaComponentObserver {
     private static final String CAMEL_KAFKA_BROKERS = "camel.component.kafka.brokers";
     private static final String KAFKA_BOOTSTRAP_SERVERS = "kafka.bootstrap.servers";
