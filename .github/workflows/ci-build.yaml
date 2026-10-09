@@ -453,13 +453,15 @@ jobs:
                 FILTERED_MODULES=()
                 for MODULE in $(ls -d */ | tr -d '/'); do
                   [ -f "${MODULE}/pom.xml" ] || continue
-                  if [ ! -f "${MODULE}/target/deps.txt" ]; then
+                  # Multi-module examples have a deps.txt per module
+                  DEPS_FILES=$(find "${MODULE}" -path '*/target/deps.txt')
+                  if [ -z "${DEPS_FILES}" ]; then
                     echo "${MODULE}: could not determine dependencies - including for safety"
                     FILTERED_MODULES+=("${MODULE}")
                     continue
                   fi
                   for AFFECTED in ${AFFECTED_MODULES}; do
-                    if grep -qw "camel-quarkus-${AFFECTED}" "${MODULE}/target/deps.txt"; then
+                    if grep -qw "camel-quarkus-${AFFECTED}" ${DEPS_FILES}; then
                       echo "${MODULE}: depends on affected extension camel-quarkus-${AFFECTED}"
                       FILTERED_MODULES+=("${MODULE}")
                       break
