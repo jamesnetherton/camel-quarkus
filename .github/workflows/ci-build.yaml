@@ -19,11 +19,6 @@ name: Camel Quarkus CI
 
 on:
   push:
-    branches:
-      - main
-      - camel-main
-      - quarkus-main
-      - "[0-9]+.[0-9]+.x"
     paths-ignore:
       - '**.adoc'
       - '**.md'
@@ -112,7 +107,7 @@ env:
 
 jobs:
   pre-build-checks:
-    if: github.repository == 'apache/camel-quarkus'
+    if: github.repository == 'apache/camel-quarkus' || github.repository == 'jamesnetherton/camel-quarkus'
     runs-on: ubuntu-latest
     outputs:
       continue-build: ${{ steps.pre-build-checks.outputs.continue-build }}
