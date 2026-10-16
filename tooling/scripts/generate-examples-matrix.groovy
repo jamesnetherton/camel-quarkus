@@ -22,6 +22,7 @@ import java.nio.file.Paths
 
 final int MAX_GROUPS = 2
 final List<Map<String, String>> GROUPS = new ArrayList<>()
+final String EXAMPLES_REPO = System.getProperty('EXAMPLES_REPO', 'apache/camel-quarkus-examples')
 final String EXAMPLES_BRANCH = System.getProperty('EXAMPLES_BRANCH')
 final String EXAMPLES_IGNORE= System.getProperty('EXAMPLES_IGNORE')
 final String EXAMPLES_INCLUDE = System.getProperty('EXAMPLES_INCLUDE')
@@ -44,7 +45,7 @@ int groupId = 0
 JsonSlurper jsonSlurper = new JsonSlurper()
 
 try {
-    def url = new URL("https://raw.githubusercontent.com/apache/camel-quarkus-examples/${EXAMPLES_BRANCH}/docs/modules/ROOT/attachments/examples.json")
+    def url = new URL("https://raw.githubusercontent.com/${EXAMPLES_REPO}/${EXAMPLES_BRANCH}/docs/modules/ROOT/attachments/examples.json")
     def examples = jsonSlurper.parse(url)
 
     // Distribute example projects across a bounded set of test groups and output as JSON
