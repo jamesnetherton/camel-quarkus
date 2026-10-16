@@ -17,7 +17,9 @@
 package org.apache.camel.quarkus.component.jpa.it;
 
 import io.quarkus.test.junit.QuarkusIntegrationTest;
+import org.junit.jupiter.api.Disabled;
 
+@Disabled("camel-jpa is not compatible with Jakarta Persistence 4 (Quarkus 4)")
 @QuarkusIntegrationTest
 class JpaIT extends JpaTest {
 

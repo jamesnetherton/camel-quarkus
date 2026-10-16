@@ -17,7 +17,9 @@
 package org.apache.camel.quarkus.component.mcp.server.it;
 
 import io.quarkus.test.junit.QuarkusIntegrationTest;
+import org.junit.jupiter.api.Disabled;
 
+@Disabled("quarkus-mcp-server is not compatible with Quarkus 4")
 @QuarkusIntegrationTest
 class McpServerIT extends McpServerTest {
 

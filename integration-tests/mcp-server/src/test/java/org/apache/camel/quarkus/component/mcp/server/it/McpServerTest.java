@@ -32,6 +32,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.RestAssured;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,6 +43,7 @@ import static org.awaitility.Awaitility.await;
  * streamable HTTP. Mirrors {@code McpServerConformanceTestSupport} from camel-mcp-server-api, which cannot be reused
  * as-is here because it manages its own CamelContext outside Quarkus.
  */
+@Disabled("quarkus-mcp-server is not compatible with Quarkus 4")
 @QuarkusTest
 class McpServerTest {
 
