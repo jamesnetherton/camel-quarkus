@@ -19,7 +19,8 @@ package org.apache.camel.quarkus.component.log.it;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+
+import org.eclipse.microprofile.config.ConfigProvider;
 
 public class LogUtils {
     private LogUtils() {
@@ -31,8 +32,7 @@ public class LogUtils {
     }
 
     public static Path resolveQuarkusLogPath() {
-        Path logDir = Paths.get(".", "target");
-        Path quarkusLog = isNativeMode() ? logDir.resolve("target/quarkus.log") : logDir.resolve("quarkus.log");
+        Path quarkusLog = ConfigProvider.getConfig().getValue("quarkus.log.file.path", Path.class);
         if (!Files.exists(quarkusLog)) {
             try {
                 Files.createDirectories(quarkusLog.getParent());

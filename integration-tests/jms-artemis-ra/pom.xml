@@ -30,6 +30,12 @@
     <name>Camel Quarkus :: Integration Tests :: JMS Artemis RA Connector</name>
     <description>Integration tests for Camel Quarkus JMS extension with the Quarkus Artemis JMS RA Connector</description>
 
+    <properties>
+        <!-- TODO: Re-enable when there is a quarkus-artemis release compatible with Quarkus 4 -->
+        <skipTests>true</skipTests>
+        <quarkus.build.skip>true</quarkus.build.skip>
+    </properties>
+
     <dependencies>
         <!-- Messaging extension to test -->
         <dependency>
