@@ -31,7 +31,7 @@ import org.apache.camel.support.cluster.RebalancingCamelClusterService;
 class KubernetesClusterServiceProcessor {
 
     @Record(ExecutionTime.RUNTIME_INIT)
-    @BuildStep(onlyIf = KubernetesClusterServiceBuildTimeConfig.Enabled.class)
+    @BuildStep
     @Consume(CamelContextBuildItem.class)
     CamelRuntimeBeanBuildItem setupKubernetesClusterService(
             KubernetesClusterServiceBuildTimeConfig buildTimeConfig,

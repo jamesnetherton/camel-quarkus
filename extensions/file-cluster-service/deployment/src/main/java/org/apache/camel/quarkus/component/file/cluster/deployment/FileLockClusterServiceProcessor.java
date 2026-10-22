@@ -22,14 +22,13 @@ import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.runtime.RuntimeValue;
 import org.apache.camel.component.file.cluster.FileLockClusterService;
-import org.apache.camel.quarkus.component.file.cluster.FileLockClusterServiceBuildTimeConfig;
 import org.apache.camel.quarkus.component.file.cluster.FileLockClusterServiceRecorder;
 import org.apache.camel.quarkus.core.deployment.spi.CamelContextBuildItem;
 import org.apache.camel.quarkus.core.deployment.spi.CamelRuntimeBeanBuildItem;
 
 class FileLockClusterServiceProcessor {
 
-    @BuildStep(onlyIf = FileLockClusterServiceBuildTimeConfig.Enabled.class)
+    @BuildStep
     @Record(ExecutionTime.RUNTIME_INIT)
     @Consume(CamelContextBuildItem.class)
     CamelRuntimeBeanBuildItem setupFileLockClusterService(FileLockClusterServiceRecorder recorder) {

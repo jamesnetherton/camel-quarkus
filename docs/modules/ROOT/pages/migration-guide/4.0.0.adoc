@@ -97,3 +97,9 @@ A consumer-fed delivery whose document id resolves to nothing still fails the ex
 Code matching on the message text must be adjusted; matching on the exception type is unaffected.
 
 The default document-id header on consumer-fed pipelines remains `CamelIngestDocumentId` as released — the extension pins it over the component's own `CamelLangChain4jIngestDocumentId` default — so routes that set the header keep working unchanged.
+
+== Cluster service `enabled` configuration properties removed
+
+The deprecated `quarkus.camel.cluster.file.enabled` and `quarkus.camel.cluster.kubernetes.enabled` configuration properties have been removed.
+
+The `camel-quarkus-file-cluster-service` and `camel-quarkus-kubernetes-cluster-service` extensions now always configure their cluster service. To disable it, remove the extension dependency from the application.
