@@ -119,7 +119,6 @@ jobs:
 
           echo "${NATIVE_MODULES[*]}" > ${{ runner.temp }}/native-modules.txt
 
-          IFS=,
           ./mvnw ${CQ_MAVEN_ARGS} clean package \
             ${CQ_MAVEN_SKIP_CHECKS} \
             -DskipTests \
@@ -127,7 +126,7 @@ jobs:
             -Dquarkus.native.builder-image.pull=missing \
             -Pnative,docker,ci \
             --fail-at-end \
-            -pl "${NATIVE_MODULES[*]}"
+            -pl "$(IFS=,; echo "${NATIVE_MODULES[*]}")"
       - name: Collect Build Stats
         if: always()
         run: |
