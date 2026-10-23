@@ -15,79 +15,16 @@
 # limitations under the License.
 #
 
-name: Camel Quarkus CI
+# Stripped down CI that only builds the native images of every integration test module (tests are skipped)
+# and collects GraalVM / Quarkus build statistics for analysis of native build times and binary sizes.
+
+name: Native Build Stats
 
 on:
   push:
     branches:
-      - main
-      - camel-main
-      - quarkus-main
-      - "[0-9]+.[0-9]+.x"
-    paths-ignore:
-      - '**.adoc'
-      - '**.md'
-      - 'Jenkinsfile'
-      - 'Jenkinsfile.*'
-      - 'KEYS'
-      - 'LICENSE.txt'
-      - 'NOTICE.txt'
-      - 'camel-quarkus-sbom/**'
-      - '**/META-INF/quarkus-extension.yaml'
-      - '.asf.yaml'
-      - '.github/*.sh'
-      - '.github/*.yaml'
-      - '.github/*.yml'
-      - '.github/workflows/assign-issue-milestone.yaml'
-      - '.github/workflows/assign-wontfix-issue-milestone.yaml'
-      - '.github/workflows/camel-master-cron.yaml'
-      - '.github/workflows/check-dependency-convergence.yml'
-      - '.github/workflows/alternate-jdk-build.yaml'
-      - '.github/workflows/generate-sbom-main.yml'
-      - '.github/workflows/jdk25-build.yaml'
-      - '.github/workflows/semeru21-build.yaml'
-      - '.github/workflows/label-issue.yaml'
-      - '.github/workflows/quarkus-master-cron.yaml'
-      - '.github/workflows/synchronize-dependabot-branch.yaml'
-      - '.github/workflows/pr-doc-validation.yaml'
-      - 'docs/antora.yml'
-      - 'release-utils/**'
-  pull_request:
-    branches:
-      - main
-      - camel-main
-      - quarkus-main
-      - "[0-9]+.[0-9]+.x"
-    paths-ignore:
-      - '**.adoc'
-      - '**.md'
-      - 'Jenkinsfile'
-      - 'Jenkinsfile.*'
-      - 'KEYS'
-      - 'LICENSE.txt'
-      - 'NOTICE.txt'
-      - 'camel-quarkus-sbom/**'
-      - '**/META-INF/quarkus-extension.yaml'
-      - '.asf.yaml'
-      - '.github/*.sh'
-      - '.github/*.yaml'
-      - '.github/*.yml'
-      - '.github/workflows/assign-issue-milestone.yaml'
-      - '.github/workflows/assign-wontfix-issue-milestone.yaml'
-      - '.github/workflows/alternate-jdk-build.yaml'
-      - '.github/workflows/camel-master-cron.yaml'
-      - '.github/workflows/check-dependency-convergence.yml'
-      - '.github/workflows/generate-sbom-main.yml'
-      - '.github/workflows/jdk25-build.yaml'
-      - '.github/workflows/label-issue.yaml'
-      - '.github/workflows/semeru21-build.yaml'
-      - '.github/workflows/quarkus-lts-ci-build.yaml'
-      - '.github/workflows/quarkus-master-cron.yaml'
-      - '.github/workflows/synchronize-dependabot-branch.yaml'
-      - '.github/workflows/pr-doc-validation.yaml'
-      - 'docs/antora.yml'
-      - 'release-utils/**'
-
+      - native-build-stats
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -100,292 +37,35 @@ env:
   LANG: en_US.UTF-8
   MAVEN_OPTS: -Xmx3000m
   CQ_MAVEN_ARGS: -V -ntp -e -Daether.connector.http.connectionMaxTtl=120
-  TESTCONTAINERS_RYUK_DISABLED: true
-  CHECKOUT_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]' && github.head_ref || '' }}
-  # Scalpel configuration (defaults for all jobs; initial-mvn-install overrides SCALPEL_FULL_BUILD_TRIGGERS).
-  # Broad extensions-core/** trigger here is intentional: functional-extension-tests falls back to trim mode
-  # when an extensions-core change is detected, so any extensions-core change should run full tests.
-  SCALPEL_FULL_BUILD_TRIGGERS: "-Dscalpel.fullBuildTriggers=poms/build-parent/**,poms/build-parent-it/**,extensions-core/**,.mvn/**,.github/workflows/ci-build.yaml"
-  SCALPEL_EXCLUDE_PATHS: "-Dscalpel.excludePaths=**.adoc,**.md,docs/**,Jenkinsfile*,LICENSE.txt,NOTICE.txt,KEYS,camel-quarkus-sbom/**,.github/*.sh"
   CQ_MAVEN_SKIP_CHECKS: "-Dformatter.skip -Dimpsort.skip -Denforcer.skip -Dcamel-quarkus.update-extension-doc-page.skip"
-  DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
 
 jobs:
-  pre-build-checks:
-    if: github.repository == 'apache/camel-quarkus'
-    runs-on: ubuntu-latest
-    outputs:
-      continue-build: ${{ steps.pre-build-checks.outputs.continue-build }}
-      run-checks: ${{ steps.init.outputs.run-checks }}
-    steps:
-      - name: Initialize
-        id: init
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-        run: |
-          if [[ "${EVENT_NAME}" == "pull_request" ]] && [[ "${PR_AUTHOR}" == "dependabot[bot]" ]]; then
-            echo "run-checks=true" >> $GITHUB_OUTPUT
-          else
-            echo "run-checks=false" >> $GITHUB_OUTPUT
-          fi
-      - name: Set up JDK 21
-        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
-        if: steps.init.outputs.run-checks == 'true'
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: steps.init.outputs.run-checks == 'true'
-        with:
-          ref: ${{ env.CHECKOUT_REF }}
-          fetch-depth: 0
-      - name: Setup Maven Cache
-        if: steps.init.outputs.run-checks == 'true'
-        uses: ./.github/actions/setup-maven-cache
-        with:
-          maven-properties: |
-            jira-rest-client.version
-            quarkiverse-cxf.version
-      - name: Pre build checks
-        id: pre-build-checks
-        env:
-          RUN_CHECKS: ${{ steps.init.outputs.run-checks }}
-          HEAD_REF: ${{ github.head_ref }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-        run: |
-          if [[ "${RUN_CHECKS}" == "true" ]]; then
-            ./mvnw cq:sync-versions -N ${CQ_MAVEN_ARGS}
-            ./mvnw clean install -pl poms/bom -am -Dcq.flatten-bom.format --fail-never ${CQ_MAVEN_ARGS}
-            ./mvnw clean install -f poms/bom ${CQ_MAVEN_ARGS}
-            ./mvnw clean validate -pl docs ${CQ_MAVEN_ARGS}
-
-            if [[ -z "$(git status --porcelain)" ]]; then
-              echo "continue-build=true" >> $GITHUB_OUTPUT
-            else
-              mkdir ./dependabot-pr
-              printf '%s\n' "${HEAD_REF}" > ./dependabot-pr/BRANCH_REF
-              printf '%s\n' "${PR_HEAD_SHA}" > ./dependabot-pr/PR_HEAD_SHA
-              echo "$GITHUB_REF" | awk -F / '{print $3}' >  ./dependabot-pr/PR_NUMBER
-              printf '%s\n' "${PR_AUTHOR}" > ./dependabot-pr/PR_AUTHOR
-              git diff -p --binary > ./dependabot-pr/changes.patch
-
-              echo "continue-build=false" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "continue-build=true" >> $GITHUB_OUTPUT
-          fi
-      - name: Upload dependabot changeset
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: steps.pre-build-checks.outputs.continue-build == 'false'
-        with:
-          name: dependabot-pr-changeset
-          path: dependabot-pr/
-          retention-days: 1
-
   initial-mvn-install:
-    if: needs.pre-build-checks.outputs.continue-build == 'true'
     runs-on: ubuntu-latest
-    needs: pre-build-checks
     outputs:
-      # Miscellaneous job outputs. Keep sorted alphabetically.
       cache-key: ${{ steps.maven-cache.outputs.cache-key }}
-      # Incremental build job outputs. Keep sorted alphabetically.
-      examples-matrix: ${{ steps.set-examples-matrix.outputs.examples-matrix || '{"include":[]}' }}
-      functional-test-modules: ${{ steps.process-incremental.outputs.functional-test-modules || '{}' }}
-      integration-tests-jvm-modules: ${{ steps.process-incremental.outputs.integration-tests-jvm-modules || '' }}
-      integration-tests-matrix: ${{ steps.process-incremental.outputs.use-incremental == 'true' && steps.process-incremental.outputs.integration-tests-matrix || steps.set-native-matrix-full.outputs.matrix || '{"include":[]}' }}
-      integration-tests-modules: ${{ steps.incremental-build.outputs.integration-tests-modules }}
-      run-catalog-tests: ${{ steps.process-incremental.outputs.run-catalog-tests }}
-      run-examples: ${{ steps.process-incremental.outputs.run-examples }}
-      run-extensions-core-tests: ${{ steps.process-incremental.outputs.run-extensions-core-tests }}
-      run-extensions-support-tests: ${{ steps.process-incremental.outputs.run-extensions-support-tests }}
-      run-extensions-tests: ${{ steps.process-incremental.outputs.run-extensions-tests }}
-      run-integration-tests-jvm: ${{ steps.process-incremental.outputs.run-integration-tests-jvm }}
-      run-test-framework-tests: ${{ steps.process-incremental.outputs.run-test-framework-tests }}
-      run-tooling-tests: ${{ steps.process-incremental.outputs.run-tooling-tests }}
+      integration-tests-matrix: ${{ steps.set-native-matrix.outputs.matrix }}
     env:
       MAVEN_OPTS: -Xmx4600m
-      SCALPEL_ENABLED: "-Dscalpel.enabled=true"
-      SCALPEL_FULL_BUILD_TRIGGERS: "-Dscalpel.fullBuildTriggers=poms/build-parent/**,poms/build-parent-it/**,extensions-core/core/**,.mvn/**,.github/workflows/ci-build.yaml"
-      SCALPEL_EXCLUDE_PATHS: "-Dscalpel.excludePaths=docs/**"
     steps:
-      - name: Check free space on disk
-        run: |
-          df -h /
       - name: Set up JDK 21
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: 'temurin'
           java-version: '21'
-      - name: Clone Camel
-        if: github.ref == 'refs/heads/camel-main' || github.base_ref == 'camel-main'
-        run: |
-          cd ../
-          git clone --depth 1 --branch main https://github.com/apache/camel.git
-          cd camel
-          echo "Current Camel commit:" $(git rev-parse HEAD)
-      - name: Build Quarkus
-        if: github.ref == 'refs/heads/quarkus-main' || github.base_ref == 'quarkus-main'
-        run: |
-          git clone --depth 1 --branch 3.x https://github.com/quarkusio/quarkus.git \
-            && cd quarkus \
-            && echo "Current Quarkus commit:" $(git rev-parse HEAD) \
-            && sed -i '/<module>integration-tests<\/module>/d' pom.xml \
-            && ./mvnw ${CQ_MAVEN_ARGS} clean install -Dquickly -Prelocations -T1C
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ env.CHECKOUT_REF }}
-          fetch-depth: 0
       - name: Setup Maven Cache
         id: maven-cache
         uses: ./.github/actions/setup-maven-cache
-      - name: Build Camel
-        if: github.ref == 'refs/heads/camel-main' || github.base_ref == 'camel-main'
-        run: |
-          cd ../camel
-          ./mvnw ${CQ_MAVEN_ARGS} clean install -Dquickly -T1C
-      - name: Detect PR Incremental Build
-        id: detect-incremental
-        if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'ci/disable-incremental')
-        run: |
-          echo "incremental-build=true" >> $GITHUB_OUTPUT
-      - name: Update extension metadata
-        run: |
-          ./mvnw -N cq:update-quarkus-metadata ${CQ_MAVEN_ARGS}
       - name: mvn clean install -DskipTests
         run: |
-          eval ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} -T1C clean install -DskipTests -Dquarkus.build.skip -Pformat
-      - name: Scalpel Analysis
-        id: scalpel-analysis
-        if: steps.detect-incremental.outputs.incremental-build == 'true'
-        continue-on-error: true
-        env:
-          # Comparing the effective models of the whole reactor needs a much larger heap than the build itself
-          MAVEN_OPTS: -Xmx10g
-        run: |
-          ./mvnw validate -Dquickly \
-            ${SCALPEL_ENABLED} \
-            -Dscalpel.mode=report \
-            ${SCALPEL_FULL_BUILD_TRIGGERS} \
-            ${SCALPEL_EXCLUDE_PATHS} \
-            ${CQ_MAVEN_ARGS}
-
-          if [ -f target/scalpel-report.json ]; then
-            echo "Scalpel report generated successfully"
-            cat target/scalpel-report.json | jq '{fullBuildTriggered, triggerFile, affectedModulesCount: (.affectedModules | length)}'
-          else
-            echo "Scalpel report not found"
-            exit 1
-          fi
-      - name: Warn on Scalpel failure
-        if: steps.scalpel-analysis.outcome == 'failure'
-        run: echo "::warning::Scalpel analysis failed, falling back to full build"
-      - name: Incremental Build Analysis
-        id: incremental-build
-        if: steps.detect-incremental.outputs.incremental-build == 'true' && steps.scalpel-analysis.outcome != 'failure'
-        continue-on-error: true
-        run: |
-          # Run unified incremental build analysis
-          # All directory patterns are explicitly configured here for visibility and maintainability
-          # Extract project version dynamically to avoid hardcoding
-          PROJECT_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout -N)
-          echo "Using camel-quarkus-maven-plugin version: $PROJECT_VERSION"
-
-          ./mvnw org.apache.camel.quarkus:camel-quarkus-maven-plugin:${PROJECT_VERSION}:incremental-build \
-            -Dcq.useIncrementalBuild=true \
-            -Dcq.extensionDirs="extensions/,extensions-jvm/,extensions-core/" \
-            -Dcq.integrationTestDirs="integration-tests/,integration-tests-jvm/" \
-            -Dcq.nativeTestsPrefix="integration-tests/" \
-            -Dcq.jvmTestsPrefix="integration-tests-jvm/" \
-            -Dcq.integrationTestGroupsPrefix="integration-test-groups/" \
-            -Dcq.functionalScopeDirs="extensions-core/:runExtensionsCoreTests,extensions/:runExtensionsTests,extensions-support/:runExtensionsSupportTests,test-framework/:runTestFrameworkTests,tooling/:runToolingTests,catalog/:runCatalogTests" \
-            -N ${CQ_MAVEN_ARGS}
-
-          if [ -f target/incremental-build.json ]; then
-            echo "Incremental build analysis complete"
-            cat target/incremental-build.json
-
-            # Output entire JSON as single output (compact for GitHub Actions)
-            echo "data=$(cat target/incremental-build.json | jq -c '.')" >> $GITHUB_OUTPUT
-
-            # Only set integration-tests-modules for actual incremental builds.
-            # For full builds (incrementalBuild=false), leave it empty so downstream jobs run all modules.
-            IS_INCREMENTAL=$(cat target/incremental-build.json | jq -r '.incrementalBuild // false')
-            if [ "$IS_INCREMENTAL" == "true" ]; then
-              INTEGRATION_TESTS_MODULES=$(cat target/incremental-build.json | jq -c '{modules: .affectedModules, modulesCsv: (.affectedModules | join(",")), fullBuild: false, totalModules: .affectedModulesCount}')
-              echo "integration-tests-modules=$INTEGRATION_TESTS_MODULES" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "Incremental build analysis failed - falling back to full build"
-            # Output empty JSON structure for fallback
-            echo "data={\"incrementalBuild\":false}" >> $GITHUB_OUTPUT
-          fi
-      - name: Process Incremental Build Data
-        id: process-incremental
-        run: |
-          # Parse JSON and resolve all outputs.
-          # For full builds, all run-* flags resolve to true so job outputs are simple pass-throughs.
-          INCREMENTAL=false
-          if [ -f target/incremental-build.json ]; then
-            DATA=$(cat target/incremental-build.json)
-            INCREMENTAL=$(echo "$DATA" | jq -r '.incrementalBuild // false')
-          fi
-
-          echo "use-incremental=$INCREMENTAL" >> $GITHUB_OUTPUT
-
-          if [ "$INCREMENTAL" == "true" ]; then
-            echo "Incremental build will be used"
-            echo "integration-tests-matrix=$(echo "$DATA" | jq -c '.nativeTestMatrix')" >> $GITHUB_OUTPUT
-            echo "run-integration-tests-jvm=$(echo "$DATA" | jq -r '.integrationTestsJvm.runTests')" >> $GITHUB_OUTPUT
-            echo "integration-tests-jvm-modules=$(echo "$DATA" | jq -r '.integrationTestsJvm.modules')" >> $GITHUB_OUTPUT
-            echo "run-extensions-core-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runExtensionsCoreTests')" >> $GITHUB_OUTPUT
-            echo "run-extensions-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runExtensionsTests')" >> $GITHUB_OUTPUT
-            echo "run-extensions-support-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runExtensionsSupportTests')" >> $GITHUB_OUTPUT
-            echo "run-examples=$(echo "$DATA" | jq -r '.runExamples')" >> $GITHUB_OUTPUT
-            echo "run-test-framework-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runTestFrameworkTests')" >> $GITHUB_OUTPUT
-            echo "run-tooling-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runToolingTests')" >> $GITHUB_OUTPUT
-            echo "run-catalog-tests=$(echo "$DATA" | jq -r '.functionalTestScope.runCatalogTests')" >> $GITHUB_OUTPUT
-
-            # Any extensions-core change runs the functional tests with Scalpel trim mode instead of only the affected modules
-            if [ "$(echo "$DATA" | jq -r '.functionalTestScope.runExtensionsCoreTests')" == "true" ]; then
-              echo "functional-test-modules={}" >> $GITHUB_OUTPUT
-            else
-              echo "functional-test-modules=$(echo "$DATA" | jq -c '.functionalTestModules // {}')" >> $GITHUB_OUTPUT
-            fi
-
-            {
-              echo "### Incremental Native Test Matrix"
-              echo ""
-              echo "$DATA" | jq -r '.nativeTestMatrix.include[] | "**\(.name):** \(.modules | split(",") | map("`\(.)`") | join(", "))"'
-            } >> $GITHUB_STEP_SUMMARY
-          else
-            echo "Full build will be used"
-            echo "run-integration-tests-jvm=true" >> $GITHUB_OUTPUT
-            echo "run-extensions-core-tests=true" >> $GITHUB_OUTPUT
-            echo "run-extensions-tests=true" >> $GITHUB_OUTPUT
-            echo "run-extensions-support-tests=true" >> $GITHUB_OUTPUT
-            echo "run-examples=true" >> $GITHUB_OUTPUT
-            echo "run-test-framework-tests=true" >> $GITHUB_OUTPUT
-            echo "run-tooling-tests=true" >> $GITHUB_OUTPUT
-            echo "run-catalog-tests=true" >> $GITHUB_OUTPUT
-          fi
-      - name: Sync Maven properties
-        run: |
-          ./mvnw cq:sync-versions ${CQ_MAVEN_ARGS} -N
-      - name: Fail if there are uncommitted changes
-        shell: bash
-        run: |
-          [[ -z $(git status --porcelain | grep -v antora.yml) ]] || { echo 'There are uncommitted changes'; git status; git diff; exit 1; }
+          ./mvnw ${CQ_MAVEN_ARGS} -T1C clean install -DskipTests -Dquarkus.build.skip ${CQ_MAVEN_SKIP_CHECKS}
       - name: Tar Maven Repo
         shell: bash
         run: |
           tar -I 'zstd -T0' -cf ${{ runner.temp }}/maven-repo.tar.zst -C ~ .m2/repository
           ls -lh ${{ runner.temp }}/maven-repo.tar.zst
-          df -h /
       - name: Persist Maven Repo
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -398,104 +78,22 @@ jobs:
         with:
           action: save
           cache-key: ${{ steps.maven-cache.outputs.cache-key }}
-      - name: Setup Native Test Matrix (Full Build)
-        id: set-native-matrix-full
-        if: steps.process-incremental.outputs.use-incremental != 'true'
+      - name: Setup Native Test Matrix
+        id: set-native-matrix
         run: |
-          echo "Using all test categories (full build)"
           CATEGORIES=$(yq -M -N -I 0 -o=json e 'keys' tooling/scripts/test-categories.yaml | tr '"' "'")
-          MATRIX_FULL="{'category': ${CATEGORIES}}"
+          echo "matrix={'category': ${CATEGORIES}}" >> $GITHUB_OUTPUT
 
-          # Validate matrix size (convert single quotes to double quotes for jq)
-          MATRIX_SIZE=$(echo "$MATRIX_FULL" | sed "s/'/\"/g" | jq '.category | length')
-          echo "Native tests matrix size: $MATRIX_SIZE jobs (full build)"
-          if [ "$MATRIX_SIZE" -gt 20 ]; then
-            echo "ERROR: Native tests matrix size ($MATRIX_SIZE) exceeds maximum expected (20)"
-            echo "Matrix content: $MATRIX_FULL"
-            exit 1
-          fi
-
-          echo "matrix=$MATRIX_FULL" >> $GITHUB_OUTPUT
-      - name: Setup Examples Matrix
-        id: set-examples-matrix
-        if: steps.process-incremental.outputs.run-examples == 'true'
-        env:
-          INTEGRATION_TESTS_MODULES: ${{ steps.incremental-build.outputs.integration-tests-modules }}
-        shell: '/usr/bin/bash {0}'
-        run: |
-          EXAMPLES_BRANCH="camel-quarkus-main"
-          if [[ ${GITHUB_REF_NAME} =~ [0-9]+.[0-9]+.x ]]; then
-              EXAMPLES_BRANCH=${GITHUB_REF_NAME}
-          elif [[ ${GITHUB_BASE_REF} =~ [0-9]+.[0-9]+.x ]]; then
-              EXAMPLES_BRANCH=${GITHUB_BASE_REF}
-          fi
-
-          # For incremental builds, only include examples that depend on an affected extension
-          EXAMPLES_INCLUDE_OPTION=""
-          if [ -n "${INTEGRATION_TESTS_MODULES}" ]; then
-            AFFECTED_MODULES=$(echo "${INTEGRATION_TESTS_MODULES}" | jq -r '.modules[]')
-            echo "Affected modules: $(echo ${AFFECTED_MODULES})"
-
-            if echo "${AFFECTED_MODULES}" | grep -qx "core"; then
-              echo "Core extension affected - building all examples"
-            else
-              CQ_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout -N)
-              EXAMPLES_DIR=${{ runner.temp }}/camel-quarkus-examples
-
-              if git clone --depth 1 --branch ${EXAMPLES_BRANCH} https://github.com/apache/camel-quarkus-examples.git ${EXAMPLES_DIR} \
-                && cd ${EXAMPLES_DIR} \
-                && ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} -N org.l2x6.cq:cq-maven-plugin:2.10.0:examples-set-platform -Dcq.camel-quarkus.version=${CQ_VERSION}; then
-
-                ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} -q -fae dependency:list -DoutputFile=target/deps.txt || true
-
-                FILTERED_MODULES=()
-                for MODULE in $(ls -d */ | tr -d '/'); do
-                  [ -f "${MODULE}/pom.xml" ] || continue
-                  # Multi-module examples have a deps.txt per module
-                  DEPS_FILES=$(find "${MODULE}" -path '*/target/deps.txt')
-                  if [ -z "${DEPS_FILES}" ]; then
-                    echo "${MODULE}: could not determine dependencies - including for safety"
-                    FILTERED_MODULES+=("${MODULE}")
-                    continue
-                  fi
-                  for AFFECTED in ${AFFECTED_MODULES}; do
-                    if grep -qw "camel-quarkus-${AFFECTED}" ${DEPS_FILES}; then
-                      echo "${MODULE}: depends on affected extension camel-quarkus-${AFFECTED}"
-                      FILTERED_MODULES+=("${MODULE}")
-                      break
-                    fi
-                  done
-                done
-
-                EXAMPLES_INCLUDE_OPTION="-DEXAMPLES_INCLUDE=$(IFS=,; echo "${FILTERED_MODULES[*]}")"
-                echo "Filtered examples to build: ${FILTERED_MODULES[*]:-none}"
-                cd -
-              else
-                echo "::warning::Failed to analyze camel-quarkus-examples dependencies, building all examples"
-              fi
-            fi
-          fi
-
-          sudo apt install groovy -y --no-install-recommends
-          EXAMPLES_MATRIX=$(groovy -DEXAMPLES_BRANCH=${EXAMPLES_BRANCH} ${EXAMPLES_INCLUDE_OPTION} tooling/scripts/generate-examples-matrix.groovy)
-          echo "examples-matrix=${EXAMPLES_MATRIX}" >> $GITHUB_OUTPUT
-
-  native-tests:
-    name: Native Tests - ${{ matrix.name || matrix.category }}
+  native-build-stats:
+    name: Native Build Stats - ${{ matrix.category }}
     needs: initial-mvn-install
     runs-on: ubuntu-latest
-    if: |
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM'))
-      && (fromJson(needs.initial-mvn-install.outputs.integration-tests-matrix).include[0] != null || fromJson(needs.initial-mvn-install.outputs.integration-tests-matrix).category[0] != null)
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.initial-mvn-install.outputs.integration-tests-matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ env.CHECKOUT_REF }}
-          fetch-depth: 0
       - name: Reclaim Disk Space
         run: .github/reclaim-disk-space.sh
       - name: Set up JDK 21
@@ -508,380 +106,71 @@ jobs:
         with:
           cache-key: ${{ needs.initial-mvn-install.outputs.cache-key }}
           download-maven-repo: 'true'
-      - name: Integration Tests
+      - name: Native Builds
         run: |
-          # Check if this is incremental build (modules) or full build (category)
-          if [ -n "${{ matrix.modules }}" ]; then
-            echo "Incremental build - running modules: ${{ matrix.modules }}"
-            # Split comma-separated modules
-            IFS=',' read -ra MODULE_LIST <<< "${{ matrix.modules }}"
-            for MODULE_NAME in "${MODULE_LIST[@]}"; do
-              MODULE="integration-tests/${MODULE_NAME}"
-
-              if [[ "x$(./mvnw org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=ci.native.tests.skip -DforceStdout -q -f ${MODULE})" == "xtrue" ]]; then
-                JVM_MODULES+=("${MODULE}")
-              else
-                NATIVE_MODULES+=("${MODULE}")
-              fi
-            done
-          else
-            echo "Full build - running category: ${{ matrix.category }}"
-            # Original category-based logic
-            for MODULE in $(yq -M -N e ".${{ matrix.category }}" tooling/scripts/test-categories.yaml | grep -vE '^\s*#' | cut -f2 -d' '); do
-              if [[ "${MODULE}" == "null" ]]; then
-                continue
-              fi
-
-              MODULE="integration-tests/$(echo ${MODULE} | sed 's/^[ \t]*//;s/[ \t]*$//')"
-
-              if [[ "x$(./mvnw org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=ci.native.tests.skip -DforceStdout -q -f ${MODULE})" == "xtrue" ]]; then
-                JVM_MODULES+=("${MODULE}")
-              else
-                NATIVE_MODULES+=("${MODULE}")
-              fi
-            done
-          fi
-
-          if [[ ${#JVM_MODULES[@]} -eq 0 ]] && [[ ${#NATIVE_MODULES[@]} -eq 0 ]]; then
-            echo "No test modules were found"
-            exit 1
-          fi
-
-          IFS=,
-          if [[ ${JVM_MODULES[@]} ]]; then
-            eval ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} clean test \
-              ${CQ_MAVEN_SKIP_CHECKS} \
-              -Pdocker,ci \
-              -pl "${JVM_MODULES[*]}"
-          fi
-
-          if [[ ${NATIVE_MODULES[@]} ]]; then
-            eval ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} clean verify \
-              ${CQ_MAVEN_SKIP_CHECKS} \
-              -Dquarkus.native.builder-image.pull=missing \
-              -Pnative,docker,ci \
-              --fail-at-end \
-              -pl "${NATIVE_MODULES[*]}"
-          fi
-      - name: Report test failures
-        uses: ./.github/actions/test-summary-report
-        if: ${{ failure() }}
-        with:
-          test-report-xml-base-dir: integration-tests
-      - name: Fail if there are uncommitted changes
-        shell: bash
-        run: |
-          [[ -z $(git status --porcelain) ]] || { echo 'There are uncommitted changes'; git status; git diff; exit 1; }
-
-  functional-extension-tests:
-    runs-on: ubuntu-latest
-    needs: initial-mvn-install
-    if: >-
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM'))
-      && (needs.initial-mvn-install.outputs.run-extensions-core-tests == 'true'
-      || needs.initial-mvn-install.outputs.run-extensions-tests == 'true'
-      || needs.initial-mvn-install.outputs.run-extensions-support-tests == 'true'
-      || needs.initial-mvn-install.outputs.run-test-framework-tests == 'true'
-      || needs.initial-mvn-install.outputs.run-tooling-tests == 'true'
-      || needs.initial-mvn-install.outputs.run-catalog-tests == 'true')
-    env:
-      MAVEN_OPTS: -Xmx3000m
-      SCALPEL_TRIM_ARGS: "-Dscalpel.enabled=true -Dscalpel.mode=trim -Dscalpel.alsoMake=true -Dscalpel.alsoMakeDependents=false"
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ env.CHECKOUT_REF }}
-          fetch-depth: 0
-      - name: Set up JDK 21
-        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-      - name: Setup Maven Cache
-        uses: ./.github/actions/setup-maven-cache
-        with:
-          cache-key: ${{ needs.initial-mvn-install.outputs.cache-key }}
-          download-maven-repo: 'true'
-      - name: cd extensions-core && mvn test
-        if: needs.initial-mvn-install.outputs.run-extensions-core-tests == 'true'
-        env:
-          MODULES: ${{ fromJson(needs.initial-mvn-install.outputs.functional-test-modules)['extensions-core'] }}
-        run: |
-          cd extensions-core
-          if [ -n "${MODULES}" ]; then MODULE_ARGS="-pl ${MODULES}"; else MODULE_ARGS="${SCALPEL_TRIM_ARGS} ${SCALPEL_FULL_BUILD_TRIGGERS} ${SCALPEL_EXCLUDE_PATHS}"; fi
-          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            ${CQ_MAVEN_SKIP_CHECKS} \
-            ${MODULE_ARGS} \
-            --fail-at-end \
-            test
-      - name: Report test failures
-        uses: ./.github/actions/test-summary-report
-        if: ${{ failure() }}
-        with:
-          test-report-xml-base-dir: extensions-core
-      - name: cd extensions && mvn test
-        if: needs.initial-mvn-install.outputs.run-extensions-tests == 'true'
-        env:
-          MODULES: ${{ fromJson(needs.initial-mvn-install.outputs.functional-test-modules)['extensions'] }}
-        run: |
-          cd extensions
-          if [ -n "${MODULES}" ]; then MODULE_ARGS="-pl ${MODULES}"; else MODULE_ARGS="${SCALPEL_TRIM_ARGS} ${SCALPEL_FULL_BUILD_TRIGGERS} ${SCALPEL_EXCLUDE_PATHS}"; fi
-          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            ${CQ_MAVEN_SKIP_CHECKS} \
-            ${MODULE_ARGS} \
-            --fail-at-end \
-            test
-      - name: Report test failures
-        uses: ./.github/actions/test-summary-report
-        if: ${{ failure() }}
-        with:
-          test-report-xml-base-dir: extensions
-      - name: cd extensions-support && mvn package
-        if: needs.initial-mvn-install.outputs.run-extensions-support-tests == 'true'
-        env:
-          MODULES: ${{ fromJson(needs.initial-mvn-install.outputs.functional-test-modules)['extensions-support'] }}
-        run: |
-          cd extensions-support
-          if [ -n "${MODULES}" ]; then MODULE_ARGS="-pl ${MODULES}"; else MODULE_ARGS="${SCALPEL_TRIM_ARGS} ${SCALPEL_FULL_BUILD_TRIGGERS} ${SCALPEL_EXCLUDE_PATHS}"; fi
-          # package rather than test, so that shaded modules such as spring/shade provide their jar to the reactor
-          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            ${CQ_MAVEN_SKIP_CHECKS} \
-            ${MODULE_ARGS} \
-            --fail-at-end \
-            package
-      - name: Report test failures
-        uses: ./.github/actions/test-summary-report
-        if: ${{ failure() }}
-        with:
-          test-report-xml-base-dir: extensions-support
-      - name: cd test-framework && mvn test
-        if: needs.initial-mvn-install.outputs.run-test-framework-tests == 'true'
-        env:
-          MODULES: ${{ fromJson(needs.initial-mvn-install.outputs.functional-test-modules)['test-framework'] }}
-        run: |
-          cd test-framework
-          if [ -n "${MODULES}" ]; then MODULE_ARGS="-pl ${MODULES}"; else MODULE_ARGS="${SCALPEL_TRIM_ARGS} ${SCALPEL_FULL_BUILD_TRIGGERS} ${SCALPEL_EXCLUDE_PATHS}"; fi
-          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            ${CQ_MAVEN_SKIP_CHECKS} \
-            ${MODULE_ARGS} \
-            --fail-at-end \
-            test
-      - name: Report test failures
-        uses: ./.github/actions/test-summary-report
-        if: ${{ failure() }}
-        with:
-          test-report-xml-base-dir: test-framework
-      - name: cd tooling && mvn verify
-        if: needs.initial-mvn-install.outputs.run-tooling-tests == 'true'
-        env:
-          MODULES: ${{ fromJson(needs.initial-mvn-install.outputs.functional-test-modules)['tooling'] }}
-        run: |
-          cd tooling
-          if [ -n "${MODULES}" ]; then MODULE_ARGS="-pl ${MODULES}"; else MODULE_ARGS="${SCALPEL_TRIM_ARGS} ${SCALPEL_FULL_BUILD_TRIGGERS} ${SCALPEL_EXCLUDE_PATHS}"; fi
-          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            ${CQ_MAVEN_SKIP_CHECKS} \
-            ${MODULE_ARGS} \
-            --fail-at-end \
-            verify
-      - name: Report test failures
-        uses: ./.github/actions/test-summary-report
-        if: ${{ failure() }}
-        with:
-          test-report-xml-base-dir: tooling
-      - name: cd catalog && mvn test
-        if: needs.initial-mvn-install.outputs.run-catalog-tests == 'true'
-        env:
-          MODULES: ${{ fromJson(needs.initial-mvn-install.outputs.functional-test-modules)['catalog'] }}
-        run: |
-          cd catalog
-          if [ -n "${MODULES}" ]; then MODULE_ARGS="-pl ${MODULES}"; else MODULE_ARGS="${SCALPEL_TRIM_ARGS} ${SCALPEL_FULL_BUILD_TRIGGERS} ${SCALPEL_EXCLUDE_PATHS}"; fi
-          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            ${CQ_MAVEN_SKIP_CHECKS} \
-            ${MODULE_ARGS} \
-            test
-      - name: Report test failures
-        uses: ./.github/actions/test-summary-report
-        if: ${{ failure() }}
-        with:
-          test-report-xml-base-dir: catalog
-
-  integration-tests-jvm:
-    runs-on: ubuntu-latest
-    needs: initial-mvn-install
-    if: needs.initial-mvn-install.outputs.run-integration-tests-jvm == 'true'
-    env:
-      MAVEN_OPTS: -Xmx3000m
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ env.CHECKOUT_REF }}
-          fetch-depth: 0
-      - name: Set up JDK 21
-        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-      - name: Setup Maven Cache
-        uses: ./.github/actions/setup-maven-cache
-        with:
-          cache-key: ${{ needs.initial-mvn-install.outputs.cache-key }}
-          download-maven-repo: 'true'
-      - name: cd integration-tests-jvm && mvn clean test
-        run: |
-          cd integration-tests-jvm
-          JVM_MODULES="${{ needs.initial-mvn-install.outputs.integration-tests-jvm-modules }}"
-
-          if [ -n "$JVM_MODULES" ]; then
-            echo "Running incremental JVM tests for: $JVM_MODULES"
-            PL_ARGS="-pl $JVM_MODULES"
-          else
-            echo "Running all JVM tests"
-            PL_ARGS=""
-          fi
-
-          ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-            $PL_ARGS \
-            ${CQ_MAVEN_SKIP_CHECKS} \
-            --fail-at-end \
-            clean test
-      - name: Report test failures
-        uses: ./.github/actions/test-summary-report
-        if: ${{ failure() }}
-        with:
-          test-report-xml-base-dir: integration-tests-jvm
-
-  integration-tests-alternative-platform:
-    runs-on: ${{ matrix.os }}
-    needs: initial-mvn-install
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ 'windows-latest' ]
-    if: |
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM'))
-      && (needs.initial-mvn-install.outputs.integration-tests-modules == '' || fromJson(needs.initial-mvn-install.outputs.integration-tests-modules).totalModules > 0)
-    env:
-      MAVEN_OPTS: -Xmx3000m -Xms3000m
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ env.CHECKOUT_REF }}
-          fetch-depth: 0
-      - name: Set up JDK 21
-        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-      - name: Setup Maven Cache
-        uses: ./.github/actions/setup-maven-cache
-        with:
-          cache-key: ${{ needs.initial-mvn-install.outputs.cache-key }}
-          download-maven-repo: 'true'
-      - name: cd integration-tests && mvn clean verify
-        shell: bash
-        run: |
-          cd integration-tests
-          if [ -n "${{ needs.initial-mvn-install.outputs.integration-tests-modules }}" ]; then
-            # Incremental build - use affected modules from filtered matrix
-            AFFECTED_MODULES=$(echo '${{ needs.initial-mvn-install.outputs.integration-tests-modules }}' | jq -r '.modulesCsv')
-            echo "Running incremental build with affected modules: $AFFECTED_MODULES"
-            ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-              -pl "$AFFECTED_MODULES" \
-              -Dskip-testcontainers-tests ${CQ_MAVEN_SKIP_CHECKS} \
-              --fail-at-end \
-              clean verify
-          else
-            # Full build - run all modules
-            echo "Running full build - all modules"
-            ../mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} \
-              -Dskip-testcontainers-tests ${CQ_MAVEN_SKIP_CHECKS} \
-              --fail-at-end \
-              clean verify
-          fi
-      - name: Report test failures
-        uses: ./.github/actions/test-summary-report
-        if: ${{ failure() }}
-        with:
-          test-report-xml-base-dir: integration-tests
-
-  examples-tests:
-    name: Examples Tests - ${{matrix.name}}
-    needs: initial-mvn-install
-    runs-on: ubuntu-latest
-    if: |
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'JVM'))
-      && needs.initial-mvn-install.outputs.run-examples == 'true'
-      && fromJson(needs.initial-mvn-install.outputs.examples-matrix).include[0] != null
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.initial-mvn-install.outputs.examples-matrix) }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ env.CHECKOUT_REF }}
-          fetch-depth: 0
-      - name: Set up JDK 21
-        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-      - name: Setup Maven Cache
-        uses: ./.github/actions/setup-maven-cache
-        with:
-          cache-key: ${{ needs.initial-mvn-install.outputs.cache-key }}
-          download-maven-repo: 'true'
-      - name: set CQ_VERSION
-        run: echo "CQ_VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout -N)" >> $GITHUB_ENV
-      - name: clone and verify examples
-        env:
-          EXAMPLE_MODULES: ${{matrix.examples}}
-        shell: '/usr/bin/bash {0}'
-        run: |
-          EXAMPLES_BRANCH="camel-quarkus-main"
-
-          if [[ ${GITHUB_REF_NAME} =~ [0-9]+.[0-9]+.x ]]; then
-              EXAMPLES_BRANCH=${GITHUB_REF_NAME}
-          elif [[ ${GITHUB_BASE_REF} =~ [0-9]+.[0-9]+.x ]]; then
-              EXAMPLES_BRANCH=${GITHUB_BASE_REF}
-          fi
-
-          git clone --depth 1 --branch ${EXAMPLES_BRANCH} https://github.com/apache/camel-quarkus-examples.git \
-            && cd camel-quarkus-examples \
-            && echo "Current Examples commit:" $(git rev-parse HEAD) \
-            && ./mvnw ${CQ_MAVEN_ARGS} ${BRANCH_OPTIONS} -N org.l2x6.cq:cq-maven-plugin:2.10.0:examples-set-platform -Dcq.camel-quarkus.version=${CQ_VERSION}
-
-          MODULES_TO_BUILD="${EXAMPLE_MODULES//,/ }"
-
-          BUILD_FAILURES=()
-
-          for MODULE in $MODULES_TO_BUILD; do
-            echo "Building example: $MODULE"
-            cd ${MODULE}
-
-            ../mvnw ${CQ_MAVEN_ARGS} clean verify \
-              ${CQ_MAVEN_SKIP_CHECKS} \
-              -Dquarkus.native.builder-image.pull=missing \
-              -Pnative,docker,ci
-
-            if [[ $? -ne 0 ]]; then
-              BUILD_FAILURES[${#BUILD_FAILURES[@]}]=${MODULE}
+          for MODULE in $(yq -M -N e ".${{ matrix.category }}" tooling/scripts/test-categories.yaml | grep -vE '^\s*#' | cut -f2 -d' '); do
+            MODULE="integration-tests/$(echo ${MODULE} | sed 's/^[ \t]*//;s/[ \t]*$//')"
+            if grep -q '<ci.native.tests.skip>true</ci.native.tests.skip>' ${MODULE}/pom.xml; then
+              echo "Skipping JVM only module ${MODULE}"
+              continue
             fi
-
-            cd -
+            NATIVE_MODULES+=("${MODULE}")
           done
 
-          if [[ ${#BUILD_FAILURES[@]} -gt 0 ]]; then
-            echo -e "\nBuild errors were encountered in the following projects:\n"
-            for FAILURE in ${BUILD_FAILURES[@]}; do
-                echo "* ${FAILURE}"
-            done
-            echo -e "\nCheck build logs for further information."
-            exit 1
-          fi
-      - name: Report test failures
-        uses: ./.github/actions/test-summary-report
-        if: ${{ failure() }}
+          echo "${NATIVE_MODULES[*]}" > ${{ runner.temp }}/native-modules.txt
+
+          IFS=,
+          ./mvnw ${CQ_MAVEN_ARGS} clean package \
+            ${CQ_MAVEN_SKIP_CHECKS} \
+            -DskipTests \
+            -Dquarkus.builder.metrics.enabled=true \
+            -Dquarkus.native.builder-image.pull=missing \
+            -Pnative,docker,ci \
+            --fail-at-end \
+            -pl "${NATIVE_MODULES[*]}"
+      - name: Collect Build Stats
+        if: always()
+        run: |
+          STATS_DIR=${{ runner.temp }}/native-build-stats/${{ matrix.category }}
+          for MODULE in $(cat ${{ runner.temp }}/native-modules.txt); do
+            DEST=${STATS_DIR}/$(basename ${MODULE})
+            mkdir -p ${DEST}
+            cp ${MODULE}/target/build-metrics.json ${DEST}/ 2>/dev/null || true
+            cp ${MODULE}/target/*-native-image-source-jar/*-build-output-stats.json ${DEST}/build-output-stats.json 2>/dev/null || true
+            RUNNER=$(ls ${MODULE}/target/*-runner 2>/dev/null | head -1)
+            if [[ -n "${RUNNER}" ]]; then
+              stat -c %s "${RUNNER}" > ${DEST}/runner-size.txt
+            fi
+          done
+          ls -R ${STATS_DIR}
+          df -h /
+      - name: Upload Build Stats
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: native-build-stats-${{ matrix.category }}
+          path: ${{ runner.temp }}/native-build-stats/
+          retention-days: 30
+
+  aggregate-stats:
+    needs: native-build-stats
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Download Build Stats
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: native-build-stats-*
+          path: ${{ runner.temp }}/native-build-stats
+          merge-multiple: true
+      - name: Aggregate Build Stats
+        run: |
+          python3 .github/native-build-stats.py ${{ runner.temp }}/native-build-stats ${{ runner.temp }}/native-build-stats-summary >> $GITHUB_STEP_SUMMARY
+      - name: Upload Aggregated Build Stats
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: native-build-stats-summary
+          path: ${{ runner.temp }}/native-build-stats-summary/
+          retention-days: 30
