@@ -16,8 +16,11 @@
  */
 package org.apache.camel.quarkus.core.tls.it;
 
+import java.security.cert.X509Certificate;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.SSLPeerUnverifiedException;
 
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
@@ -25,8 +28,10 @@ import io.quarkus.tls.TlsConfiguration;
 import io.quarkus.tls.TlsConfigurationRegistry;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.ClientAuth;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.http.HttpServerRequest;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
@@ -67,11 +72,26 @@ public class MutualTlsServer {
                 .setClientAuth(ClientAuth.REQUIRED);
 
         server = vertx.createHttpServer(options)
-                .requestHandler(request -> request.response().end("pong"))
+                .requestHandler(this::replyWithPeerSerial)
                 .listen()
                 .toCompletionStage()
                 .toCompletableFuture()
                 .get(30, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Replies with the serial number of the client certificate, so that a test can tell which certificate a component
+     * presented. The connection is closed after each reply, so that every call makes a new handshake.
+     */
+    private void replyWithPeerSerial(HttpServerRequest request) {
+        try {
+            X509Certificate peer = (X509Certificate) request.connection().sslSession().getPeerCertificates()[0];
+            request.response()
+                    .putHeader(HttpHeaders.CONNECTION, HttpHeaders.CLOSE)
+                    .end(peer.getSerialNumber().toString(16));
+        } catch (SSLPeerUnverifiedException e) {
+            request.response().setStatusCode(500).end(e.getMessage());
+        }
     }
 
     void stop(@Observes ShutdownEvent event) {

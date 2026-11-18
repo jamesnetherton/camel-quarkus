@@ -63,25 +63,19 @@ public interface TlsRegistryConfig {
     String defaultBeanName();
 
     /**
-     * Enable automatic Camel Context reload when certificates are updated.
+     * Whether to restart the routes using a TLS configuration when its certificates are updated.
      *
-     * When enabled, if Quarkus reloads a certificate (e.g., file watch detects changes),
-     * the corresponding SSLContextParameters bean will be updated in the Camel registry
-     * and a context reload will be triggered to restart routes with the new certificates.
-     *
-     * This uses Camel's `ContextReloadStrategy` to gracefully restart routes without
-     * stopping the entire application.
-     *
-     * To avoid excessive reloads when multiple certificates are updated in quick succession,
-     * the reload is debounced with a configurable delay. If additional certificate updates occur
-     * during this delay, the timer is reset, ensuring only one reload happens after all
-     * updates have stabilized.
+     * New connections use the updated key and trust material whether or not this is enabled. When enabled, the
+     * endpoints that hold their own copy of the previous material are restarted, together with the routes using them.
+     * When the trust material changes, every endpoint using the configuration is restarted, so that a consumer stops
+     * resuming sessions established before the change.
      */
     @WithDefault("true")
     boolean reloadOnCertificateUpdate();
 
     /**
-     * Delay period to avoid excessive Camel Context reloads when multiple certificates are updated in quick succession.
+     * Delay in milliseconds before restarting routes after a certificate update. A further update within the delay
+     * postpones the restart, so that updates arriving together cause a single restart.
      */
     @WithDefault("2000")
     long reloadCertificateDelay();

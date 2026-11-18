@@ -208,3 +208,7 @@ In previous releases, a Quarkus TLS configuration with `quarkus.tls.<name>.trust
 These components now honor `trust-all`, and accept any server certificate. Review TLS configurations that set `trust-all=true` and are used by Camel components.
 
 The same components can now also use the key store and trust store of a bridged configuration, for example to present a client certificate.
+
+== TLS Registry certificate reload no longer reloads the CamelContext
+
+A certificate reload no longer reloads the whole CamelContext. Only the routes using an endpoint that holds its own copy of the previous key or trust material are restarted. See the xref:reference/extensions/tls-registry.adoc#extensions-tls-registry-usage-certificate-reload[TLS Registry extension documentation].

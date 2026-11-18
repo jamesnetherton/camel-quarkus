@@ -16,34 +16,36 @@
  */
 package org.apache.camel.quarkus.core.tls;
 
-import java.util.Optional;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import io.quarkus.tls.CertificateUpdatedEvent;
-import io.quarkus.tls.TlsConfiguration;
-import io.quarkus.tls.TlsConfigurationRegistry;
-import io.vertx.core.Vertx;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import org.apache.camel.CamelContext;
-import org.apache.camel.spi.ContextReloadStrategy;
+import org.apache.camel.quarkus.core.tls.TlsConfigurationConverter.BridgedSSLContextParameters;
+import org.apache.camel.support.jsse.SSLContextParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Observes certificate update events from Quarkus TLS registry and triggers
- * Camel context reload to pick up new certificates.
+ * Observes certificate update events from the Quarkus TLS registry.
  *
- * When a certificate is reloaded by Quarkus (e.g., file watch detects changes),
- * this observer:
- *
- * 1. Updates the corresponding SSLContextParameters bean in Camel registry
- * 2. Triggers a Camel context reload to restart routes with new certificates
+ * When the key or trust material of a bridged TLS configuration changed, the live key and trust managers of its
+ * SSLContextParameters bean switch to the new material. When {@code reload-on-certificate-update} is enabled, the
+ * endpoints holding a copy of the previous material, and the routes using them, are then restarted after a debounce
+ * delay. When the trust material changed, every endpoint using the bean is restarted, so that a server stops resuming
+ * sessions that were authenticated against the previous trust material.
  */
 @ApplicationScoped
 public class TlsCertificateReloadObserver {
@@ -55,84 +57,114 @@ public class TlsCertificateReloadObserver {
     @Inject
     TlsRegistryConfig config;
 
-    @Inject
-    Vertx vertx;
-
-    private final AtomicReference<ScheduledFuture<?>> pendingReload = new AtomicReference<>();
+    private final Map<String, BridgedSSLContextParameters> beans = new ConcurrentHashMap<>();
+    // Configuration name to whether its trust material changed
+    private final Map<String, Boolean> pendingRestarts = new LinkedHashMap<>();
+    private volatile String globalConfigurationName;
+    private volatile TlsRouteRestarter restarter;
+    private ScheduledFuture<?> pendingRestart;
     private ScheduledExecutorService scheduler;
 
     /**
-     * Observes certificate updated events from Quarkus TLS registry.
-     *
-     * When a certificate is reloaded, this method:
-     *
-     * 1. Converts the updated TLS configuration to SSLContextParameters
-     * 2. Updates the bean in Camel registry (or global SSL context)
-     * 3. Triggers Camel context reload to restart routes
-     *
-     * @param event the certificate updated event
+     * Register the bean bridged from a TLS configuration.
      */
+    void register(String name, BridgedSSLContextParameters bean, boolean global) {
+        String key = key(name);
+        beans.put(key, bean);
+        if (global) {
+            globalConfigurationName = key;
+        }
+    }
+
+    /**
+     * Set the SSLContextParameters options of the components, used to find the endpoints using a bean.
+     */
+    void setComponentSslOptions(Map<String, List<String>> endpointSslOptions, Map<String, List<String>> componentSslOptions) {
+        restarter = new TlsRouteRestarter(camelContext, endpointSslOptions, componentSslOptions);
+    }
+
     void onCertificateUpdated(@Observes CertificateUpdatedEvent event) {
-        if (!config.enabled() || !config.reloadOnCertificateUpdate()) {
-            LOG.debug("TLS registry integration is disabled, ignoring certificate update for '{}'", event.name());
+        String key = key(event.name());
+        BridgedSSLContextParameters bean = beans.get(key);
+        if (bean == null) {
+            LOG.debug("TLS configuration '{}' is not bridged to Camel, ignoring its certificate update", event.name());
             return;
         }
 
-        LOG.info("Certificate '{}' has been updated, reloading Camel SSL configuration", event.name());
+        TlsLiveMaterial.Changes changes;
+        try {
+            changes = bean.material().refresh();
+        } catch (Exception e) {
+            LOG.warn("Failed to read the updated key or trust material of TLS configuration '{}', keeping the current one",
+                    event.name(), e);
+            return;
+        }
+
+        if (!changes.any()) {
+            LOG.debug("The key and trust material of TLS configuration '{}' did not change", event.name());
+            return;
+        }
+
+        LOG.info("The key or trust material of TLS configuration '{}' changed, new connections use it", event.name());
+        if (config.reloadOnCertificateUpdate()) {
+            scheduleRestart(key, changes.trust());
+        }
+    }
+
+    /**
+     * Schedule the restart of the endpoints and routes using a changed configuration. A further change within the
+     * delay postpones the restart, so that changes arriving together are applied in one restart.
+     */
+    private synchronized void scheduleRestart(String key, boolean trustChanged) {
+        pendingRestarts.merge(key, trustChanged, Boolean::logicalOr);
+        if (pendingRestart != null) {
+            pendingRestart.cancel(false);
+        }
+        pendingRestart = getScheduler().schedule(this::restart, config.reloadCertificateDelay(), TimeUnit.MILLISECONDS);
+        LOG.debug("Scheduled the restart for TLS configurations {} in {}ms", pendingRestarts.keySet(),
+                config.reloadCertificateDelay());
+    }
+
+    private void restart() {
+        Map<String, Boolean> keys;
+        synchronized (this) {
+            keys = new LinkedHashMap<>(pendingRestarts);
+            pendingRestarts.clear();
+            pendingRestart = null;
+        }
+
+        TlsRouteRestarter currentRestarter = restarter;
+        if (currentRestarter == null) {
+            return;
+        }
+
+        // A bean whose key or trust material was never copied is only used through its live managers. A trust change
+        // still needs new SSLContexts, since a server accepts the session tickets issued by its context without
+        // checking the client certificate again
+        Set<SSLContextParameters> changed = Collections.newSetFromMap(new IdentityHashMap<>());
+        SSLContextParameters global = null;
+        for (Map.Entry<String, Boolean> entry : keys.entrySet()) {
+            String key = entry.getKey();
+            BridgedSSLContextParameters bean = beans.get(key);
+            if (bean != null && (entry.getValue() || bean.material().materialHandedOut())) {
+                changed.add(bean);
+                if (key.equals(globalConfigurationName)) {
+                    global = bean;
+                }
+            }
+        }
+        if (changed.isEmpty()) {
+            return;
+        }
 
         try {
-            // Access TLS registry to get the updated configuration
-            TlsConfigurationRegistry tlsRegistry = TlsRegistryHelper.getTlsRegistry();
-            if (tlsRegistry == null) {
-                LOG.warn("TLS configuration registry not available, cannot reload certificate '{}'", event.name());
-                return;
-            }
-
-            // Get the updated TLS configuration
-            Optional<TlsConfiguration> tlsConfig = TlsRegistryHelper.getTlsConfiguration(tlsRegistry, event.name());
-            if (tlsConfig.isEmpty()) {
-                LOG.warn("TLS configuration '{}' not found in registry after update event", event.name());
-                return;
-            }
-
-            // Update the bean in the Camel registry
-            TlsRegistryHelper.registerOrUpdateBean(camelContext, config, event.name(), tlsConfig.get(), vertx);
-
-            // Schedule a debounced context reload to restart routes with new certificates
-            scheduleCamelContextReload();
+            currentRestarter.restart(changed, global);
         } catch (Exception e) {
-            LOG.error("Failed to update Camel SSL configuration for certificate '{}'", event.name(), e);
+            LOG.error("Failed to restart the endpoints using TLS configurations {}", keys.keySet(), e);
         }
     }
 
-    /**
-     * Schedules a debounced context reload.
-     *
-     * If multiple certificate updates occur in quick succession, this ensures only one
-     * reload happens after the updates have stabilized.
-     */
-    private void scheduleCamelContextReload() {
-        // Cancel any pending reload
-        ScheduledFuture<?> existing = pendingReload.get();
-        if (existing != null) {
-            existing.cancel(false);
-            LOG.debug("Canceled pending reload due to new certificate update");
-        }
-
-        // Schedule a new reload
-        ScheduledFuture<?> newReload = getScheduler().schedule(
-                this::triggerContextReload,
-                config.reloadCertificateDelay(),
-                TimeUnit.MILLISECONDS);
-
-        pendingReload.set(newReload);
-        LOG.debug("Scheduled context reload in {}ms", config.reloadCertificateDelay());
-    }
-
-    /**
-     * Gets or creates the scheduler for debounced reloads.
-     */
-    private ScheduledExecutorService getScheduler() {
+    private synchronized ScheduledExecutorService getScheduler() {
         if (scheduler == null) {
             scheduler = camelContext.getExecutorServiceManager()
                     .newScheduledThreadPool(this, "CamelQuarkusTlsReload", 1);
@@ -140,38 +172,17 @@ public class TlsCertificateReloadObserver {
         return scheduler;
     }
 
-    /**
-     * Cleanup scheduler on bean destruction.
-     */
     @PreDestroy
-    void cleanup() {
-        ScheduledFuture<?> pending = pendingReload.get();
-        if (pending != null) {
-            pending.cancel(false);
+    synchronized void cleanup() {
+        if (pendingRestart != null) {
+            pendingRestart.cancel(false);
         }
         if (scheduler != null) {
             camelContext.getExecutorServiceManager().shutdown(scheduler);
         }
     }
 
-    /**
-     * Triggers a Camel context reload to restart routes with updated certificates.
-     *
-     * This uses Camel's context reload strategy to gracefully restart routes without
-     * stopping the entire application.
-     */
-    private void triggerContextReload() {
-        try {
-            ContextReloadStrategy reloadStrategy = camelContext.hasService(ContextReloadStrategy.class);
-            if (reloadStrategy != null) {
-                LOG.info("Triggering Camel context reload to apply updated certificates");
-                reloadStrategy.onReload(this);
-            } else {
-                LOG.warn("ContextReloadStrategy not available, routes will not be restarted. "
-                        + "New certificates will be used on next route start.");
-            }
-        } catch (Exception e) {
-            LOG.error("Failed to trigger Camel context reload", e);
-        }
+    private static String key(String name) {
+        return TlsRegistryHelper.isDefaultConfig(name) ? "default" : name;
     }
 }

@@ -16,14 +16,13 @@
  */
 package org.apache.camel.quarkus.core.tls;
 
-import java.util.Optional;
-
 import io.quarkus.arc.Arc;
 import io.quarkus.tls.TlsConfiguration;
 import io.quarkus.tls.TlsConfigurationRegistry;
 import io.quarkus.tls.runtime.config.TlsConfig;
 import io.vertx.core.Vertx;
 import org.apache.camel.CamelContext;
+import org.apache.camel.quarkus.core.tls.TlsConfigurationConverter.BridgedSSLContextParameters;
 import org.apache.camel.support.jsse.SSLContextParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,49 +59,6 @@ final class TlsRegistryHelper {
     }
 
     /**
-     * Get a TLS configuration by name.
-     *
-     * @param  registry the TLS registry
-     * @param  name     the configuration name
-     * @return          the TLS configuration if found
-     */
-    static Optional<TlsConfiguration> getTlsConfiguration(TlsConfigurationRegistry registry, String name) {
-        if (isDefaultConfig(name)) {
-            return registry.getDefault();
-        } else {
-            return registry.get(name);
-        }
-    }
-
-    /**
-     * Register or update a TLS configuration as a Camel SSLContextParameters bean.
-     *
-     * @param camelContext the Camel context
-     * @param config       the TLS registry configuration
-     * @param name         the TLS configuration name
-     * @param tlsConfig    the TLS configuration
-     * @param vertx        the Vert.x instance
-     */
-    static void registerOrUpdateBean(
-            CamelContext camelContext,
-            TlsRegistryConfig config,
-            String name,
-            TlsConfiguration tlsConfig,
-            Vertx vertx) {
-
-        SSLContextParameters sslParams = TlsConfigurationConverter.convert(tlsConfig, name, vertx);
-        boolean isDefault = isDefaultConfig(name);
-
-        if (isDefault && config.quarkusDefaultAsGlobal()) {
-            LOG.info("Updating Camel global SSLContextParameters with reloaded certificate");
-            camelContext.setSSLContextParameters(sslParams);
-        } else {
-            String beanName = isDefault ? config.defaultBeanName() : name;
-            updateBean(camelContext, beanName, sslParams);
-        }
-    }
-
-    /**
      * Register a new TLS configuration as a Camel SSLContextParameters bean.
      * Throws an exception if a bean with the same name already exists.
      *
@@ -111,37 +67,33 @@ final class TlsRegistryHelper {
      * @param  name                  the TLS configuration name
      * @param  tlsConfig             the TLS configuration
      * @param  vertx                 the Vert.x instance
+     * @return                       the registered bean
      * @throws IllegalStateException if a bean with the same name already exists
      */
-    static void registerBean(
+    static BridgedSSLContextParameters registerBean(
             CamelContext camelContext,
             TlsRegistryConfig config,
             String name,
             TlsConfiguration tlsConfig,
             Vertx vertx) {
 
-        SSLContextParameters sslParams = TlsConfigurationConverter.convert(tlsConfig, name, vertx);
-        boolean isDefault = isDefaultConfig(name);
+        BridgedSSLContextParameters sslParams = TlsConfigurationConverter.convert(tlsConfig, name, vertx);
 
-        if (isDefault && config.quarkusDefaultAsGlobal()) {
+        if (isGlobal(config, name)) {
             LOG.info("Setting Quarkus default TLS as Camel global SSLContextParameters");
             camelContext.setSSLContextParameters(sslParams);
         } else {
-            String beanName = isDefault ? config.defaultBeanName() : name;
+            String beanName = isDefaultConfig(name) ? config.defaultBeanName() : name;
             registerBeanWithConflictCheck(camelContext, beanName, sslParams, name);
         }
+        return sslParams;
     }
 
     /**
-     * Update an existing bean in the Camel registry.
-     *
-     * @param context   the Camel context
-     * @param name      the bean name
-     * @param sslParams the SSL context parameters
+     * Whether a TLS configuration is bridged as the Camel global SSLContextParameters.
      */
-    static void updateBean(CamelContext context, String name, SSLContextParameters sslParams) {
-        LOG.info("Updating Camel SSLContextParameters bean '{}' with reloaded certificate", name);
-        context.getRegistry().bind(name, SSLContextParameters.class, sslParams);
+    static boolean isGlobal(TlsRegistryConfig config, String name) {
+        return isDefaultConfig(name) && config.quarkusDefaultAsGlobal();
     }
 
     /**

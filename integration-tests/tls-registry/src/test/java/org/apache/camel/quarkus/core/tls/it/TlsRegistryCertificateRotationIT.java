@@ -19,5 +19,5 @@ package org.apache.camel.quarkus.core.tls.it;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 
 @QuarkusIntegrationTest
-class TlsRegistryFilesystemCertificateReloadIT extends TlsRegistryFilesystemCertificateReloadTest {
+class TlsRegistryCertificateRotationIT extends TlsRegistryCertificateRotationTest {
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.camel.quarkus.core.tls.it;
 
+import java.time.Duration;
 import java.util.Map;
 
 import io.quarkus.test.junit.QuarkusTest;
@@ -26,80 +27,80 @@ import io.smallrye.certs.Format;
 import io.smallrye.certs.junit5.Certificate;
 import org.apache.camel.quarkus.test.support.certificate.TestCertificates;
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
-
-import static org.hamcrest.Matchers.equalTo;
+import static org.apache.camel.quarkus.core.tls.it.CertificateRotation.PASSWORD;
+import static org.apache.camel.quarkus.core.tls.it.CertificateRotation.call;
+import static org.apache.camel.quarkus.core.tls.it.CertificateRotation.keyStorePath;
+import static org.apache.camel.quarkus.core.tls.it.CertificateRotation.lastStarted;
+import static org.apache.camel.quarkus.core.tls.it.CertificateRotation.rotate;
+import static org.apache.camel.quarkus.core.tls.it.CertificateRotation.serial;
+import static org.apache.camel.quarkus.core.tls.it.CertificateRotation.starts;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @TestCertificates(certificates = {
-        @Certificate(name = "tls-reload", formats = { Format.PKCS12, Format.PEM }, password = "changeit")
+        @Certificate(name = "tls-mtls", formats = { Format.PKCS12, Format.PEM }, password = PASSWORD, client = true),
+        @Certificate(name = TlsRegistryCertificateReloadTest.ROTATING_A, formats = Format.PKCS12, password = PASSWORD),
+        @Certificate(name = TlsRegistryCertificateReloadTest.ROTATING_B, formats = Format.PKCS12, password = PASSWORD),
 })
 @QuarkusTest
 @TestProfile(TlsRegistryCertificateReloadTest.CertReloadTestProfile.class)
 class TlsRegistryCertificateReloadTest {
+    static final String ROTATING_A = "tls-rotating-a";
+    static final String ROTATING_B = "tls-rotating-b";
+    private static final long RELOAD_DELAY_MILLIS = 3000;
 
-    @BeforeEach
-    void resetCounter() {
-        RestAssured.given()
-                .post("/tls-registry/reload/reset")
-                .then()
-                .statusCode(200);
+    @Test
+    void updateEventWithoutChangedCertificateRestartsNothing() throws Exception {
+        // camel-vertx-http copies the key material, so a real change would restart the route
+        assertEquals(serial(ROTATING_A), call("route-a"));
+        int startsA = starts("route-a");
+        int startsB = starts("route-b");
+
+        RestAssured.post("/tls-registry/reload/fire-event/client-a").then().statusCode(200);
+
+        // Had the event scheduled a restart for A, A would restart together with B, or before it
+        String serialB = rotate(ROTATING_B);
+        Awaitility.await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            assertEquals(serialB, call("route-b"));
+            assertEquals(startsB + 1, starts("route-b"));
+        });
+        assertEquals(startsA, starts("route-a"));
     }
 
     @Test
-    void testSingleCertificateUpdateTriggersReload() {
-        // Fire a certificate updated event for the default cert (which exists in TLS registry)
-        RestAssured.given()
-                .post("/tls-registry/reload/fire-event/default")
-                .then()
-                .statusCode(200);
+    void changesWithinTheDelayRestartEachRouteOnce() throws Exception {
+        assertEquals(serial(ROTATING_A), call("route-a"));
+        assertEquals(serial(ROTATING_B), call("route-b"));
+        int startsA = starts("route-a");
+        int startsB = starts("route-b");
+        int startsNoTls = starts("no-tls");
 
-        // Wait for debounced reload (2 seconds + buffer) and verify exactly one reload occurred
-        Awaitility.await()
-                .atMost(4, SECONDS)
-                .pollInterval(100, java.util.concurrent.TimeUnit.MILLISECONDS)
-                .untilAsserted(() -> RestAssured.given()
-                        .get("/tls-registry/reload/count")
-                        .then()
-                        .statusCode(200)
-                        .body(equalTo("1")));
+        String serialA = rotate(ROTATING_A);
+        // camel-http uses the live key managers, so it presents the new certificate as soon as the change is detected.
+        // B then changes within the delay of the change to A, so that the restart for A waits for B
+        Awaitility.await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertEquals(serialA, call("route-a-live")));
+        String serialB = rotate(ROTATING_B);
+        long rotatedB = System.currentTimeMillis();
+
+        Awaitility.await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            assertEquals(serialA, call("route-a"));
+            assertEquals(serialB, call("route-b"));
+        });
+
+        assertEquals(startsA + 1, starts("route-a"));
+        assertEquals(startsB + 1, starts("route-b"));
+        assertEquals(startsNoTls, starts("no-tls"));
+        assertTrue(lastStarted("route-a") >= rotatedB, "The restart for A waited for the change to B");
     }
 
-    @Test
-    void testMultipleCertificateUpdatesDebouncedToSingleReload() {
-        // Fire multiple certificate updated events in quick succession for the default cert
-        for (int i = 1; i <= 5; i++) {
-            RestAssured.given()
-                    .post("/tls-registry/reload/fire-event/default")
-                    .then()
-                    .statusCode(200);
-
-            // Space out events by 100ms
-            if (i < 5) {
-                Awaitility.await().pollDelay(100, java.util.concurrent.TimeUnit.MILLISECONDS).until(() -> true);
-            }
+    private static String serial(String name) {
+        try {
+            return CertificateRotation.serial(name);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
         }
-
-        // Wait for debounced reload (2 seconds + buffer from last event)
-        // Should have exactly one reload despite 5 certificate updates
-        Awaitility.await()
-                .atMost(4, SECONDS)
-                .pollInterval(100, java.util.concurrent.TimeUnit.MILLISECONDS)
-                .untilAsserted(() -> RestAssured.given()
-                        .get("/tls-registry/reload/count")
-                        .then()
-                        .statusCode(200)
-                        .body(equalTo("1")));
-
-        // Verify it's still 1 after a bit more time (no additional reloads)
-        Awaitility.await().pollDelay(500, java.util.concurrent.TimeUnit.MILLISECONDS).until(() -> true);
-        RestAssured.given()
-                .get("/tls-registry/reload/count")
-                .then()
-                .statusCode(200)
-                .body(equalTo("1"));
     }
 
     public static class CertReloadTestProfile implements QuarkusTestProfile {
@@ -107,9 +108,23 @@ class TlsRegistryCertificateReloadTest {
         public Map<String, String> getConfigOverrides() {
             return Map.ofEntries(
                     Map.entry("quarkus.camel.tls-registry.enabled", "true"),
-                    Map.entry("quarkus.camel.tls-registry.reload-on-certificate-update", "true"),
-                    Map.entry("quarkus.tls.key-store.p12.path", "target/certs/tls-reload-keystore.p12"),
-                    Map.entry("quarkus.tls.key-store.p12.password", "changeit"));
+                    Map.entry("quarkus.camel.tls-registry.reload-certificate-delay", String.valueOf(RELOAD_DELAY_MILLIS)),
+                    Map.entry("quarkus.tls.mtls-server.key-store.p12.path", keyStorePath("tls-mtls")),
+                    Map.entry("quarkus.tls.mtls-server.key-store.p12.password", PASSWORD),
+                    Map.entry("quarkus.tls.mtls-server.trust-all", "true"),
+                    Map.entry("quarkus.tls.client-a.key-store.p12.path", keyStorePath(ROTATING_A)),
+                    Map.entry("quarkus.tls.client-a.key-store.p12.password", PASSWORD),
+                    Map.entry("quarkus.tls.client-a.trust-all", "true"),
+                    Map.entry("quarkus.tls.client-a.reload-period", "1s"),
+                    Map.entry("quarkus.tls.client-b.key-store.p12.path", keyStorePath(ROTATING_B)),
+                    Map.entry("quarkus.tls.client-b.key-store.p12.password", PASSWORD),
+                    Map.entry("quarkus.tls.client-b.trust-all", "true"),
+                    Map.entry("quarkus.tls.client-b.reload-period", "1s"),
+                    Map.entry("tls-registry.reload-routes", String.join(",",
+                            "route-a=vertx-http:client-a",
+                            "route-a-live=https:client-a",
+                            "route-b=vertx-http:client-b",
+                            "no-tls=none")));
         }
     }
 }

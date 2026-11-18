@@ -19,23 +19,14 @@ package org.apache.camel.quarkus.core.tls;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
-import java.security.PrivateKey;
-import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.X509KeyManager;
 
 import io.quarkus.tls.TlsConfiguration;
 import io.vertx.core.Vertx;
-import io.vertx.core.net.KeyCertOptions;
 import io.vertx.core.net.SSLOptions;
 import org.apache.camel.CamelContext;
 import org.apache.camel.support.jsse.CipherSuitesParameters;
@@ -54,9 +45,6 @@ import org.slf4j.LoggerFactory;
  */
 final class TlsConfigurationConverter {
     private static final Logger LOG = LoggerFactory.getLogger(TlsConfigurationConverter.class);
-    // The KeyStore API needs a password to hold a private key, and components need it to read the key
-    // back, so getKeyManagers() returns it together with the in-memory copy. At least 32 characters for FIPS providers, as Vert.x does
-    private static final String KEY_STORE_DUMMY_PASSWORD = "camel-quarkus-tls-registry-in-memory-key-store";
 
     private TlsConfigurationConverter() {
         // Utility class
@@ -65,16 +53,11 @@ final class TlsConfigurationConverter {
     /**
      * Convert a Quarkus TlsConfiguration to Camel SSLContextParameters.
      *
-     * This implementation delegates to Quarkus's pre-configured SSLContext and also
-     * provides access to the underlying keystores for components that need them
-     * (e.g., camel-vertx-http). The key store handed out by {@code getKeyManagers()} is an in-memory copy of the
-     * Quarkus key material, see {@link #copyKeyEntries}.
-     *
-     * The Quarkus TLS registry handles all the complexity of:
-     *
-     * - Loading keystores and truststores (JKS, PKCS12, PEM)
-     * - Configuring key and trust managers
-     * - Handling certificate reloading
+     * {@code createSSLContext()} returns an SSLContext whose key and trust managers delegate to the current material of
+     * the configuration, so that it follows a certificate reload. {@code getKeyManagers()} and
+     * {@code getTrustManagers()} provide the underlying key and trust stores for components that build their own
+     * managers (e.g., camel-vertx-http). The key store handed out is an in-memory copy of the Quarkus key material, see
+     * {@link TlsLiveMaterial#keyStoreCopy()}.
      *
      * The {@code protocols}, {@code cipher-suites} and {@code key-exchange-groups} configured via
      * {@code quarkus.tls.*} are copied onto the returned SSLContextParameters and enforced on every SSLEngine and
@@ -96,141 +79,82 @@ final class TlsConfigurationConverter {
      * @param  vertx     the Vert.x instance, used to read the key material of the configuration
      * @return           SSLContextParameters that delegates to Quarkus's TLS configuration
      */
-    static SSLContextParameters convert(TlsConfiguration tlsConfig, String name, Vertx vertx) {
-        SSLContextParameters parameters = new SSLContextParameters() {
-            // Copied on first use, since most components never read it. A certificate reload replaces this whole
-            // bean, see TlsRegistryHelper.registerOrUpdateBean
-            private KeyStore keyStoreCopy;
-            private boolean keyStoreCopied;
-
-            @Override
-            public SSLContext createSSLContext(CamelContext camelContext) throws GeneralSecurityException, IOException {
-                final SSLContext delegate;
-                try {
-                    delegate = tlsConfig.createSSLContext();
-                } catch (Exception e) {
-                    throw new GeneralSecurityException(
-                            "Failed to create SSLContext from Quarkus TLS configuration '" + name + "'", e);
-                }
-
-                if (camelContext != null) {
-                    setCamelContext(camelContext);
-                }
-                configureSSLContext(delegate);
-
-                // Quarkus builds the SSLContext from key and trust material only. Decorate it the same way
-                // SSLContextParameters.createSSLContext does, so that the transport policy carried by this instance
-                // is applied to every SSLEngine, SSLSocketFactory and SSLServerSocketFactory derived from it. A
-                // plain JSSE SSLContext cannot carry those pins on its own.
-                return new SSLContextDecorator(
-                        new SSLContextSpiDecorator(
-                                delegate,
-                                getSSLEngineConfigurers(delegate),
-                                getSSLSocketFactoryConfigurers(delegate),
-                                getSSLServerSocketFactoryConfigurers(delegate)));
-            }
-
-            @Override
-            public KeyManagersParameters getKeyManagers() {
-                KeyStore keyStore = keyStoreCopy();
-                if (keyStore == null) {
-                    return null;
-                }
-
-                KeyManagersParameters kmp = new KeyManagersParameters();
-                kmp.setKeyStore(keyStoreParameters(keyStore, KEY_STORE_DUMMY_PASSWORD));
-                kmp.setKeyPassword(KEY_STORE_DUMMY_PASSWORD);
-                return kmp;
-            }
-
-            private synchronized KeyStore keyStoreCopy() {
-                if (!keyStoreCopied) {
-                    keyStoreCopy = copyKeyEntries(tlsConfig, name, vertx);
-                    keyStoreCopied = true;
-                }
-                return keyStoreCopy;
-            }
-
-            @Override
-            public TrustManagersParameters getTrustManagers() {
-                TrustManagersParameters tmp = new TrustManagersParameters();
-                if (tlsConfig.isTrustAll()) {
-                    // Carried over as the trust manager, which components honour in preference to a trust store
-                    tmp.setTrustManager(TrustAllTrustManager.INSTANCE);
-                    return tmp;
-                }
-
-                KeyStore trustStore = tlsConfig.getTrustStore();
-                if (trustStore == null) {
-                    // The component falls back to the JVM default trust store
-                    return null;
-                }
-                tmp.setKeyStore(keyStoreParameters(trustStore, null));
-                return tmp;
-            }
-        };
-
+    static BridgedSSLContextParameters convert(TlsConfiguration tlsConfig, String name, Vertx vertx) {
+        BridgedSSLContextParameters parameters = new BridgedSSLContextParameters(
+                new TlsLiveMaterial(name, tlsConfig, vertx));
         applyTransportPolicy(parameters, tlsConfig, name);
-
         return parameters;
     }
 
     /**
-     * Copy the private keys and certificate chains of a Quarkus TLS configuration into a new in-memory key store
-     * protected by {@link #KEY_STORE_DUMMY_PASSWORD}.
-     *
-     * Components that build their own KeyManagerFactory from {@link SSLContextParameters#getKeyManagers()} need the
-     * key password alongside the key store. The password of the key store loaded by Quarkus is not available to
-     * Camel: it is the configured password, an alias password, or for PEM an internal Vert.x one. Reading the keys
-     * through the key manager that Vert.x builds for the configuration avoids needing it, and keeps the alias
-     * selection Vert.x applies when {@code key-store.*.alias} is set.
-     *
-     * @return the key store, or null when the configuration has no key store
+     * SSLContextParameters bridged from a Quarkus TLS configuration.
      */
-    private static KeyStore copyKeyEntries(TlsConfiguration tlsConfig, String name, Vertx vertx) {
-        KeyCertOptions options = tlsConfig.getKeyStoreOptions();
-        KeyStore source = tlsConfig.getKeyStore();
-        if (options == null || source == null) {
-            return null;
+    static final class BridgedSSLContextParameters extends SSLContextParameters {
+        private final TlsLiveMaterial material;
+
+        BridgedSSLContextParameters(TlsLiveMaterial material) {
+            this.material = material;
         }
 
-        try {
-            X509KeyManager keyManager = x509KeyManager(options.getKeyManagerFactory(vertx));
+        TlsLiveMaterial material() {
+            return material;
+        }
 
-            // The key manager does not list its aliases directly, only the ones matching a key type. It may also name
-            // them differently from the source key store, depending on the KeyManagerFactory algorithm
-            Set<String> keyTypes = new LinkedHashSet<>();
-            for (String alias : Collections.list(source.aliases())) {
-                Certificate certificate = source.getCertificate(alias);
-                if (source.isKeyEntry(alias) && certificate != null) {
-                    keyTypes.add(certificate.getPublicKey().getAlgorithm());
-                }
+        @Override
+        public SSLContext createSSLContext(CamelContext camelContext) throws GeneralSecurityException, IOException {
+            final SSLContext delegate;
+            try {
+                delegate = material.createSSLContext();
+            } catch (Exception e) {
+                throw new GeneralSecurityException(
+                        "Failed to create SSLContext from Quarkus TLS configuration '" + material.name() + "'", e);
             }
 
-            Set<String> aliases = new LinkedHashSet<>();
-            for (String keyType : keyTypes) {
-                addAll(aliases, keyManager.getServerAliases(keyType, null));
-                addAll(aliases, keyManager.getClientAliases(keyType, null));
+            if (camelContext != null) {
+                setCamelContext(camelContext);
+            }
+            configureSSLContext(delegate);
+
+            // Decorate the context the same way SSLContextParameters.createSSLContext does, so that the transport
+            // policy carried by this instance is applied to every SSLEngine, SSLSocketFactory and
+            // SSLServerSocketFactory derived from it. A plain JSSE SSLContext cannot carry those pins on its own.
+            return new SSLContextDecorator(
+                    new SSLContextSpiDecorator(
+                            delegate,
+                            getSSLEngineConfigurers(delegate),
+                            getSSLSocketFactoryConfigurers(delegate),
+                            getSSLServerSocketFactoryConfigurers(delegate)));
+        }
+
+        @Override
+        public KeyManagersParameters getKeyManagers() {
+            KeyStore keyStore = material.keyStoreCopy();
+            if (keyStore == null) {
+                return null;
             }
 
-            KeyStore copy = KeyStore.getInstance(KeyStore.getDefaultType());
-            copy.load(null, null);
-            for (String alias : aliases) {
-                PrivateKey key = keyManager.getPrivateKey(alias);
-                X509Certificate[] chain = keyManager.getCertificateChain(alias);
-                if (key != null && chain != null && chain.length > 0) {
-                    copy.setKeyEntry(alias, key, KEY_STORE_DUMMY_PASSWORD.toCharArray(), chain);
-                }
+            KeyManagersParameters kmp = new KeyManagersParameters();
+            kmp.setKeyStore(keyStoreParameters(keyStore, TlsLiveMaterial.KEY_STORE_COPY_PASSWORD));
+            kmp.setKeyPassword(TlsLiveMaterial.KEY_STORE_COPY_PASSWORD);
+            return kmp;
+        }
+
+        @Override
+        public TrustManagersParameters getTrustManagers() {
+            TrustManagersParameters tmp = new TrustManagersParameters();
+            if (material.tlsConfiguration().isTrustAll()) {
+                // Carried over as the trust manager, which components honour in preference to a trust store
+                tmp.setTrustManager(TrustAllTrustManager.INSTANCE);
+                return tmp;
             }
 
-            if (!keyTypes.isEmpty() && copy.size() == 0) {
-                // Fail rather than return no key managers, which would silently connect without a client certificate
-                throw new IllegalStateException("No private key could be read from the key store");
+            KeyStore trustStore = material.trustStore();
+            if (trustStore == null) {
+                // The component falls back to the JVM default trust store
+                return null;
             }
-            return copy;
-        } catch (Exception e) {
-            throw new IllegalStateException(
-                    "Failed to read the key material of Quarkus TLS configuration '" + name + "'", e);
+            tmp.setKeyStore(keyStoreParameters(trustStore, null));
+            return tmp;
         }
     }
 
@@ -242,23 +166,6 @@ final class TlsConfigurationConverter {
         parameters.setKeyStore(keyStore);
         parameters.setPassword(password);
         return parameters;
-    }
-
-    private static X509KeyManager x509KeyManager(KeyManagerFactory keyManagerFactory) {
-        if (keyManagerFactory != null) {
-            for (KeyManager keyManager : keyManagerFactory.getKeyManagers()) {
-                if (keyManager instanceof X509KeyManager x509KeyManager) {
-                    return x509KeyManager;
-                }
-            }
-        }
-        throw new IllegalStateException("No X509KeyManager available for the key store");
-    }
-
-    private static void addAll(Set<String> target, String[] values) {
-        if (values != null) {
-            Collections.addAll(target, values);
-        }
     }
 
     /**

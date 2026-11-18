@@ -151,24 +151,36 @@ Do not set `sslContextParameters` on the endpoint as well. When `tls-configurati
 
 === Certificate Reload
 
-The extension automatically observes certificate reload events from Quarkus TLS registry.
-When certificates are reloaded (e.g., due to file system changes), the corresponding `SSLContextParameters` beans are updated and Camel routes are restarted to pick up the new certificates.
+When Quarkus reloads the certificates of a TLS configuration, for example because `quarkus.tls.reload-period` is set, the bridged `SSLContextParameters` bean switches to the updated key and trust material.
+New connections made through an `SSLContext` created from the bean use the updated material, whether or not `reload-on-certificate-update` is enabled.
 
-This feature is enabled by default but can be controlled via configuration:
+Some components build their own key and trust managers from the bean.
+When `reload-on-certificate-update` is enabled, the endpoints of those components are restarted, together with the routes that consume from them or send to them.
+When the trust material changes, every endpoint using the bean is restarted, so that a consumer stops resuming sessions established before the change.
+A suspended route is suspended again after the restart, and a stopped route stays stopped.
 
 [source,properties]
 ----
-# Enable certificate reloading
+# Reload certificates from the file system every hour
 quarkus.tls.reload-period=1h
 
-# Enable/disable certificate reload (default: true)
+# Restart routes using updated certificates (default: true)
 quarkus.camel.tls-registry.reload-on-certificate-update=true
 
-# Debounce delay in milliseconds to avoid multiple reloads (default: 2000)
+# Delay in milliseconds before restarting, so that updates arriving together cause a single restart (default: 2000)
 quarkus.camel.tls-registry.reload-certificate-delay=2000
 ----
 
-The debounce delay ensures that when multiple certificates are updated in quick succession, only a single Camel context reload occurs after all updates have stabilized.
+The following limits apply:
+
+* Existing connections, including pooled connections, keep their session until they close.
+* A connection that is being established while the material changes can leave a session that later connections resume. Such a session is removed at the next reload period.
+* When `reload-on-certificate-update` is disabled, updated trust material applies to new full handshakes of a consumer. Resumed sessions continue until their session timeout.
+* A component that builds its TLS client when the component or endpoint is initialized uses the updated material only after an application restart.
+* A producer that builds its TLS client when it starts keeps the previous material when it is reached through a dynamic endpoint, such as `toD` or `recipientList`, or through a `ProducerTemplate`, until it is removed from the producer cache.
+* While an endpoint restarts, a producer using it outside the restarted routes can fail.
+* A suspended route briefly runs between its restart and its suspension.
+* A component that copies the key or trust material without keeping a reference to the bean is not restarted.
 
 For more information see the https://quarkus.io/guides/tls-registry-reference#reloading-certificates[Quarkus TLS Registry Reference Guide].
 

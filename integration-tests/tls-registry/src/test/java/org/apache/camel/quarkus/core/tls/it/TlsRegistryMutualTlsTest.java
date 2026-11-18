@@ -52,7 +52,7 @@ class TlsRegistryMutualTlsTest {
                 .get("/tls-registry/mtls/http/" + sslBeanName)
                 .then()
                 .statusCode(200)
-                .body(equalTo("pong"));
+                .body(equalTo(clientSerial()));
     }
 
     /**
@@ -65,7 +65,7 @@ class TlsRegistryMutualTlsTest {
                 .get("/tls-registry/mtls/vertx-http/" + sslBeanName)
                 .then()
                 .statusCode(200)
-                .body(equalTo("pong"));
+                .body(equalTo(clientSerial()));
     }
 
     /**
@@ -80,6 +80,17 @@ class TlsRegistryMutualTlsTest {
                 .then()
                 .statusCode(500)
                 .body(containsString("javax.net.ssl.SSLHandshakeException: (certificate_required)"));
+    }
+
+    /**
+     * The {@link MutualTlsServer} replies with the serial number of the client certificate.
+     */
+    private static String clientSerial() {
+        try {
+            return CertificateRotation.serial("tls-mtls-client");
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     public static class MutualTlsProfile implements QuarkusTestProfile {
