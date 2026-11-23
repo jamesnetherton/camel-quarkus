@@ -20,15 +20,16 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Optional;
 
+import io.quarkus.core.Phase;
+import io.quarkus.core.deployment.service.ServiceRegistrar;
 import io.quarkus.deployment.IsTest;
-import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
-import io.quarkus.deployment.annotations.ExecutionTime;
-import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.TestProfileBuildItem;
-import org.apache.camel.quarkus.core.deployment.spi.CamelMainListenerBuildItem;
 import org.apache.camel.quarkus.core.test.CamelTestLifecycleHook;
-import org.apache.camel.quarkus.main.CamelMainRecorder;
+import org.apache.camel.quarkus.core.test.CamelTestLifecycleMainListener;
+import org.apache.camel.quarkus.main.CamelMain;
+
+import static org.apache.camel.quarkus.core.deployment.CamelServiceNames.TEST_LIFECYCLE;
 
 public class CamelTestLifecycleProcessor {
     private static final String HOOK_SERVICE_RESOURCE = "META-INF/services/" + CamelTestLifecycleHook.class.getName();
@@ -38,16 +39,17 @@ public class CamelTestLifecycleProcessor {
      * implementation, when the application is built for tests and at least one implementation is present.
      */
     @BuildStep(onlyIf = IsTest.class)
-    @Record(ExecutionTime.STATIC_INIT)
     void testLifecycleHooks(
-            Optional<TestProfileBuildItem> testProfile,
-            CamelMainRecorder recorder,
-            BuildProducer<CamelMainListenerBuildItem> listeners) {
+            ServiceRegistrar serviceRegistrar,
+            Optional<TestProfileBuildItem> testProfile) {
         if (!hasHookImplementations()) {
             return;
         }
         String testProfileClassName = testProfile.map(TestProfileBuildItem::getTestProfileClassName).orElse("");
-        listeners.produce(new CamelMainListenerBuildItem(recorder.createTestLifecycleListener(testProfileClassName)));
+        serviceRegistrar.forService(TEST_LIFECYCLE)
+                .atPhase(Phase.STATIC_INIT)
+                .require(CamelMain.class)
+                .onStart((ctx, main) -> main.addMainListener(new CamelTestLifecycleMainListener(testProfileClassName)));
     }
 
     static boolean hasHookImplementations() {

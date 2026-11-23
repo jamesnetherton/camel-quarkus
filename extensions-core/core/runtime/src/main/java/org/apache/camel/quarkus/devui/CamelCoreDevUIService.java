@@ -58,11 +58,11 @@ public class CamelCoreDevUIService {
     private static volatile Map<String, Map<String, Set<String>>> ALLOWED_CONSOLE_OPTIONS = Collections.emptyMap();
     private final Map<String, ConsoleSubscription> PROCESSORS = new ConcurrentHashMap<>();
 
-    static void setAllowedConsoleIds(Set<String> consoleIds) {
+    public static void setAllowedConsoleIds(Set<String> consoleIds) {
         ALLOWED_CONSOLE_IDS = Set.copyOf(consoleIds);
     }
 
-    static void setAllowedConsoleOptions(Map<String, String> optionSpecs) {
+    public static void setAllowedConsoleOptions(Map<String, String> optionSpecs) {
         Map<String, Map<String, Set<String>>> parsed = new HashMap<>();
         for (Map.Entry<String, String> entry : optionSpecs.entrySet()) {
             String spec = entry.getValue();

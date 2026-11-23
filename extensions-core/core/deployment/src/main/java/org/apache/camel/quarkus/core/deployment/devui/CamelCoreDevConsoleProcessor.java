@@ -22,16 +22,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.quarkus.core.Phase;
+import io.quarkus.core.deployment.service.ServiceRegistrar;
 import io.quarkus.deployment.IsDevelopment;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.BuildSteps;
-import io.quarkus.deployment.annotations.ExecutionTime;
-import io.quarkus.deployment.annotations.Record;
 import io.quarkus.devjsonrpc.spi.JsonRPCProvidersBuildItem;
 import io.quarkus.devui.spi.page.CardPageBuildItem;
 import io.quarkus.devui.spi.page.Page;
-import org.apache.camel.quarkus.devui.CamelCoreDevUIRecorder;
 import org.apache.camel.quarkus.devui.CamelCoreDevUIService;
 
 @BuildSteps(onlyIf = IsDevelopment.class)
@@ -113,9 +112,8 @@ public class CamelCoreDevConsoleProcessor {
     }
 
     @BuildStep
-    @Record(ExecutionTime.STATIC_INIT)
     void recordAllowedConsoleMetadata(
-            CamelCoreDevUIRecorder recorder,
+            ServiceRegistrar serviceRegistrar,
             List<CardPageBuildItem> cardPages) {
         Set<String> allowedIds = new HashSet<>();
         Map<String, String> allowedOptions = new HashMap<>();
@@ -150,7 +148,13 @@ public class CamelCoreDevConsoleProcessor {
                     }
                 });
 
-        recorder.setAllowedConsoleIds(allowedIds);
-        recorder.setAllowedConsoleOptions(allowedOptions);
+        Set<String> capturedAllowedIds = Set.copyOf(allowedIds);
+        Map<String, String> capturedAllowedOptions = Map.copyOf(allowedOptions);
+        serviceRegistrar.forService("camel.dev-ui.consoles")
+                .atPhase(Phase.STATIC_INIT)
+                .onStart(ctx -> {
+                    CamelCoreDevUIService.setAllowedConsoleIds(capturedAllowedIds);
+                    CamelCoreDevUIService.setAllowedConsoleOptions(capturedAllowedOptions);
+                });
     }
 }

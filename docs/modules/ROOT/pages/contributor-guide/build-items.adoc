@@ -56,16 +56,6 @@ a|`RuntimeValue<CamelBeanQualifierResolver> runtimeValue`
 
 `String beanName`
 
-a|https://github.com/apache/camel-quarkus/blob/main/extensions-core/core/deployment/src/main/java/org/apache/camel/quarkus/core/deployment/spi/CamelBootClockBuildItem.java[`org.apache.camel.quarkus.core.deployment.spi.CamelBootClockBuildItem`,window=_blank]
-
-_No Javadoc found_
-a|`RuntimeValue<Clock> bootClockRuntimeValue`
-
-a|https://github.com/apache/camel-quarkus/blob/main/extensions-core/core/deployment/src/main/java/org/apache/camel/quarkus/core/deployment/spi/CamelComponentNameResolverBuildItem.java[`org.apache.camel.quarkus.core.deployment.spi.CamelComponentNameResolverBuildItem`,window=_blank]
-
-Holds the `ComponentNameResolver` `RuntimeValue`.
-a|`RuntimeValue<ComponentNameResolver> value`
-
 a|https://github.com/apache/camel-quarkus/blob/main/extensions-core/core/deployment/src/main/java/org/apache/camel/quarkus/core/deployment/spi/CamelContextBuildItem.java[`org.apache.camel.quarkus.core.deployment.spi.CamelContextBuildItem`,window=_blank]
 
 Holds the `CamelContext` `RuntimeValue`.
@@ -76,11 +66,6 @@ a|https://github.com/apache/camel-quarkus/blob/main/extensions-core/core/deploym
 A `MultiBuildItem` holding the `CamelContextCustomizer` `RuntimeValue` and could be used
 to customize the camel context before produce the `CamelContextBuildItem`
 a|`RuntimeValue<CamelContextCustomizer> value`
-
-a|https://github.com/apache/camel-quarkus/blob/main/extensions-core/core/deployment/src/main/java/org/apache/camel/quarkus/core/deployment/spi/CamelFactoryFinderResolverBuildItem.java[`org.apache.camel.quarkus.core.deployment.spi.CamelFactoryFinderResolverBuildItem`,window=_blank]
-
-A `SimpleBuildItem` holding a `FactoryFinderResolver` `RuntimeValue`.
-a|`RuntimeValue<FactoryFinderResolver> factoryFinderResolver`
 
 a|https://github.com/apache/camel-quarkus/blob/main/extensions-core/core/deployment/src/main/java/org/apache/camel/quarkus/core/deployment/spi/CamelMainBuildItem.java[`org.apache.camel.quarkus.core.deployment.spi.CamelMainBuildItem`,window=_blank]
 
@@ -97,11 +82,6 @@ a|https://github.com/apache/camel-quarkus/blob/main/extensions-core/core/deploym
 Holds the `ModelJAXBContextFactory` instance.
 a|`RuntimeValue<ModelJAXBContextFactory> value`
 
-a|https://github.com/apache/camel-quarkus/blob/main/extensions-core/core/deployment/src/main/java/org/apache/camel/quarkus/core/deployment/spi/CamelModelReifierFactoryBuildItem.java[`org.apache.camel.quarkus.core.deployment.spi.CamelModelReifierFactoryBuildItem`,window=_blank]
-
-A `SimpleBuildItem` holding a `ModelReifierFactory` `RuntimeValue`.
-a|`RuntimeValue<ModelReifierFactory> modelReifierFactory`
-
 a|https://github.com/apache/camel-quarkus/blob/main/extensions-core/core/deployment/src/main/java/org/apache/camel/quarkus/core/deployment/spi/CamelModelToXMLDumperBuildItem.java[`org.apache.camel.quarkus.core.deployment.spi.CamelModelToXMLDumperBuildItem`,window=_blank]
 
 _No Javadoc found_
@@ -116,11 +96,6 @@ a|https://github.com/apache/camel-quarkus/blob/main/extensions-core/core/deploym
 
 A `MultiBuildItem` holding the names of a types that will be scanned by the Camel PackageScanClassResolver.
 a|`Set<String> classNames`
-
-a|https://github.com/apache/camel-quarkus/blob/main/extensions-core/core/deployment/src/main/java/org/apache/camel/quarkus/core/deployment/spi/CamelPackageScanClassResolverBuildItem.java[`org.apache.camel.quarkus.core.deployment.spi.CamelPackageScanClassResolverBuildItem`,window=_blank]
-
-Holds the `PackageScanClassResolver` `RuntimeValue`.
-a|`RuntimeValue<PackageScanClassResolver> value`
 
 a|https://github.com/apache/camel-quarkus/blob/main/extensions-core/core/deployment/src/main/java/org/apache/camel/quarkus/core/deployment/spi/CamelRegistryBuildItem.java[`org.apache.camel.quarkus.core.deployment.spi.CamelRegistryBuildItem`,window=_blank]
 

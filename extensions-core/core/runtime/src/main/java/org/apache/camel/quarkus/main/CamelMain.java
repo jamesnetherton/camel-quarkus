@@ -46,7 +46,7 @@ public final class CamelMain extends MainCommandLineSupport implements HasCamelC
         this.engineStarted = new AtomicBoolean();
     }
 
-    void setUnknownArgumentRemedy(FailureRemedy failureRemedy) {
+    public void setUnknownArgumentRemedy(FailureRemedy failureRemedy) {
         this.failureRemedy = failureRemedy;
     }
 

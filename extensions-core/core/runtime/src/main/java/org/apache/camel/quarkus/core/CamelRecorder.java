@@ -16,209 +16,77 @@
  */
 package org.apache.camel.quarkus.core;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Supplier;
 
-import io.quarkus.arc.Arc;
-import io.quarkus.arc.InjectableInstance;
 import io.quarkus.runtime.RuntimeValue;
 import io.quarkus.runtime.annotations.Recorder;
-import org.apache.camel.CamelContext;
-import org.apache.camel.Endpoint;
-import org.apache.camel.FluentProducerTemplate;
-import org.apache.camel.ProducerTemplate;
-import org.apache.camel.impl.DefaultModelReifierFactory;
-import org.apache.camel.quarkus.core.FastFactoryFinderResolver.Builder;
-import org.apache.camel.spi.BeanProxyFactory;
-import org.apache.camel.spi.CamelBeanPostProcessor;
-import org.apache.camel.spi.ComponentNameResolver;
-import org.apache.camel.spi.FactoryFinderResolver;
+import org.apache.camel.main.MainListener;
+import org.apache.camel.quarkus.main.CamelMain;
+import org.apache.camel.spi.CamelContextCustomizer;
 import org.apache.camel.spi.ModelJAXBContextFactory;
-import org.apache.camel.spi.ModelReifierFactory;
 import org.apache.camel.spi.ModelToXMLDumper;
 import org.apache.camel.spi.ModelToYAMLDumper;
-import org.apache.camel.spi.PackageScanClassResolver;
 import org.apache.camel.spi.Registry;
 import org.apache.camel.spi.TypeConverterLoader;
-import org.apache.camel.spi.TypeConverterRegistry;
-import org.apache.camel.support.PluginHelper;
 
+/**
+ * Bridges values from the core SPI build items, which carry {@link RuntimeValue}s produced by recorders, to the
+ * services that assemble the Camel runtime. A service cannot depend on a {@link RuntimeValue}, so the values are
+ * returned as recorder proxies that can be published as services. Lists of values are combined into a single value, as
+ * a service cannot consume every published recorder value of a type.
+ */
 @Recorder
 public class CamelRecorder {
-    public void registerCamelBeanQualifierResolver(
-            String className,
-            String beanName,
-            RuntimeValue<CamelBeanQualifierResolver> runtimeValue,
-            Map<BeanQualifierResolverIdentifier, CamelBeanQualifierResolver> beanQualifiers) {
-
-        CamelBeanQualifierResolver resolver = runtimeValue.getValue();
-        BeanQualifierResolverIdentifier identifier = resolver.getIdentifier(className, beanName);
-
-        if (beanQualifiers.containsKey(identifier)) {
-            throw new RuntimeException("Duplicate CamelBeanQualifierResolver detected for: " + identifier);
-        }
-
-        beanQualifiers.put(identifier, resolver);
-    }
-
     public RuntimeValue<Registry> createRegistry(
-            Map<BeanQualifierResolverIdentifier, CamelBeanQualifierResolver> beanQualifierResolvers) {
-        return new RuntimeValue<>(new RuntimeRegistry(beanQualifierResolvers));
-    }
+            List<String> beanTypeNames,
+            List<String> beanNames,
+            List<RuntimeValue<CamelBeanQualifierResolver>> resolvers) {
 
-    public RuntimeValue<TypeConverterRegistry> createTypeConverterRegistry(boolean statisticsEnabled) {
-        return new RuntimeValue<>(new FastTypeConverter(statisticsEnabled));
-    }
+        Map<BeanQualifierResolverIdentifier, CamelBeanQualifierResolver> beanQualifiers = new HashMap<>();
+        for (int i = 0; i < resolvers.size(); i++) {
+            CamelBeanQualifierResolver resolver = resolvers.get(i).getValue();
+            BeanQualifierResolverIdentifier identifier = resolver.getIdentifier(beanTypeNames.get(i), beanNames.get(i));
 
-    public void addTypeConverterLoader(RuntimeValue<TypeConverterRegistry> registry, RuntimeValue<TypeConverterLoader> loader) {
-        loader.getValue().load(registry.getValue());
-    }
+            if (beanQualifiers.containsKey(identifier)) {
+                throw new RuntimeException("Duplicate CamelBeanQualifierResolver detected for: " + identifier);
+            }
 
-    public void addTypeConverterLoader(RuntimeValue<TypeConverterRegistry> registry,
-            Class<? extends TypeConverterLoader> loader) {
-        try {
-            loader.getConstructor().newInstance().load(registry.getValue());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            beanQualifiers.put(identifier, resolver);
         }
+        return new RuntimeValue<>(new RuntimeRegistry(beanQualifiers));
     }
 
-    public void loadAnnotatedConverters(RuntimeValue<TypeConverterRegistry> registry, Set<Class<?>> classes) {
-        StaticAnnotationTypeConverterLoader.getInstance().load(registry.getValue(), classes);
+    public Registry registry(RuntimeValue<Registry> value) {
+        return value.getValue();
     }
 
-    public void bind(
-            RuntimeValue<Registry> runtime,
-            String name,
-            Class<?> type,
-            Object instance) {
-
-        runtime.getValue().bind(name, type, instance);
+    public TypeConverterLoader typeConverterLoaders(List<RuntimeValue<TypeConverterLoader>> loaders) {
+        return registry -> loaders.forEach(loader -> loader.getValue().load(registry));
     }
 
-    public void bind(
-            RuntimeValue<Registry> runtime,
-            String name,
-            Class<?> type,
-            RuntimeValue<?> instance) {
-
-        runtime.getValue().bind(name, type, instance.getValue());
+    public ModelJAXBContextFactory modelJAXBContextFactory(RuntimeValue<ModelJAXBContextFactory> value) {
+        return value.getValue();
     }
 
-    public void bind(
-            RuntimeValue<Registry> runtime,
-            String name,
-            Class<?> type) {
-
-        try {
-            runtime.getValue().bind(name, type, type.getDeclaredConstructor().newInstance());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    public ModelToXMLDumper modelToXMLDumper(RuntimeValue<ModelToXMLDumper> value) {
+        return value.getValue();
     }
 
-    public RuntimeValue<ModelJAXBContextFactory> newDisabledModelJAXBContextFactory() {
-        return new RuntimeValue<>(new DisabledModelJAXBContextFactory());
+    public ModelToYAMLDumper modelToYAMLDumper(RuntimeValue<ModelToYAMLDumper> value) {
+        return value.getValue();
     }
 
-    public RuntimeValue<ModelToXMLDumper> newDisabledModelToXMLDumper() {
-        return new RuntimeValue<>(new DisabledModelToXMLDumper());
+    public CamelContextCustomizer contextCustomizers(List<RuntimeValue<CamelContextCustomizer>> customizers) {
+        return context -> customizers.forEach(customizer -> customizer.getValue().configure(context));
     }
 
-    public RuntimeValue<ModelToYAMLDumper> newDisabledModelToYAMLDumper() {
-        return new RuntimeValue<>(new DisabledModelToYAMLDumper());
+    public void addMainListener(RuntimeValue<CamelMain> main, RuntimeValue<MainListener> listener) {
+        main.getValue().addMainListener(listener.getValue());
     }
 
-    public RuntimeValue<Builder> factoryFinderResolverBuilder() {
-        return new RuntimeValue<>(new FastFactoryFinderResolver.Builder());
-    }
-
-    public void factoryFinderResolverEntry(RuntimeValue<Builder> builder, String resourcePath, String className) {
-        builder.getValue().entry(resourcePath, className);
-    }
-
-    public RuntimeValue<FactoryFinderResolver> factoryFinderResolver(RuntimeValue<Builder> builder) {
-        return new RuntimeValue<>(builder.getValue().build());
-    }
-
-    public RuntimeValue<ModelReifierFactory> modelReifierFactory() {
-        return new RuntimeValue<>(new DefaultModelReifierFactory());
-    }
-
-    public Supplier<Endpoint> createEndpoint(String uri, Class<? extends Endpoint> endpointClass) {
-        return () -> {
-            final CamelContext camelContext = Arc.container().instance(CamelContext.class).get();
-            return camelContext.getEndpoint(uri, endpointClass);
-        };
-    }
-
-    public Supplier<ProducerTemplate> createProducerTemplate(String uri) {
-        return () -> {
-            final CamelContext camelContext = Arc.container().instance(CamelContext.class).get();
-            final ProducerTemplate result = camelContext.createProducerTemplate();
-            if (uri != null) {
-                result.setDefaultEndpointUri(uri);
-            }
-            return result;
-        };
-    }
-
-    public Supplier<FluentProducerTemplate> createFluentProducerTemplate(String uri) {
-        return () -> {
-            final CamelContext camelContext = Arc.container().instance(CamelContext.class).get();
-            final FluentProducerTemplate result = camelContext.createFluentProducerTemplate();
-            if (uri != null) {
-                result.setDefaultEndpointUri(uri);
-            }
-            return result;
-        };
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T> Supplier<T> produceProxy(Class<T> clazz, String uri) {
-        return () -> {
-            final CamelContext camelContext = Arc.container().instance(CamelContext.class).get();
-            final BeanProxyFactory factory = PluginHelper.getBeanProxyFactory(camelContext);
-            final Endpoint endpoint = camelContext.getEndpoint(uri);
-            try {
-                return factory.createProxy(endpoint, true, clazz);
-            } catch (Exception e) {
-                throw new RuntimeException(
-                        "Could not instantiate proxy of type " + clazz.getName() + " on endpoint " + endpoint, e);
-            }
-        };
-    }
-
-    public RuntimeValue<ComponentNameResolver> createComponentNameResolver(Set<String> componentNames) {
-        return new RuntimeValue<>(new FastComponentNameResolver(componentNames));
-    }
-
-    public RuntimeValue<PackageScanClassResolver> createPackageScanClassResolver(
-            Set<? extends Class<?>> packageScanClassCache) {
-        return new RuntimeValue<>(new CamelQuarkusPackageScanClassResolver(packageScanClassCache));
-    }
-
-    public void postProcessBeanAndBindToRegistry(RuntimeValue<CamelContext> camelContextRuntimeValue, Class<?> beanType) {
-        try {
-            Object bean;
-
-            // To enable features like CDI injection to work with @BindToRegistry factory methods
-            // try to find an existing bean for the @BindToRegistry host class and use it for postprocessing
-            InjectableInstance<?> beanInstance = Arc.container().select(beanType);
-            if (beanInstance.isResolvable()) {
-                bean = beanInstance.get();
-            } else {
-                // No existing CDI bean so fallback to direct instantiation
-                bean = beanType.getDeclaredConstructor().newInstance();
-            }
-
-            CamelContext camelContext = camelContextRuntimeValue.getValue();
-            CamelBeanPostProcessor beanPostProcessor = PluginHelper.getBeanPostProcessor(camelContext);
-            beanPostProcessor.postProcessBeforeInitialization(bean, bean.getClass().getName());
-            beanPostProcessor.postProcessAfterInitialization(bean, bean.getClass().getName());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    public void bind(RuntimeValue<Registry> registry, String name, Class<?> type, RuntimeValue<?> instance) {
+        registry.getValue().bind(name, type, instance.getValue());
     }
 }

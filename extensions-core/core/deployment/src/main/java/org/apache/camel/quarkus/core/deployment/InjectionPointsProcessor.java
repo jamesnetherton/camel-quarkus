@@ -24,25 +24,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Supplier;
 
+import io.quarkus.arc.BeanCreator;
 import io.quarkus.arc.deployment.AnnotationsTransformerBuildItem;
 import io.quarkus.arc.deployment.BeanRegistrationPhaseBuildItem;
 import io.quarkus.arc.deployment.QualifierRegistrarBuildItem;
 import io.quarkus.arc.deployment.SyntheticBeanBuildItem;
+import io.quarkus.arc.deployment.SyntheticBeanBuildItem.ExtendedBeanConfigurator;
 import io.quarkus.arc.processor.BuildExtension;
 import io.quarkus.arc.processor.InjectionPointInfo;
 import io.quarkus.arc.processor.QualifierRegistrar;
 import io.quarkus.deployment.Capabilities;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
-import io.quarkus.deployment.annotations.ExecutionTime;
-import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.NativeImageProxyDefinitionBuildItem;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import jakarta.inject.Singleton;
+import org.apache.camel.CamelContext;
 import org.apache.camel.Component;
 import org.apache.camel.Endpoint;
 import org.apache.camel.EndpointInject;
@@ -50,14 +50,13 @@ import org.apache.camel.FluentProducerTemplate;
 import org.apache.camel.Produce;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.quarkus.core.CamelCapabilities;
-import org.apache.camel.quarkus.core.CamelRecorder;
-import org.apache.camel.quarkus.core.InjectionPointsRecorder;
-import org.apache.camel.quarkus.core.deployment.spi.CamelRuntimeTaskBuildItem;
+import org.apache.camel.quarkus.core.InjectionPointBeanCreators;
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.AnnotationTarget;
 import org.jboss.jandex.AnnotationTarget.Kind;
 import org.jboss.jandex.AnnotationTransformation;
 import org.jboss.jandex.ClassInfo;
+import org.jboss.jandex.ClassType;
 import org.jboss.jandex.DotName;
 import org.jboss.jandex.FieldInfo;
 import org.jboss.jandex.IndexView;
@@ -79,23 +78,46 @@ public class InjectionPointsProcessor {
     private static final DotName TEST_SUPPORT_CLASS_NAME = DotName
             .createSimple("org.apache.camel.quarkus.test.CamelQuarkusTestSupport");
 
-    private static SyntheticBeanBuildItem syntheticBean(DotName name, Supplier<?> creator) {
-        return SyntheticBeanBuildItem.configure(name)
-                .supplier(creator)
+    private static final Type CAMEL_CONTEXT_TYPE = ClassType.create(CamelContext.class);
+
+    private static SyntheticBeanBuildItem componentBean(DotName type, String componentName) {
+        return SyntheticBeanBuildItem.configure(type)
+                .creator(InjectionPointBeanCreators.ComponentCreator.class)
+                .addInjectionPoint(CAMEL_CONTEXT_TYPE)
+                .param(InjectionPointBeanCreators.PARAM_NAME, componentName)
+                .param(InjectionPointBeanCreators.PARAM_TYPE, type.toString())
                 .scope(Singleton.class)
                 .unremovable()
-                .setRuntimeInit()
                 .done();
     }
 
-    @Record(ExecutionTime.RUNTIME_INIT)
+    private static SyntheticBeanBuildItem injectionPointBean(
+            DotName type,
+            Class<? extends BeanCreator<?>> creator,
+            AnnotationInstance qualifier,
+            String uri) {
+        ExtendedBeanConfigurator configurator = SyntheticBeanBuildItem.configure(type)
+                .addInjectionPoint(CAMEL_CONTEXT_TYPE)
+                .param(InjectionPointBeanCreators.PARAM_TYPE, type.toString())
+                .scope(Singleton.class)
+                .addQualifier(qualifier);
+        if (uri != null) {
+            configurator.param(InjectionPointBeanCreators.PARAM_URI, uri);
+        }
+        configurator.creator(creatorClass(creator));
+        return configurator.done();
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private static Class<? extends BeanCreator<Object>> creatorClass(Class<? extends BeanCreator<?>> creator) {
+        return (Class) creator;
+    }
+
     @BuildStep
     void injectedComponents(
             CombinedIndexBuildItem index,
-            InjectionPointsRecorder recorder,
             BeanRegistrationPhaseBuildItem beanRegistrationPhase,
             BuildProducer<SyntheticBeanBuildItem> syntheticBeans,
-            BuildProducer<CamelRuntimeTaskBuildItem> runtimeTasks,
             BuildProducer<BeanRegistrationPhaseBuildItem.BeanConfiguratorBuildItem> beanConfigurator) {
 
         final Collection<ClassInfo> components = index.getIndex().getAllKnownImplementations(INTERFACE_NAME_COMPONENT);
@@ -112,11 +134,10 @@ public class InjectionPointsProcessor {
                 if (components.stream().anyMatch(ci -> Objects.equals(ci.name(), target.type().name()))) {
                     final AnnotationInstance named = target.annotation(ANNOTATION_NAME_NAMED);
                     final String componentName = named == null ? target.name() : named.value().asString();
-                    final Supplier<?> creator = recorder.componentSupplier(componentName, target.type().toString());
 
                     LOGGER.debugf("Creating synthetic component bean [name=%s, type=%s]", componentName, target.type().name());
 
-                    syntheticBeans.produce(syntheticBean(target.type().name(), creator));
+                    syntheticBeans.produce(componentBean(target.type().name(), componentName));
                 }
             }
 
@@ -134,18 +155,14 @@ public class InjectionPointsProcessor {
                     if (components.stream().anyMatch(ci -> Objects.equals(ci.name(), type.name()))) {
                         final AnnotationInstance named = target.annotation(ANNOTATION_NAME_NAMED);
                         final String componentName = named == null ? target.parameterName(i) : named.value().asString();
-                        final Supplier<?> creator = recorder.componentSupplier(componentName, type.toString());
 
                         LOGGER.debugf("Creating synthetic component bean [name=%s, type=%s]", componentName, type.name());
 
-                        syntheticBeans.produce(syntheticBean(type.name(), creator));
+                        syntheticBeans.produce(componentBean(type.name(), componentName));
                     }
                 }
             }
         }
-
-        // Ensure the task is executed before the runtime is assembled
-        runtimeTasks.produce(new CamelRuntimeTaskBuildItem("components-injection"));
 
         // Methods using BeanRegistrationPhaseBuildItem should return/produce a BeanConfiguratorBuildItem
         // otherwise the build step may be processed at the wrong time.
@@ -214,10 +231,8 @@ public class InjectionPointsProcessor {
         }));
     }
 
-    @Record(value = ExecutionTime.RUNTIME_INIT, optional = true)
     @BuildStep
     void syntheticBeans(
-            CamelRecorder recorder,
             CombinedIndexBuildItem index,
             Capabilities capabilities,
             BuildProducer<SyntheticBeanBuildItem> syntheticBeans,
@@ -232,7 +247,7 @@ public class InjectionPointsProcessor {
                 // Avoid producing multiple beans for the same @EndpointInject URI
                 String identifier = annotationIdentifier(annotationInstance);
                 if (injectionPointIdentifiers.add(identifier)) {
-                    endpointInjectBeans(recorder, syntheticBeans, index.getIndex(), annotationInstance, target.asField());
+                    endpointInjectBeans(syntheticBeans, index.getIndex(), annotationInstance, target.asField());
                 }
                 break;
             }
@@ -253,7 +268,7 @@ public class InjectionPointsProcessor {
             switch (target.kind()) {
             case FIELD: {
                 if (injectionPointIdentifiers.add(identifier)) {
-                    produceBeans(recorder, capabilities, syntheticBeans, proxyDefinitions, index.getIndex(), annotation,
+                    produceBeans(capabilities, syntheticBeans, proxyDefinitions, index.getIndex(), annotation,
                             target.asField());
                 }
                 break;
@@ -270,7 +285,6 @@ public class InjectionPointsProcessor {
     }
 
     void produceBeans(
-            CamelRecorder recorder,
             Capabilities capabilities,
             BuildProducer<SyntheticBeanBuildItem> syntheticBeans,
             BuildProducer<NativeImageProxyDefinitionBuildItem> proxyDefinitions,
@@ -282,27 +296,21 @@ public class InjectionPointsProcessor {
             Class<?> clazz = Class.forName(fieldType.toString(), false,
                     Thread.currentThread().getContextClassLoader());
             if (ProducerTemplate.class.isAssignableFrom(clazz)) {
-                syntheticBeans.produce(
-                        SyntheticBeanBuildItem
-                                .configure(fieldType.name())
-                                .setRuntimeInit().scope(Singleton.class)
-                                .supplier(
-                                        recorder.createProducerTemplate(resolveAnnotValue(index, annot)))
-                                .addQualifier(annot)
-                                .done());
+                syntheticBeans.produce(injectionPointBean(
+                        fieldType.name(),
+                        InjectionPointBeanCreators.ProducerTemplateCreator.class,
+                        annot,
+                        resolveAnnotValue(index, annot)));
                 /*
                  * Note that ProducerTemplate injection points not having @EndpointInject are produced via
                  * CamelProducers.camelProducerTemplate()
                  */
             } else if (FluentProducerTemplate.class.isAssignableFrom(clazz)) {
-                syntheticBeans.produce(
-                        SyntheticBeanBuildItem
-                                .configure(fieldType.name())
-                                .setRuntimeInit().scope(Singleton.class)
-                                .supplier(
-                                        recorder.createFluentProducerTemplate(resolveAnnotValue(index, annot)))
-                                .addQualifier(annot)
-                                .done());
+                syntheticBeans.produce(injectionPointBean(
+                        fieldType.name(),
+                        InjectionPointBeanCreators.FluentProducerTemplateCreator.class,
+                        annot,
+                        resolveAnnotValue(index, annot)));
                 /*
                  * Note that FluentProducerTemplate injection points not having @EndpointInject are produced via
                  * CamelProducers.camelFluentProducerTemplate()
@@ -318,23 +326,18 @@ public class InjectionPointsProcessor {
                 }
 
                 proxyDefinitions.produce(new NativeImageProxyDefinitionBuildItem(fieldType.name().toString()));
-                syntheticBeans.produce(
-                        SyntheticBeanBuildItem
-                                .configure(fieldType.name())
-                                .setRuntimeInit().scope(Singleton.class)
-                                .supplier(
-                                        recorder.produceProxy(clazz, resolveAnnotValue(index, annot)))
-                                .addQualifier(annot)
-                                .done());
+                syntheticBeans.produce(injectionPointBean(
+                        fieldType.name(),
+                        InjectionPointBeanCreators.ProxyCreator.class,
+                        annot,
+                        resolveAnnotValue(index, annot)));
             }
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
     }
 
-    @SuppressWarnings("unchecked")
     private void endpointInjectBeans(
-            CamelRecorder recorder,
             BuildProducer<SyntheticBeanBuildItem> syntheticBeans,
             IndexView index,
             AnnotationInstance annot,
@@ -343,37 +346,27 @@ public class InjectionPointsProcessor {
             Type fieldType = field.type();
             Class<?> clazz = Class.forName(fieldType.toString());
             if (Endpoint.class.isAssignableFrom(clazz)) {
-                syntheticBeans.produce(
-                        SyntheticBeanBuildItem
-                                .configure(fieldType.name())
-                                .setRuntimeInit().scope(Singleton.class)
-                                .supplier(
-                                        recorder.createEndpoint(resolveAnnotValue(index, annot),
-                                                (Class<? extends Endpoint>) clazz))
-                                .addQualifier(annot)
-                                .done());
+                syntheticBeans.produce(injectionPointBean(
+                        fieldType.name(),
+                        InjectionPointBeanCreators.EndpointCreator.class,
+                        annot,
+                        resolveAnnotValue(index, annot)));
             } else if (ProducerTemplate.class.isAssignableFrom(clazz)) {
-                syntheticBeans.produce(
-                        SyntheticBeanBuildItem
-                                .configure(fieldType.name())
-                                .setRuntimeInit().scope(Singleton.class)
-                                .supplier(
-                                        recorder.createProducerTemplate(resolveAnnotValue(index, annot)))
-                                .addQualifier(annot)
-                                .done());
+                syntheticBeans.produce(injectionPointBean(
+                        fieldType.name(),
+                        InjectionPointBeanCreators.ProducerTemplateCreator.class,
+                        annot,
+                        resolveAnnotValue(index, annot)));
                 /*
                  * Note that ProducerTemplate injection points not having @EndpointInject are produced via
                  * CamelProducers.camelProducerTemplate()
                  */
             } else if (FluentProducerTemplate.class.isAssignableFrom(clazz)) {
-                syntheticBeans.produce(
-                        SyntheticBeanBuildItem
-                                .configure(fieldType.name())
-                                .setRuntimeInit().scope(Singleton.class)
-                                .supplier(
-                                        recorder.createFluentProducerTemplate(resolveAnnotValue(index, annot)))
-                                .addQualifier(annot)
-                                .done());
+                syntheticBeans.produce(injectionPointBean(
+                        fieldType.name(),
+                        InjectionPointBeanCreators.FluentProducerTemplateCreator.class,
+                        annot,
+                        resolveAnnotValue(index, annot)));
                 /*
                  * Note that FluentProducerTemplate injection points not having @EndpointInject are produced via
                  * CamelProducers.camelFluentProducerTemplate()

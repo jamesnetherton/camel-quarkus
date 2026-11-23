@@ -18,19 +18,20 @@ package org.apache.camel.quarkus.core.deployment.devmode;
 
 import java.util.List;
 
+import io.quarkus.core.Phase;
+import io.quarkus.core.deployment.service.ServiceRegistrar;
 import io.quarkus.deployment.Capabilities;
 import io.quarkus.deployment.IsDevelopment;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.BuildSteps;
-import io.quarkus.deployment.annotations.ExecutionTime;
-import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.HotDeploymentWatchedFileBuildItem;
-import org.apache.camel.quarkus.core.CamelContextRecorder;
+import org.apache.camel.CamelContext;
+import org.apache.camel.quarkus.core.CamelBootstrap;
 import org.apache.camel.quarkus.core.deployment.spi.CamelContextBuildItem;
 import org.apache.camel.quarkus.core.deployment.spi.CamelMainBuildItem;
 import org.apache.camel.quarkus.core.deployment.spi.CamelRouteResourceBuildItem;
-import org.apache.camel.quarkus.main.CamelMainRecorder;
+import org.apache.camel.quarkus.main.CamelMain;
 import org.jboss.logging.Logger;
 
 import static org.apache.camel.quarkus.core.CamelCapabilities.DSL_MODELINE;
@@ -42,19 +43,28 @@ import static org.apache.camel.quarkus.core.CamelCapabilities.DSL_MODELINE;
 class CamelDevModeProcessor {
     private static final Logger LOGGER = Logger.getLogger(CamelDevModeProcessor.class);
 
-    @Record(ExecutionTime.STATIC_INIT)
     @BuildStep
     void customizeDevModeCamelContext(
+            ServiceRegistrar serviceRegistrar,
+            // CamelContextBuildItem placeholder ensures this build step runs after the CamelContext is created
             CamelContextBuildItem camelContext,
-            Capabilities capabilities,
-            CamelContextRecorder recorder) {
-        recorder.customizeDevModeCamelContext(camelContext.getCamelContext(), capabilities.isMissing(DSL_MODELINE));
+            Capabilities capabilities) {
+        boolean isModeLineDslAbsent = capabilities.isMissing(DSL_MODELINE);
+        serviceRegistrar.forService("camel.dev-mode.context")
+                .atPhase(Phase.STATIC_INIT)
+                .require(CamelContext.class)
+                .onStart((ctx, context) -> CamelBootstrap.customizeDevModeCamelContext(context, isModeLineDslAbsent));
     }
 
-    @Record(ExecutionTime.STATIC_INIT)
     @BuildStep
-    void customizeDevModeCamelMain(CamelMainBuildItem camelMain, CamelMainRecorder recorder) {
-        recorder.customizeDevModeCamelMain(camelMain.getInstance());
+    void customizeDevModeCamelMain(
+            ServiceRegistrar serviceRegistrar,
+            // CamelMainBuildItem placeholder ensures this build step runs after camel-main is created
+            CamelMainBuildItem camelMain) {
+        serviceRegistrar.forService("camel.dev-mode.main")
+                .atPhase(Phase.STATIC_INIT)
+                .require(CamelMain.class)
+                .onStart((ctx, main) -> CamelBootstrap.customizeDevModeCamelMain(main));
     }
 
     @BuildStep

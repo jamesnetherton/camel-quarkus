@@ -28,14 +28,12 @@ import java.util.stream.Stream;
 
 import io.quarkus.arc.deployment.AnnotationsTransformerBuildItem;
 import io.quarkus.arc.deployment.UnremovableBeanBuildItem;
+import io.quarkus.core.deployment.service.ServiceRegistrar;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
-import io.quarkus.deployment.annotations.ExecutionTime;
-import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.CapabilityBuildItem;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
-import io.quarkus.runtime.RuntimeValue;
 import jakarta.decorator.Decorator;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.ConversationScoped;
@@ -45,11 +43,13 @@ import jakarta.enterprise.context.SessionScoped;
 import jakarta.enterprise.inject.spi.Interceptor;
 import jakarta.inject.Named;
 import jakarta.inject.Singleton;
+import org.apache.camel.CamelContext;
 import org.apache.camel.Consume;
-import org.apache.camel.model.RoutesDefinition;
+import org.apache.camel.quarkus.core.CamelBootstrap;
+import org.apache.camel.quarkus.core.CamelBootstrap.ConsumeRoute;
 import org.apache.camel.quarkus.core.CamelCapabilities;
-import org.apache.camel.quarkus.core.ConsumeRecorder;
 import org.apache.camel.quarkus.core.deployment.spi.CamelContextBuildItem;
+import org.apache.camel.quarkus.core.deployment.spi.CamelRuntimeTaskBuildItem;
 import org.apache.camel.util.StringHelper;
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.AnnotationTarget;
@@ -58,6 +58,8 @@ import org.jboss.jandex.AnnotationTransformation;
 import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
 import org.jboss.jandex.MethodInfo;
+
+import static org.apache.camel.quarkus.core.deployment.CamelServiceNames.CONSUME_ROUTES;
 
 /**
  * Support for Camel {@link Consume} annotation.
@@ -138,73 +140,75 @@ public class ConsumeProcessor {
         return false;
     }
 
-    @Record(value = ExecutionTime.RUNTIME_INIT)
     @BuildStep
     void generateConsumeRoutes(
-            ConsumeRecorder recorder,
+            ServiceRegistrar serviceRegistrar,
             CombinedIndexBuildItem index,
             List<CapabilityBuildItem> capabilities,
-            CamelContextBuildItem camelContext) {
+            // CamelContextBuildItem placeholder ensures this build step runs after the CamelContext is created
+            CamelContextBuildItem camelContext,
+            BuildProducer<CamelRuntimeTaskBuildItem> runtimeTasks) {
 
         final Collection<AnnotationInstance> consumeAnnotations = index.getIndex().getAnnotations(CONSUME_ANNOTATION);
-        if (!consumeAnnotations.isEmpty()) {
-            final RuntimeValue<RoutesDefinition> routesDefinition = recorder.createRoutesDefinition();
-
-            final boolean beanCapabilityAvailable = capabilities.stream()
-                    .map(CapabilityBuildItem::getName)
-                    .anyMatch(CamelCapabilities.BEAN::equals);
-
-            for (AnnotationInstance annot : consumeAnnotations) {
-                final AnnotationTarget target = annot.target();
-                switch (target.kind()) {
-                case METHOD: {
-                    final MethodInfo methodInfo = target.asMethod();
-                    String uri = null;
-                    RuntimeValue<Object> runtimeUriOrEndpoint = null;
-                    final ClassInfo declaringClass = methodInfo.declaringClass();
-                    String beanName = namedValue(declaringClass);
-                    if (beanName == null) {
-                        beanName = ConsumeProcessor.uniqueBeanName(declaringClass);
-                    }
-                    if (annot.value() != null) {
-                        uri = annot.value().asString();
-                    } else if (annot.value("property") != null) {
-                        runtimeUriOrEndpoint = recorder.getEndpointUri(
-                                camelContext.getCamelContext(),
-                                beanName,
-                                findEndpointMethodName(annot.value("property").asString(), declaringClass, new ArrayList<>()));
-                    } else {
-                        runtimeUriOrEndpoint = recorder.getEndpointUri(
-                                camelContext.getCamelContext(),
-                                beanName,
-                                findEndpointMethodName(methodInfo.name(), declaringClass, new ArrayList<>()));
-                    }
-                    if (uri == null && runtimeUriOrEndpoint == null) {
-                        throw new IllegalStateException("@" + Consume.class.getName() + " on " + methodInfo + " in "
-                                + declaringClass.name()
-                                + " requires to specify a Camel Endpoint or endpoint URI through one of the following options:\n"
-                                + " * via @Consume value, e.g. @Consume(\"direct:myDirect\")\n"
-                                + " * via explicit @Consume property parameter, e.g. @Consume(property = \"myUriProperty\") and getMyUriProperty() or getMyUriPropertyEndpoint() in the same class must exist and return a String or org.apache.camel.Endpoint\n"
-                                + " * via naming convention: if your @Consume method is called myEvent or onMyEvent then getMyEvent() or getMyEventEndpoint() must exist in the same class and return a String or org.apache.camel.Endpoint\n"
-                                + "See https://camel.apache.org/manual/latest/pojo-consuming.html for more details");
-                    }
-                    if (!beanCapabilityAvailable) {
-                        throw new IllegalStateException(
-                                "Add camel-quarkus-bean dependency to be able to use @" + Consume.class.getName()
-                                        + " on method:"
-                                        + methodInfo
-                                        + " in " + declaringClass.name());
-                    }
-                    recorder.addConsumeRoute(camelContext.getCamelContext(), routesDefinition, uri, runtimeUriOrEndpoint,
-                            beanName, methodInfo.name());
-                    break;
-                }
-                default:
-                    throw new IllegalStateException("Expected method, got " + target.kind() + ": " + target);
-                }
-            }
-            recorder.addConsumeRoutesToContext(camelContext.getCamelContext(), routesDefinition);
+        if (consumeAnnotations.isEmpty()) {
+            return;
         }
+
+        final boolean beanCapabilityAvailable = capabilities.stream()
+                .map(CapabilityBuildItem::getName)
+                .anyMatch(CamelCapabilities.BEAN::equals);
+
+        final List<ConsumeRoute> consumeRoutes = new ArrayList<>();
+        for (AnnotationInstance annot : consumeAnnotations) {
+            final AnnotationTarget target = annot.target();
+            switch (target.kind()) {
+            case METHOD: {
+                final MethodInfo methodInfo = target.asMethod();
+                String uri = null;
+                String endpointMethodName = null;
+                final ClassInfo declaringClass = methodInfo.declaringClass();
+                String beanName = namedValue(declaringClass);
+                if (beanName == null) {
+                    beanName = ConsumeProcessor.uniqueBeanName(declaringClass);
+                }
+                if (annot.value() != null) {
+                    uri = annot.value().asString();
+                } else if (annot.value("property") != null) {
+                    endpointMethodName = findEndpointMethodName(annot.value("property").asString(), declaringClass,
+                            new ArrayList<>());
+                } else {
+                    endpointMethodName = findEndpointMethodName(methodInfo.name(), declaringClass, new ArrayList<>());
+                }
+                if (uri == null && endpointMethodName == null) {
+                    throw new IllegalStateException("@" + Consume.class.getName() + " on " + methodInfo + " in "
+                            + declaringClass.name()
+                            + " requires to specify a Camel Endpoint or endpoint URI through one of the following options:\n"
+                            + " * via @Consume value, e.g. @Consume(\"direct:myDirect\")\n"
+                            + " * via explicit @Consume property parameter, e.g. @Consume(property = \"myUriProperty\") and getMyUriProperty() or getMyUriPropertyEndpoint() in the same class must exist and return a String or org.apache.camel.Endpoint\n"
+                            + " * via naming convention: if your @Consume method is called myEvent or onMyEvent then getMyEvent() or getMyEventEndpoint() must exist in the same class and return a String or org.apache.camel.Endpoint\n"
+                            + "See https://camel.apache.org/manual/latest/pojo-consuming.html for more details");
+                }
+                if (!beanCapabilityAvailable) {
+                    throw new IllegalStateException(
+                            "Add camel-quarkus-bean dependency to be able to use @" + Consume.class.getName()
+                                    + " on method:"
+                                    + methodInfo
+                                    + " in " + declaringClass.name());
+                }
+                consumeRoutes.add(new ConsumeRoute(uri, endpointMethodName, beanName, methodInfo.name()));
+                break;
+            }
+            default:
+                throw new IllegalStateException("Expected method, got " + target.kind() + ": " + target);
+            }
+        }
+
+        List<ConsumeRoute> capturedConsumeRoutes = List.copyOf(consumeRoutes);
+        serviceRegistrar.forService(CONSUME_ROUTES)
+                .require(CamelContext.class)
+                .onStart((ctx, context) -> CamelBootstrap.addConsumeRoutes(context, capturedConsumeRoutes));
+
+        runtimeTasks.produce(new CamelRuntimeTaskBuildItem("consume-routes"));
     }
 
     private String findEndpointMethodName(final String propertyName, ClassInfo declaringClass, List<String> triedMethods) {
