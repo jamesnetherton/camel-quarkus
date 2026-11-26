@@ -18,7 +18,8 @@
 package org.apache.camel.quarkus.dsl.xml.io.deployment;
 
 import java.io.InputStream;
-import java.util.HashSet;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -28,7 +29,6 @@ import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
-import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
 import io.quarkus.deployment.pkg.steps.NativeOrNativeSourcesBuild;
 import org.apache.camel.model.CatchDefinition;
 import org.apache.camel.model.OnExceptionDefinition;
@@ -39,6 +39,8 @@ import org.apache.camel.model.RouteDefinition;
 import org.apache.camel.model.RoutesDefinition;
 import org.apache.camel.model.ThrowExceptionDefinition;
 import org.apache.camel.model.app.ApplicationDefinition;
+import org.apache.camel.quarkus.core.deployment.spi.CamelDslTypeReferenceBuildItem;
+import org.apache.camel.quarkus.core.deployment.spi.CamelDslTypeReferenceBuildItem.Kind;
 import org.apache.camel.quarkus.core.deployment.spi.CamelModelToXMLDumperBuildItem;
 import org.apache.camel.quarkus.core.deployment.spi.CamelRouteResourceBuildItem;
 import org.apache.camel.quarkus.dsl.xml.XmlIoDslRecorder;
@@ -62,17 +64,16 @@ public class XmlIoDslProcessor {
     }
 
     /**
-     * Parses XML DSL route files to detect exception classes used in onException/doCatch definitions,
-     * and registers them for reflection in native builds.
+     * Parses XML DSL route files to detect classes referenced by DSL elements such as onException and doCatch.
      *
      * @see <a href="https://github.com/apache/camel-quarkus/issues/7841">camel-quarkus#7841</a>
      */
     @BuildStep(onlyIf = NativeOrNativeSourcesBuild.class)
-    void registerOnExceptionClassesForReflection(
+    void scanXmlDslTypeReferences(
             List<CamelRouteResourceBuildItem> camelRouteResources,
-            BuildProducer<ReflectiveClassBuildItem> reflectiveClass) {
+            BuildProducer<CamelDslTypeReferenceBuildItem> typeReferences) {
 
-        final Set<String> exceptionClasses = new HashSet<>();
+        final Set<CamelDslTypeReferenceBuildItem> references = new LinkedHashSet<>();
 
         for (CamelRouteResourceBuildItem routeResource : camelRouteResources) {
             String sourcePath = routeResource.getSourcePath();
@@ -81,24 +82,22 @@ public class XmlIoDslProcessor {
             }
 
             // Try each XML format: <routes>, <routeConfiguration(s)>, <beans>/<camel>
-            if (tryParseRoutes(sourcePath, exceptionClasses)) {
+            if (tryParseRoutes(sourcePath, references)) {
                 continue;
             }
-            if (tryParseRouteConfigurations(sourcePath, exceptionClasses)) {
+            if (tryParseRouteConfigurations(sourcePath, references)) {
                 continue;
             }
-            tryParseApplication(sourcePath, exceptionClasses);
+            tryParseApplication(sourcePath, references);
         }
 
-        if (!exceptionClasses.isEmpty()) {
-            LOGGER.debug("Auto-detected onException/doCatch classes from XML routes for reflection: {}", exceptionClasses);
-            for (String cls : exceptionClasses) {
-                reflectiveClass.produce(ReflectiveClassBuildItem.builder(cls).build());
-            }
+        if (!references.isEmpty()) {
+            LOGGER.debug("Detected XML DSL type references: {}", references);
+            references.forEach(typeReferences::produce);
         }
     }
 
-    private boolean tryParseRoutes(String sourcePath, Set<String> exceptionClasses) {
+    private boolean tryParseRoutes(String sourcePath, Set<CamelDslTypeReferenceBuildItem> references) {
         try (InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(sourcePath)) {
             if (is == null) {
                 return false;
@@ -107,10 +106,10 @@ public class XmlIoDslProcessor {
             Optional<RoutesDefinition> routesOpt = parser.parseRoutesDefinition();
             if (routesOpt.isPresent()) {
                 RoutesDefinition routes = routesOpt.get();
-                collectOnExceptionClasses(routes.getOnExceptions(), exceptionClasses);
+                collectOnExceptions(routes.getOnExceptions(), references);
                 if (routes.getRoutes() != null) {
                     for (RouteDefinition route : routes.getRoutes()) {
-                        collectExceptionClassesFromOutputs(route.getOutputs(), exceptionClasses);
+                        collectFromOutputs(route.getOutputs(), references);
                     }
                 }
                 return true;
@@ -121,7 +120,7 @@ public class XmlIoDslProcessor {
         return false;
     }
 
-    private boolean tryParseRouteConfigurations(String sourcePath, Set<String> exceptionClasses) {
+    private boolean tryParseRouteConfigurations(String sourcePath, Set<CamelDslTypeReferenceBuildItem> references) {
         try (InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(sourcePath)) {
             if (is == null) {
                 return false;
@@ -130,7 +129,7 @@ public class XmlIoDslProcessor {
             Optional<RouteConfigurationsDefinition> rcOpt = parser.parseRouteConfigurationsDefinition();
             if (rcOpt.isPresent()) {
                 for (RouteConfigurationDefinition rc : rcOpt.get().getRouteConfigurations()) {
-                    collectOnExceptionClasses(rc.getOnExceptions(), exceptionClasses);
+                    collectOnExceptions(rc.getOnExceptions(), references);
                 }
                 return true;
             }
@@ -140,7 +139,7 @@ public class XmlIoDslProcessor {
         return false;
     }
 
-    private boolean tryParseApplication(String sourcePath, Set<String> exceptionClasses) {
+    private boolean tryParseApplication(String sourcePath, Set<CamelDslTypeReferenceBuildItem> references) {
         try (InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(sourcePath)) {
             if (is == null) {
                 return false;
@@ -151,12 +150,12 @@ public class XmlIoDslProcessor {
                 ApplicationDefinition app = appOpt.get();
                 if (app.getRoutes() != null) {
                     for (RouteDefinition route : app.getRoutes()) {
-                        collectExceptionClassesFromOutputs(route.getOutputs(), exceptionClasses);
+                        collectFromOutputs(route.getOutputs(), references);
                     }
                 }
                 if (app.getRouteConfigurations() != null) {
                     for (RouteConfigurationDefinition rc : app.getRouteConfigurations()) {
-                        collectOnExceptionClasses(rc.getOnExceptions(), exceptionClasses);
+                        collectOnExceptions(rc.getOnExceptions(), references);
                     }
                 }
                 return true;
@@ -167,30 +166,44 @@ public class XmlIoDslProcessor {
         return false;
     }
 
-    private static void collectOnExceptionClasses(List<OnExceptionDefinition> onExceptions, Set<String> exceptionClasses) {
+    private static void collectOnExceptions(List<OnExceptionDefinition> onExceptions,
+            Set<CamelDslTypeReferenceBuildItem> references) {
         if (onExceptions != null) {
             for (OnExceptionDefinition onEx : onExceptions) {
-                exceptionClasses.addAll(onEx.getExceptions());
+                addReferences(references, Kind.EXCEPTION, onEx.getExceptions());
             }
         }
     }
 
-    private static void collectExceptionClassesFromOutputs(List<ProcessorDefinition<?>> outputs,
-            Set<String> exceptionClasses) {
+    private static void collectFromOutputs(List<ProcessorDefinition<?>> outputs,
+            Set<CamelDslTypeReferenceBuildItem> references) {
         if (outputs == null) {
             return;
         }
         for (ProcessorDefinition<?> output : outputs) {
             if (output instanceof OnExceptionDefinition onEx) {
-                exceptionClasses.addAll(onEx.getExceptions());
+                addReferences(references, Kind.EXCEPTION, onEx.getExceptions());
             } else if (output instanceof CatchDefinition catchDef) {
-                exceptionClasses.addAll(catchDef.getExceptions());
+                addReferences(references, Kind.EXCEPTION, catchDef.getExceptions());
             } else if (output instanceof ThrowExceptionDefinition throwEx) {
-                if (throwEx.getExceptionType() != null) {
-                    exceptionClasses.add(throwEx.getExceptionType());
-                }
+                addReference(references, Kind.EXCEPTION, throwEx.getExceptionType());
             }
-            collectExceptionClassesFromOutputs(output.getOutputs(), exceptionClasses);
+            collectFromOutputs(output.getOutputs(), references);
+        }
+    }
+
+    private static void addReferences(Set<CamelDslTypeReferenceBuildItem> references, Kind kind,
+            Collection<String> classNames) {
+        if (classNames != null) {
+            for (String className : classNames) {
+                addReference(references, kind, className);
+            }
+        }
+    }
+
+    private static void addReference(Set<CamelDslTypeReferenceBuildItem> references, Kind kind, String className) {
+        if (className != null && !className.isBlank()) {
+            references.add(new CamelDslTypeReferenceBuildItem(kind, className.trim()));
         }
     }
 }

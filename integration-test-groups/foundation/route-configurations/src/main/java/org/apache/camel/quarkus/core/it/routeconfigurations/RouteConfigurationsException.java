@@ -22,8 +22,8 @@ package org.apache.camel.quarkus.core.it.routeconfigurations;
  * are running grouped.
  *
  * Note: This class intentionally does NOT use {@code @RegisterForReflection}.
- * The build step in {@code CamelNativeImageProcessor#registerOnExceptionClassesForReflection}
- * auto-detects it from the {@code onException(RouteConfigurationsException.class)} calls
+ * The {@code CamelNativeImageProcessor} native build steps
+ * auto-detect it from the {@code onException(RouteConfigurationsException.class)} calls
  * in the Java DSL route builders.
  *
  * @see <a href="https://github.com/apache/camel-quarkus/issues/7841">camel-quarkus#7841</a>

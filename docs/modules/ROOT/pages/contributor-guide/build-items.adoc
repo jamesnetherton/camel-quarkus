@@ -77,6 +77,16 @@ A `MultiBuildItem` holding the `CamelContextCustomizer` `RuntimeValue` and could
 to customize the camel context before produce the `CamelContextBuildItem`
 a|`RuntimeValue<CamelContextCustomizer> value`
 
+a|https://github.com/apache/camel-quarkus/blob/main/extensions-core/core/deployment/src/main/java/org/apache/camel/quarkus/core/deployment/spi/CamelDslTypeReferenceBuildItem.java[`org.apache.camel.quarkus.core.deployment.spi.CamelDslTypeReferenceBuildItem`,window=_blank]
+
+A `MultiBuildItem` holding a class name referenced by a Camel route DSL construct.
+
+Produced in native builds by the Java, XML and YAML DSL route scanners. Extensions consume the items of the
+`Kind` they are interested in, for example to register the referenced classes for reflection.
+a|`Kind kind`
+
+`String className`
+
 a|https://github.com/apache/camel-quarkus/blob/main/extensions-core/core/deployment/src/main/java/org/apache/camel/quarkus/core/deployment/spi/CamelFactoryFinderResolverBuildItem.java[`org.apache.camel.quarkus.core.deployment.spi.CamelFactoryFinderResolverBuildItem`,window=_blank]
 
 A `SimpleBuildItem` holding a `FactoryFinderResolver` `RuntimeValue`.

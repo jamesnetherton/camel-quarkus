@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -58,6 +59,7 @@ import org.apache.camel.quarkus.core.CamelConfig;
 import org.apache.camel.quarkus.core.CamelConfig.ReflectionConfig;
 import org.apache.camel.quarkus.core.CamelConfigFlags;
 import org.apache.camel.quarkus.core.FastFactoryFinderResolver.Builder;
+import org.apache.camel.quarkus.core.deployment.spi.CamelDslTypeReferenceBuildItem;
 import org.apache.camel.quarkus.core.deployment.spi.CamelPackageScanClassBuildItem;
 import org.apache.camel.quarkus.core.deployment.spi.CamelRouteResourceBuildItem;
 import org.apache.camel.quarkus.core.deployment.spi.CamelRoutesBuilderClassBuildItem;
@@ -81,6 +83,7 @@ import org.jboss.jandex.IndexView;
 import org.jboss.jandex.MethodInfo;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -97,8 +100,11 @@ public class CamelNativeImageProcessor {
             "org.apache.camel.spi.Transformer");
     private static final DotName THROWABLE_TYPE = DotName.createSimple(Throwable.class.getName());
 
-    private static final Set<String> EXCEPTION_REGISTRATION_METHODS = Set.of("onException", "doCatch", "exception",
-            "throwException");
+    private static final Map<String, CamelDslTypeReferenceBuildItem.Kind> JAVA_DSL_TYPE_REFERENCE_METHODS = Map.of(
+            "onException", CamelDslTypeReferenceBuildItem.Kind.EXCEPTION,
+            "doCatch", CamelDslTypeReferenceBuildItem.Kind.EXCEPTION,
+            "exception", CamelDslTypeReferenceBuildItem.Kind.EXCEPTION,
+            "throwException", CamelDslTypeReferenceBuildItem.Kind.EXCEPTION);
 
     private static final List<Class<?>> CAMEL_REFLECTIVE_CLASSES = List.<Class<?>> of(
             Endpoint.class,
@@ -327,20 +333,18 @@ public class CamelNativeImageProcessor {
     }
 
     /**
-     * Scans RouteBuilder bytecode to auto-detect exception classes used in onException() and doCatch() calls, and
-     * registers them for reflection. This is needed because Camel stores exception class names as strings in the route
-     * model and resolves them back to Class objects at runtime via ClassLoader.loadClass().
+     * Scans RouteBuilder bytecode for class constants passed to DSL methods such as onException() and doCatch(). Camel
+     * stores some of these class references as names in the route model and resolves them at runtime via
+     * ClassLoader.loadClass(), so they need native image registration.
      *
      * @see <a href="https://github.com/apache/camel-quarkus/issues/7841">camel-quarkus#7841</a>
      */
     @BuildStep(onlyIf = NativeOrNativeSourcesBuild.class)
-    void registerOnExceptionClassesForReflection(
-            CombinedIndexBuildItem combinedIndex,
+    void scanJavaDslTypeReferences(
             List<CamelRoutesBuilderClassBuildItem> camelRoutesBuilders,
-            BuildProducer<ReflectiveClassBuildItem> reflectiveClass) {
+            BuildProducer<CamelDslTypeReferenceBuildItem> typeReferences) {
 
-        final IndexView index = combinedIndex.getIndex();
-        final Set<String> confirmedClasses = new HashSet<>();
+        final Set<CamelDslTypeReferenceBuildItem> references = new LinkedHashSet<>();
 
         for (CamelRoutesBuilderClassBuildItem routeBuilder : camelRoutesBuilders) {
             String className = routeBuilder.getDotName().toString();
@@ -356,7 +360,7 @@ public class CamelNativeImageProcessor {
                     @Override
                     public MethodVisitor visitMethod(int access, String name, String descriptor,
                             String signature, String[] exceptions) {
-                        return new ExceptionClassDetector(confirmedClasses, index);
+                        return new DslTypeReferenceDetector(references);
                     }
                 }, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
             } catch (IOException e) {
@@ -364,11 +368,34 @@ public class CamelNativeImageProcessor {
             }
         }
 
-        if (!confirmedClasses.isEmpty()) {
-            LOGGER.debug("Auto-detected onException/doCatch classes for reflection: {}", confirmedClasses);
-            for (String cls : confirmedClasses) {
-                reflectiveClass.produce(ReflectiveClassBuildItem.builder(cls).build());
-            }
+        if (!references.isEmpty()) {
+            LOGGER.debug("Detected Java DSL type references: {}", references);
+            references.forEach(typeReferences::produce);
+        }
+    }
+
+    /**
+     * Registers exception classes referenced by onException(), doCatch() and throwException() in any route DSL for
+     * reflection.
+     *
+     * @see <a href="https://github.com/apache/camel-quarkus/issues/7841">camel-quarkus#7841</a>
+     */
+    @BuildStep(onlyIf = NativeOrNativeSourcesBuild.class)
+    void registerDslExceptionClassesForReflection(
+            CombinedIndexBuildItem combinedIndex,
+            List<CamelDslTypeReferenceBuildItem> typeReferences,
+            BuildProducer<ReflectiveClassBuildItem> reflectiveClass) {
+
+        final IndexView index = combinedIndex.getIndex();
+        String[] exceptionClasses = typeReferences.stream()
+                .filter(reference -> reference.getKind() == CamelDslTypeReferenceBuildItem.Kind.EXCEPTION)
+                .map(CamelDslTypeReferenceBuildItem::getClassName)
+                .distinct()
+                .filter(className -> isThrowable(className, index))
+                .toArray(String[]::new);
+
+        if (exceptionClasses.length > 0) {
+            reflectiveClass.produce(ReflectiveClassBuildItem.builder(exceptionClasses).build());
         }
     }
 
@@ -510,43 +537,45 @@ public class CamelNativeImageProcessor {
     }
 
     /**
-     * ASM MethodVisitor that detects Throwable class constants passed to onException/doCatch/exception method calls.
+     * ASM MethodVisitor that detects class constants passed to the DSL methods in
+     * {@link #JAVA_DSL_TYPE_REFERENCE_METHODS}.
      * <p>
-     * It tracks class constants loaded via LDC instructions in a pending set. When a method call instruction is
-     * visited:
-     * <ul>
-     * <li>If the method is onException/doCatch/exception with a Class parameter, all pending Throwable classes are
-     * confirmed.</li>
-     * <li>The pending set is cleared after any method call, so unrelated class references are discarded.</li>
-     * </ul>
+     * Class constants loaded via LDC instructions are held in a pending set. When a method call instruction is
+     * visited and the method is a DSL type reference method with a Class parameter, the pending classes are recorded
+     * against its {@link CamelDslTypeReferenceBuildItem.Kind}. The pending set is cleared after any method call, so
+     * unrelated class references are discarded.
      */
-    static class ExceptionClassDetector extends MethodVisitor {
+    static class DslTypeReferenceDetector extends MethodVisitor {
         private final Set<String> pendingClasses = new LinkedHashSet<>();
-        private final Set<String> confirmedClasses;
-        private final IndexView index;
+        private final Set<CamelDslTypeReferenceBuildItem> references;
 
-        ExceptionClassDetector(Set<String> confirmedClasses, IndexView index) {
+        DslTypeReferenceDetector(Set<CamelDslTypeReferenceBuildItem> references) {
             super(Opcodes.ASM9);
-            this.confirmedClasses = confirmedClasses;
-            this.index = index;
+            this.references = references;
         }
 
         @Override
         public void visitLdcInsn(Object value) {
             if (value instanceof Type type && type.getSort() == Type.OBJECT) {
-                String className = type.getClassName();
-                if (isThrowable(className, index)) {
-                    pendingClasses.add(className);
-                }
+                pendingClasses.add(type.getClassName());
             }
         }
 
         @Override
         public void visitMethodInsn(int opcode, String owner, String name,
                 String descriptor, boolean isInterface) {
-            if (EXCEPTION_REGISTRATION_METHODS.contains(name) && descriptor.contains("Ljava/lang/Class;")) {
-                confirmedClasses.addAll(pendingClasses);
+            CamelDslTypeReferenceBuildItem.Kind kind = JAVA_DSL_TYPE_REFERENCE_METHODS.get(name);
+            if (kind != null && descriptor.contains("Ljava/lang/Class;")) {
+                for (String className : pendingClasses) {
+                    references.add(new CamelDslTypeReferenceBuildItem(kind, className));
+                }
             }
+            pendingClasses.clear();
+        }
+
+        @Override
+        public void visitInvokeDynamicInsn(String name, String descriptor, Handle bootstrapMethodHandle,
+                Object... bootstrapMethodArguments) {
             pendingClasses.clear();
         }
     }
