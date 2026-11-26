@@ -77,6 +77,14 @@ public class CoreMainYamlTest {
     }
 
     @Test
+    public void beanTypeYamlRoute() {
+        RestAssured.get("/main/yaml/greet/from/bean/type")
+                .then()
+                .statusCode(200)
+                .body(is("Hello World from BeanTypeGreeter"));
+    }
+
+    @Test
     public void tryCatchYamlRoute() {
         RestAssured.given()
                 .get("/main/yaml/try/catch")

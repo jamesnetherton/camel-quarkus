@@ -16,12 +16,18 @@
  */
 package org.apache.camel.quarkus.component.bean.deployment;
 
+import java.util.List;
+
+import io.quarkus.bootstrap.classloading.QuarkusClassLoader;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.nativeimage.ReflectiveClassBuildItem;
+import io.quarkus.deployment.pkg.steps.NativeOrNativeSourcesBuild;
 import org.apache.camel.Handler;
+import org.apache.camel.quarkus.core.deployment.spi.CamelDslTypeReferenceBuildItem;
+import org.apache.camel.quarkus.core.deployment.spi.CamelDslTypeReferenceBuildItem.Kind;
 import org.apache.camel.support.language.DefaultAnnotationExpressionFactory;
 import org.apache.camel.support.language.LanguageAnnotation;
 import org.jboss.jandex.AnnotationInstance;
@@ -83,5 +89,38 @@ class BeanProcessor {
             reflectiveClass.produce(reflectiveClassBuildItem);
 
         });
+    }
+
+    /**
+     * Registers bean classes referenced by the bean EIP in Java, XML and YAML routes for reflection, so that Camel can
+     * load and introspect them in native mode.
+     */
+    @BuildStep(onlyIf = NativeOrNativeSourcesBuild.class)
+    void registerDslBeanClassesForReflection(
+            List<CamelDslTypeReferenceBuildItem> typeReferences,
+            BuildProducer<ReflectiveClassBuildItem> reflectiveClass) {
+
+        String[] beanClasses = typeReferences.stream()
+                .filter(reference -> reference.getKind() == Kind.BEAN)
+                .map(CamelDslTypeReferenceBuildItem::getClassName)
+                .distinct()
+                .filter(BeanProcessor::isClassPresent)
+                .toArray(String[]::new);
+
+        if (beanClasses.length > 0) {
+            LOGGER.debug("Registering DSL bean classes for reflection: {}", (Object) beanClasses);
+            reflectiveClass.produce(ReflectiveClassBuildItem.builder(beanClasses).methods().build());
+        }
+    }
+
+    /**
+     * Names that do not resolve to a class at build time, such as property placeholders, are skipped.
+     */
+    private static boolean isClassPresent(String className) {
+        if (QuarkusClassLoader.isClassPresentAtRuntime(className)) {
+            return true;
+        }
+        LOGGER.debug("Skipping unresolvable DSL bean class: {}", className);
+        return false;
     }
 }

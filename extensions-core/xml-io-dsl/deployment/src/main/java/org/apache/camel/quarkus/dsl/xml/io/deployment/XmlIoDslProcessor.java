@@ -30,6 +30,7 @@ import io.quarkus.deployment.annotations.ExecutionTime;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.pkg.steps.NativeOrNativeSourcesBuild;
+import org.apache.camel.model.BeanDefinition;
 import org.apache.camel.model.CatchDefinition;
 import org.apache.camel.model.OnExceptionDefinition;
 import org.apache.camel.model.ProcessorDefinition;
@@ -64,7 +65,7 @@ public class XmlIoDslProcessor {
     }
 
     /**
-     * Parses XML DSL route files to detect classes referenced by DSL elements such as onException and doCatch.
+     * Parses XML DSL route files to detect classes referenced by DSL elements such as onException, doCatch and bean.
      *
      * @see <a href="https://github.com/apache/camel-quarkus/issues/7841">camel-quarkus#7841</a>
      */
@@ -187,6 +188,8 @@ public class XmlIoDslProcessor {
                 addReferences(references, Kind.EXCEPTION, catchDef.getExceptions());
             } else if (output instanceof ThrowExceptionDefinition throwEx) {
                 addReference(references, Kind.EXCEPTION, throwEx.getExceptionType());
+            } else if (output instanceof BeanDefinition beanDef) {
+                addReference(references, Kind.BEAN, beanDef.getBeanType());
             }
             collectFromOutputs(output.getOutputs(), references);
         }

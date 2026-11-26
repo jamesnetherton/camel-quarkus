@@ -124,6 +124,17 @@ public class CoreMainXmlIoTest {
     }
 
     @Test
+    public void beanTypeWithMethodShouldSucceed() {
+        RestAssured.given()
+                .contentType(ContentType.TEXT)
+                .body("World")
+                .post("/xml-io/route/withBeanTypeMethod")
+                .then()
+                .statusCode(200)
+                .body(Matchers.is("Hello World from BeanTypeGreeter"));
+    }
+
+    @Test
     public void testDumpRoutes(TestLog testLog) {
         await().atMost(10L, TimeUnit.SECONDS).pollDelay(100, TimeUnit.MILLISECONDS).until(() -> {
             String log = Files.readString(testLog.getLogFilePath());

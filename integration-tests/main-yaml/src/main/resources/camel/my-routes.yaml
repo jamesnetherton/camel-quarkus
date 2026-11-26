@@ -71,3 +71,12 @@
       steps:
         - to: "bean:myGreetingBean?method=greet"
 
+- route:
+    id: "my-yaml-route-bean-type"
+    from:
+      uri: "direct:greetFromBeanType"
+      steps:
+        - bean:
+            beanType: "org.apache.camel.quarkus.main.BeanTypeGreeter"
+            method: "greet"
+

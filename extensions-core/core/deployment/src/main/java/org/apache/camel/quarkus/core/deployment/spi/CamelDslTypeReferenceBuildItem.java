@@ -37,6 +37,11 @@ public final class CamelDslTypeReferenceBuildItem extends MultiBuildItem {
          * scanning may also report class constants that are not exceptions, so consumers should verify the type.
          */
         EXCEPTION,
+        /**
+         * A bean class referenced by the bean EIP, such as {@code bean(MyBean.class)} or
+         * {@code <bean beanType="..."/>}.
+         */
+        BEAN,
     }
 
     private final Kind kind;

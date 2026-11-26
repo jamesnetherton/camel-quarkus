@@ -47,7 +47,7 @@ public class YamlDslProcessor {
     }
 
     /**
-     * Parses YAML DSL route files to detect classes referenced by DSL elements such as onException and doCatch.
+     * Parses YAML DSL route files to detect classes referenced by DSL elements such as onException, doCatch and bean.
      *
      * @see <a href="https://github.com/apache/camel-quarkus/issues/7841">camel-quarkus#7841</a>
      */
@@ -98,6 +98,8 @@ public class YamlDslProcessor {
                         addReferences(references, Kind.EXCEPTION, inner.get("exception"));
                     } else if (THROW_EXCEPTION_KEYS.contains(key)) {
                         addReferences(references, Kind.EXCEPTION, inner.get("exceptionType"));
+                    } else if ("bean".equals(key)) {
+                        addReferences(references, Kind.BEAN, inner.get("beanType"));
                     }
                 }
                 collectTypeReferences(entry.getValue(), references);

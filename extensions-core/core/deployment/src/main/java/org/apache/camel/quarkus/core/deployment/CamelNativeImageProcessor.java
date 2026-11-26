@@ -104,7 +104,8 @@ public class CamelNativeImageProcessor {
             "onException", CamelDslTypeReferenceBuildItem.Kind.EXCEPTION,
             "doCatch", CamelDslTypeReferenceBuildItem.Kind.EXCEPTION,
             "exception", CamelDslTypeReferenceBuildItem.Kind.EXCEPTION,
-            "throwException", CamelDslTypeReferenceBuildItem.Kind.EXCEPTION);
+            "throwException", CamelDslTypeReferenceBuildItem.Kind.EXCEPTION,
+            "bean", CamelDslTypeReferenceBuildItem.Kind.BEAN);
 
     private static final List<Class<?>> CAMEL_REFLECTIVE_CLASSES = List.<Class<?>> of(
             Endpoint.class,

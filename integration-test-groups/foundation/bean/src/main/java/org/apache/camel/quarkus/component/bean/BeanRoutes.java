@@ -190,7 +190,6 @@ public class BeanRoutes extends RouteBuilder {
         }
     }
 
-    @RegisterForReflection
     public static class MyBean {
         /**
          * Just return an hello message.

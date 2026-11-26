@@ -29,4 +29,9 @@
         <bean beanType="org.apache.camel.quarkus.main.MyBean"/>
     </route>
 
+    <route id="my-route-with-beanType-method">
+        <from uri="direct:withBeanTypeMethod"/>
+        <bean beanType="org.apache.camel.quarkus.main.BeanTypeGreeter" method="greet"/>
+    </route>
+
 </routes>

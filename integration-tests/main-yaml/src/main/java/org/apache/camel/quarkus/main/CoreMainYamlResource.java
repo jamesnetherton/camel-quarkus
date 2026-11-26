@@ -91,4 +91,11 @@ public class CoreMainYamlResource {
         myGreetingBean.setGreeting("Hello from bean declared in java!");
         return producerTemplate.requestBody("direct:greetFromJavaBean", null, String.class);
     }
+
+    @Path("/greet/from/bean/type")
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public String greetFromBeanType() {
+        return producerTemplate.requestBody("direct:greetFromBeanType", "World", String.class);
+    }
 }
